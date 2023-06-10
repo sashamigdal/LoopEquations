@@ -4,7 +4,7 @@ import multiprocessing as mp
 from multiprocessing.shared_memory import SharedMemory
 import numpy as np
 
-mp.set_start_method('fork')
+# mp.set_start_method('fork')
 
 # import cProfile
 
@@ -85,3 +85,8 @@ class ConstSharedArray:
         self.shm.close()
         if self.main:
             self.shm.unlink()
+    def __len__(self):
+        return len(self.array)
+    def Apply(self, op):
+        #op must be const operation
+        return op(self.array)
