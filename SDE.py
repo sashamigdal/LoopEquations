@@ -1,47 +1,48 @@
 import numpy as np
+import os, sys
 from numpy import cos, sin, pi
 from scipy.linalg import pinvh, null_space
 import sdeint
+import multiprocessing as mp
+from parallel import parallel_map, ConstSharedArray
+from plot import Plot, PlotTimed, MakeDir
+
+MakeDir("plots")
 #no changes, git test2
-# from parallel import parallel_map
-#
-#
-# # ff[k_, M_] :={1/2 Cos[(2 k \[Pi])/M] Csc[\[Pi]/M],
-# #  1/2 Csc[\[Pi]/M] Sin[(2 k \[Pi])/M], 1/2 I Cot[\[Pi]/M]}
-#
-# def ParallelOp(a, b, Op, K, L, M, S):  # returns (K,M) list of numpy arrays shaped S
-#     # a,b are  lists of numpy arrays, Op could be dot or tensordot returning array shaped S
-#     def func(k, m):  # returns numpy array shaped S
-#         s = Op(a[k, 0], b[0, m])
-#         for l in range(1, L, 1):
-#             s += Op(a[k, l], b[l, m])
-#         return s
-#
-#     pairs = np.array(np.meshgrid(np.arange(K), np.arange(M))).T.reshape(-1, 2)
-#     T = np.concatenate(([K, M], S))
-#     return np.array(parallel_map(func, pairs)).reshape(*T)
-#
+
+def test_itoEuler():
+    A = np.array([[-0.5, -2.0],
+                  [2.0, -1.0]])
+
+    B = np.diag([0.5, 0.5])  # diagonal, so independent driving Wiener processes
+
+    tspan = np.linspace(0.0, 10.0, 1000000)
+    x0 = np.array([3.0, 3.0])
+
+    def f(x, t):
+        return A.dot(x)
+
+    def G(x, t):
+        return B
+
+    result = sdeint.itoSRI2(f, G, x0, tspan).reshape(100,-1,2)
+
+    shared = [[ConstSharedArray(x)] for x in result[10:]]
+    print("finished Ito process")
+    mp.set_start_method('fork')
+    def Mean(x):
+        return x.Apply(np.mean)
+
+    cores = mp.cpu_count()
+    means = parallel_map(Mean, shared, cores)
+    Plot(means,os.path.join("plots","test_ito_euler.png"),x_label='t',y_label='m',title='Ito')
 
 def ff(k, M):
     delta = pi / M
     return np.array([cos(2 * k * delta), sin(2 * k * delta), cos(delta) * 1j]) / (2 * sin(delta))
-
-
-# RI[X_] := Transpose[ComplexExpand[ReIm[X]]]
-
 def RI(X):
     return np.array([X.real, X.imag]).transpose()
 
-
-# \[Gamma]formula[u_] := Block[{ V, Q},
-# V=ReIm[u];
-# Q = PseudoInverse[V.Transpose[V]].V;
-# (#[[2]] + I #[[1]])&/@ Q
-# ];
-# \[Gamma]null[u_] := Block[{ V},
-# V=ReIm[u];
-# NullSpace[V.Transpose[V]]
-# ];
 
 def gamma_formula(u):
     (N, d) = u.shape
@@ -49,7 +50,6 @@ def gamma_formula(u):
     Q = pinvh(V.dot(V.T))
     V1 = Q.dot(V).reshape(2, N, d)
     return V1[1] + V1[0] * 1j
-
 
 def HodgeDual(v):
     return np.array([
@@ -129,9 +129,18 @@ def HodgeDual(v):
 # CC = MDot[\[CapitalTheta], Transpose[\[CapitalTheta]]];
 # (*Return[MatrixForm[CC]];*)
 
-class SDEMatrices():
-    def __init__(self, F):
-        M = len(F)
+def Thread(Op,A):
+    return np.array([Op(a) for a in A])
+
+def Thread(Op,A,B):
+    return np.array([Op(a,b) for a,b in zip(A,B)])
+class SDEProcess():
+    def __init__(self, M):
+        self.F0 = np.array([ff(k, M) for k in range(M)])
+    def __len__(self):
+        return len(self.F0)
+    def Matrix(self, F):
+        M = len(self.F0)
         q = np.roll(F, 1, axis=0) - F
         qd = np.array([HodgeDual(v) for v in q])
         G = np.array([2 * F[k].dot(q[k]) - 1j for k in range(M)])
@@ -182,15 +191,37 @@ class SDEMatrices():
         TT[0] += Lambda.reshape(3,3,M).transpose((2,0,1))
         for k in range(M-1):
             TT[k+1] += TT[k]
-        self.B =TT.transpose((0,2,1,3)).reshape(3*M,3*M)
-        self.B
+        return TT.transpose((0,2,1,3)).reshape(3*M,3*M)
+    def ItoProcess(self, T, num_steps, chunk):
+        tspan = np.linspace(0.0, T, num_steps)
+
+        def f(F, t):
+            return self.Matrix(F)
+
+        def G(x, t):
+            return np.zeros(self.M,dtype=complex)
+
+        result = sdeint.itoSRI2(f, G, self.F0, tspan).reshape(chunk, -1, len(self.F0))
+
+        shared = [[ConstSharedArray(x)] for x in result[10:]]
+        print("finished Ito process")
+        mp.set_start_method('fork')
+
+        def Mean(x):
+            return x.Apply(np.mean)
+        cores = mp.cpu_count()
+        means = parallel_map(Mean, shared, cores)
+        Plot(means, os.path.join("plots", "test_ito_euler.png"), x_label='t', y_label='m', title='Ito')
+
+    def GetMean(self,H):
+        res = parallel_map(H, self.result)
 
 ############### tests
 def testSDE():
-    M=10
-    F = np.array([ff(k, M) for k in range(M)])
-    XX = SDEMatrices(F)
-    XX.B
+    M = 5
+    L =SDEProcess(M)
+    L.Matrix(L.F0)
+
 
 
 def testFF():
