@@ -49,13 +49,19 @@ def ff(k, M):
 def RI(X):
     return np.array([X.real, X.imag]).transpose()
 
+def testDot3():
+    a = np.random.random(4).reshape(2, 2)
+    b = np.random.random(4).reshape(2, 2)
+    c = np.zeros((2,2),dtype = a.dtype)
+    np.dot(a,b,c)
+    np.dot(a,b,a)
+    assert (a == c).all()
 
 def gamma_formula(u, ans):
     (N, d) = u.shape
     V = np.array([u.real, u.imag]).reshape(2, -1)
     Q = pinvh(V.dot(V.T))
-    np.dot(Q, V, V)
-    V1 = V.reshape(2, N, d)
+    V1 =np.dot(Q, V).reshape(2, N, d)
     ans[:] = V1[1] + V1[0] * 1j
 
 
@@ -150,6 +156,24 @@ def test_LevyCivita():
 # CC = MDot[\[CapitalTheta], Transpose[\[CapitalTheta]]];
 # (*Return[MatrixForm[CC]];*)
 
+def VecKron(a,b):
+    M = a.shape[0]
+    assert (M==b.shape[0])
+    S = a.shape[1:]
+    T = b.shape[1:]
+    ST = (*S,*T)
+    return np.array([np.kron(a[k],b[k]).reshape(ST) for k in range(M)])
+
+def VecDot(a,b):
+    M = a.shape[0]
+    assert (M == b.shape[0])
+    return np.array([np.dot(a[k],b[k].T) for k in range(M)])
+def testVecOps():
+    a = np.arange(12).reshape(4,3)
+    b = np.arange(10,22).reshape(4, 3)
+    c = VecKron(a,b)
+    d = VecDot(a,b)
+    d
 class SDEProcess():
     global M, M3, LL, C33, R, C, RR, CC
 
@@ -162,15 +186,18 @@ class SDEProcess():
         qd = C33[0]
         np.dot(q, E3, qd)
         G = C[0]
-        for k in range(M): G[k] = 2 * F[k].dot(q[k]) - 1j
+        G[:] = VecDot(F,q)
+        G[:] = 2 * G - 1j
         U = C[1]
-        for k in range(M): U[k] = -G[k] * F[k].dot(qd[k])
+        U[:] = VecDot(F, qd)
+        U *= -G
+        # for k in range(M): U[k] = -G[k] * F[k].dot(qd[k])
         gamma = C[2]
         gamma_formula(U, gamma)
         V = C[3]
-        for k in range(M): V[k] = 2 * G[k] * q[k] - F[k]
+        V[:] = 2 * G * q - F
         gammaXV = C33[1]
-        for k in range(M): gammaXV[k] = np.kron(gamma[k], V[k]).reshape(3, 3)
+        gammaXV[:] = VecKron(gamma,V)
         LL[:] = gammaXV.reshape(M3, 3).dot(qd.reshape(M3, 3).T).reshape(M, 3, M, 3).transpose((0, 2, 1, 3))
         XX = RR[0]
         XX[:] = LL.real
