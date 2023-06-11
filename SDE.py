@@ -172,8 +172,10 @@ def testVecOps():
     a = np.arange(12).reshape(4,3)
     b = np.arange(10,22).reshape(4, 3)
     c = VecKron(a,b)
+    assert c.shape == (4,3,3)
     d = VecDot(a,b)
-    d
+    assert d.ndim ==1
+    assert d.shape[0] == 4
 class SDEProcess():
     global M, M3, LL, C33, R, C, RR, CC
 
