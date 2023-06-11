@@ -8,7 +8,9 @@ from parallel import parallel_map, ConstSharedArray
 from plot import Plot, PlotTimed, MakeDir
 
 MakeDir("plots")
-#no changes, git test2
+
+
+# no changes, git test2
 
 def test_ItoProcess():
     A = np.array([[-0.5, -2.0],
@@ -16,7 +18,7 @@ def test_ItoProcess():
 
     B = np.diag([0.5, 0.5])  # diagonal, so independent driving Wiener processes
 
-    tspan = np.linspace(0.0, 10.0, 1000000)
+    tspan = np.linspace(0.0, 10.0, 100000)
     x0 = np.array([3.0, 3.0])
 
     def f(x, t):
@@ -25,31 +27,37 @@ def test_ItoProcess():
     def G(x, t):
         return B
 
-    result = sdeint.itoSRI2(f, G, x0, tspan).reshape(100,-1,2)
+    result = sdeint.itoSRI2(f, G, x0, tspan).reshape(100, -1, 2)
 
     shared = [[ConstSharedArray(x)] for x in result[10:]]
     print("finished Ito process")
     mp.set_start_method('fork')
+
     def Mean(x):
-        return x.Apply(np.mean)
+        return np.mean(x[:])
 
     cores = mp.cpu_count()
     means = parallel_map(Mean, shared, cores)
-    Plot(means,os.path.join("plots","test_ito_euler.png"),x_label='t',y_label='m',title='Ito')
+    Plot(means, os.path.join("plots", "test_ito_euler.png"), x_label='t', y_label='m', title='Ito')
+
 
 def ff(k, M):
     delta = pi / M
     return np.array([cos(2 * k * delta), sin(2 * k * delta), cos(delta) * 1j]) / (2 * sin(delta))
+
+
 def RI(X):
     return np.array([X.real, X.imag]).transpose()
 
 
-def gamma_formula(u):
+def gamma_formula(u, ans):
     (N, d) = u.shape
     V = np.array([u.real, u.imag]).reshape(2, -1)
     Q = pinvh(V.dot(V.T))
-    V1 = Q.dot(V).reshape(2, N, d)
-    return V1[1] + V1[0] * 1j
+    np.dot(Q, V, V)
+    V1 = V.reshape(2, N, d)
+    ans[:] = V1[1] + V1[0] * 1j
+
 
 def HodgeDual(v):
     return np.array([
@@ -57,6 +65,19 @@ def HodgeDual(v):
         [-v[2], 0, v[0]],
         [v[1], -v[0], 0]
     ], dtype=v.dtype)
+
+
+E3 = np.array([HodgeDual(v) for v in np.eye(3)], dtype=float)
+
+
+def test_LevyCivita():
+    a = np.array([1, 2, 3], float)
+    b = np.array([4, 5, 6], float)
+    ad = a.dot(E3)
+    c = ad.dot(b)
+    c1 = np.cross(a, b)
+    test = c - c1
+    test
 
 
 # M = Length[F];
@@ -75,7 +96,7 @@ def HodgeDual(v):
 # (*If[Length[Flatten[\[Gamma]null/@ U]] >0, Print["Nullspace!"]];*)
 # (*Return[\[Gamma]];*)
 # U =-G[[#]] F[[#]]. qd[[#]] &/@ Range[M];
-#V =2 G[[#]]*q[[#]]-F[[#]] &/@ Range[M];
+# V =2 G[[#]]*q[[#]]-F[[#]] &/@ Range[M];
 # (* V is a  M-array of complex 3 vectors*);
 # (*Return[V];*)
 # (* the arrays  of matrices *)
@@ -129,56 +150,67 @@ def HodgeDual(v):
 # CC = MDot[\[CapitalTheta], Transpose[\[CapitalTheta]]];
 # (*Return[MatrixForm[CC]];*)
 
-def Thread(Op,A):
-    return np.array([Op(a) for a in A])
-
-def Thread(Op,A,B):
-    return np.array([Op(a,b) for a,b in zip(A,B)])
 class SDEProcess():
-    def __init__(self, M):
-        self.F0 = np.array([ff(k, M) for k in range(M)])
-    def __len__(self):
-        return len(self.F0)
+    global M, M3, LL, C33, R, C, RR, CC
+
+    def __init__(self):
+        pass
+
     def Matrix(self, F):
-        M = len(self.F0)
         q = np.roll(F, 1, axis=0) - F
-        qd = np.array([HodgeDual(v) for v in q])
-        G = np.array([2 * F[k].dot(q[k]) - 1j for k in range(M)])
-        U = np.array([-G[k]*F[k].dot(qd[k]) for k in range(M)])
-        gamma = gamma_formula(U)
-        V = np.array([2*G[k]*q[k]-F[k] for k in range(M)])
-        gammaXV = np.array([np.kron(gamma[k],V[k]) for k in range(M)]).reshape(M,3,3)
-        LL =   gammaXV.reshape(M*3,3).dot(qd.reshape(M*3,3).T).reshape(M,3,M,3).transpose((0,2,1,3))
-        X = LL.real
+        # qd0 = np.array([HodgeDual(v) for v in q])
+        qd = C33[0]
+        np.dot(q, E3, qd)
+        G = C[0]
+        for k in range(M): G[k] = 2 * F[k].dot(q[k]) - 1j
+        U = C[1]
+        for k in range(M): U[k] = -G[k] * F[k].dot(qd[k])
+        gamma = C[2]
+        gamma_formula(U, gamma)
+        V = C[3]
+        for k in range(M): V[k] = 2 * G[k] * q[k] - F[k]
+        gammaXV = C33[1]
+        for k in range(M): gammaXV[k] = np.kron(gamma[k], V[k]).reshape(3, 3)
+        LL[:] = gammaXV.reshape(M3, 3).dot(qd.reshape(M3, 3).T).reshape(M, 3, M, 3).transpose((0, 2, 1, 3))
+        XX = RR[0]
+        XX[:] = LL.real
         for k in range(M):
-            X[k,k] -= np.kron(gamma[k], U[k]).real.reshape(3,3)
-        X = X.transpose((0,2,1,3)).reshape(3*M,3*M)
-        MM = X
-        LLI = LL.imag.transpose((0,2,1,3)).reshape(3*M,3*M)
-        for _ in range(M-1):
-            MM = X - LLI.dot(MM)
+            XX[k, k] -= np.kron(gamma[k], U[k]).real.reshape(3, 3)
+        XX = XX.transpose((0, 2, 1, 3)).reshape(M3, M3)
+        MM = RR[1].transpose((0, 2, 1, 3)).reshape(M3, M3)
+        MM[:] = XX
+        LLI = RR[2].transpose((0, 2, 1, 3)).reshape(M3, M3)
+        LLI[:] = -LL.imag.transpose((0, 2, 1, 3)).reshape(M3, M3)
+        for _ in range(M - 1):
+            np.dot(LLI, MM, MM)
+            MM[:] += XX
         pass
-        Y = np.array([np.kron(gamma[k], V[k]).reshape(3,3) for k in range(M)]).reshape(3*M,3)
-        PP =Y.real
+        Y = C33[2]
+        for k in range(M):
+            Y[k] = np.kron(gamma[k], V[k]).reshape(3, 3)
+        Y = Y.reshape(M3, 3)
+        PP = Y.real
         QQ = -Y.imag
-        for _ in range(M-1):
-            PP = Y.real + LLI.dot(PP)
-            QQ =-Y.imag + LLI.dot(QQ)
+        for _ in range(M - 1):
+            np.dot(LLI, PP, PP)
+            np.dot(LLI, QQ, QQ)
+            PP[:] += Y.real
+            QQ[:] -= Y.imag
         pass
-        QD =qd.transpose((1,0,2)).reshape(3,3*M)
-        P = QD.dot(PP)
-        Q = QD.dot(QQ)
-        BB = np.array([[P.real,Q.real],[P.imag,Q.imag]]).transpose(0,2,1,3).reshape(6,6)
-        NS = null_space(BB).reshape(2,3,-1)
-        NS = (NS[0]-1j*NS[1]).transpose()
+        QD = qd.transpose((1, 0, 2)).reshape(3, M3)
+        P = np.dot(QD, PP)
+        Q = np.dot(QD, QQ)
+        BB = np.array([[P.real, Q.real], [P.imag, Q.imag]]).transpose(0, 2, 1, 3).reshape(6, 6)
+        NS = null_space(BB).reshape(2, 3, -1)
+        NS = (NS[0] - 1j * NS[1]).transpose()
         BB = pinvh(BB)
         K = len(NS)
-        PQM = BB.reshape(2,3,2,3).transpose((0,2,1,3))
-        X = PQM[0,0] +PQM[1,1] - 1j *PQM[1,0] + 1j*PQM[0,1]
-        Z = X.dot(qd.transpose(1,2,0).reshape(3,3*M))
+        PQM = BB.reshape(2, 3, 2, 3).transpose((0, 2, 1, 3))
+        X = PQM[0, 0] + PQM[1, 1] - 1j * PQM[1, 0] + 1j * PQM[0, 1]
+        Z = X.dot(qd.transpose(1, 2, 0).reshape(3, 3 * M))
         Lambda = -Z.imag - Y.T.dot(MM)
         Z = NS.dot(QD)
-        Theta =Z.imag - Z.real.dot(MM)
+        Theta = Z.imag - Z.real.dot(MM)
         CC = Theta.dot(Theta.T)
         # eig=np.linalg.eigh(CC)
         CCI = np.linalg.inv(CC)
@@ -187,11 +219,12 @@ class SDEProcess():
         # test =Lambda.dot(Theta.T)
         # test
         TT = MM - MM.dot(Theta.T).dot(Y)
-        TT = TT.astype(complex).reshape(M,3,M,3).transpose((0,2,1,3))
-        TT[0] += Lambda.reshape(3,3,M).transpose((2,0,1))
-        for k in range(M-1):
-            TT[k+1] += TT[k]
-        return TT.transpose((0,2,1,3)).reshape(3*M,3*M)
+        TT = TT.astype(complex).reshape(M, 3, M, 3).transpose((0, 2, 1, 3))
+        TT[0] += Lambda.reshape(3, 3, M).transpose((2, 0, 1))
+        for k in range(M - 1):
+            TT[k + 1] += TT[k]
+        return TT.transpose((0, 2, 1, 3)).reshape(3 * M, 3 * M)
+
     def ItoProcess(self, T, num_steps, chunk):
         tspan = np.linspace(0.0, T, num_steps)
 
@@ -199,16 +232,17 @@ class SDEProcess():
             return self.Matrix(F)
 
         def G(x, t):
-            return np.zeros(self.M,dtype=complex)
+            return np.zeros(self.M, dtype=complex)
 
-        result = sdeint.itoSRI2(f, G, self.F0, tspan).reshape(chunk, -1, len(self.F0))
+        result = sdeint.itoSRI2(f, G, F0, tspan).reshape(chunk, -1, len(F0))
 
         shared = [[ConstSharedArray(x)] for x in result[10:]]
         print("finished Ito process")
         mp.set_start_method('fork')
 
         def Mean(x):
-            return x.Apply(np.mean)
+            return np.mean(x[:])
+
         cores = mp.cpu_count()
         means = parallel_map(Mean, shared, cores)
         Plot(means, os.path.join("plots", "test_ito_euler.png"), x_label='t', y_label='m', title='Ito')
@@ -216,10 +250,19 @@ class SDEProcess():
 
 ############### tests
 def testSDE():
-    M = 5
-    L =SDEProcess(M)
-    L.Matrix(L.F0)
+    global M, M3, LL, C33, R, C, RR, CC
+    M = 4
+    M3 = M * 3
+    F0 = np.array([ff(k, M) for k in range(M)], complex)
+    R = [np.zeros((M, 3), float) for _ in range(3)]
+    C = [np.zeros((M, 3), complex) for _ in range(4)]
+    RR = [np.zeros((M, M, 3, 3), float) for _ in range(3)]
+    CC = [np.zeros((M, M, 3, 3), complex) for _ in range(3)]
+    C33 = [np.zeros((M, 3, 3), complex) for _ in range(2)]
+    LL = CC[0]
 
+    SD = SDEProcess()
+    SD.Matrix(F0)
 
 
 def testFF():
@@ -233,17 +276,21 @@ def testRI():
 def test_gamma_formula():
     u = np.array(
         [[1 + 1j, 2 + 2j, 3 + 3j], [1 - 1j, 2 - 2j, 3 - 3j], [5 - 6j, 7 - 8j, 9 - 10j], [-5 - 6j, -7 - 8j, -9 - 10j]])
-    gamma = gamma_formula(u)
-    u
+    gamma = np.zeros_like(u)
+    gamma_formula(u, gamma)
+    gamma
+
 
 def testtensorDot():
     a = np.array([[[1, 2, 3], [4, 5, 6]], [[1, 2, 3], [4, 5, 6]]])
-    b = 10* a
-    c =np.tensordot(a,b,axes=([2],[2]))
-    a1 = a.reshape(4,  3)
+    b = 10 * a
+    c = np.tensordot(a, b, axes=([2], [2]))
+    a1 = a.reshape(4, 3)
     b1 = b.reshape(4, 3)
-    c1 = a1.dot(b1.T).reshape(2,2,2,2)
+    c1 = a1.dot(b1.T).reshape(2, 2, 2, 2)
     pass
+
+
 def testPairs():
     K = 2
     M = 3

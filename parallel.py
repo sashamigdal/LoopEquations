@@ -87,6 +87,3 @@ class ConstSharedArray:
             self.shm.unlink()
     def __len__(self):
         return len(self.array)
-    def Apply(self, op):
-        #op must be const operation
-        return op(self.array)
