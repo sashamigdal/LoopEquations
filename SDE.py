@@ -156,76 +156,97 @@ def test_LevyCivita():
 # CC = MDot[\[CapitalTheta], Transpose[\[CapitalTheta]]];
 # (*Return[MatrixForm[CC]];*)
 
+
+
+def dot_shape(a, b):
+  x = np.zeros_like(a)
+  y = np.zeros_like(b)
+  return x.dot(y).shape
+
 def VecKron(a,b):
     M = a.shape[0]
     assert (M==b.shape[0])
     S = a.shape[1:]
     T = b.shape[1:]
-    ST = (*S,*T)
-    return np.array([np.kron(a[k],b[k]).reshape(ST) for k in range(M)])
+    MST = (M,*S,*T)
+    return np.vstack(np.kron(a[k],b[k]) for k in range(M)).reshape(MST)
+
+def VecKron22(A,B, C):
+    assert A.ndim ==2
+    assert B.ndim ==2
+    C[:] = A[:, :, None] * B[:, None, :]
 
 def VecDot(a,b):
     M = a.shape[0]
     assert (M == b.shape[0])
-    return np.array([np.dot(a[k],b[k].T) for k in range(M)])
+    x = np.vstack(a[k].dot(b[k]) for k in range(M))
+    ST = dot_shape(a[0],b[0])
+    MST = (M,*ST)
+    return x.reshape(MST)
+
 def testVecOps():
     a = np.arange(12).reshape(4,3)
     b = np.arange(10,22).reshape(4, 3)
-    c = VecKron(a,b)
+    c = VecKron22(a,b)
     assert c.shape == (4,3,3)
     d = VecDot(a,b)
     assert d.ndim ==1
     assert d.shape[0] == 4
 class SDEProcess():
-    global M, M3, LL, C33, R, C, RR, CC
+    global M, M3, LL, C33, R, C, RR, CC, G
 
-    def __init__(self):
-        pass
+    def __init__(self, F0):
+        self.F0  = F0
 
     def Matrix(self, F):
         q = np.roll(F, 1, axis=0) - F
         # qd0 = np.array([HodgeDual(v) for v in q])
         qd = C33[0]
         np.dot(q, E3, qd)
-        G = C[0]
-        G[:] = VecDot(F,q)
+        TMP = C33[1]
+        VecKron22(F,q, TMP)
+        G[:] = np.trace(TMP,axis1=1,axis2=2)
         G[:] = 2 * G - 1j
         U = C[1]
-        U[:] = VecDot(F, qd)
-        U *= -G
+        U[:] =np.trace(TMP.dot(E3),axis1 =1,axis2= 2)
+        U[:] = -G.reshape(M,1)*U
         # for k in range(M): U[k] = -G[k] * F[k].dot(qd[k])
         gamma = C[2]
         gamma_formula(U, gamma)
         V = C[3]
-        V[:] = 2 * G * q - F
+        V[:] = 2 * G.reshape(M,1) * q - F
         gammaXV = C33[1]
-        gammaXV[:] = VecKron(gamma,V)
+        VecKron22(gamma,V,gammaXV)
         LL[:] = gammaXV.reshape(M3, 3).dot(qd.reshape(M3, 3).T).reshape(M, 3, M, 3).transpose((0, 2, 1, 3))
         XX = RR[0]
         XX[:] = LL.real
+        TMP =  C33[4]
+        VecKron22(gamma,U, TMP)
         for k in range(M):
-            XX[k, k] -= np.kron(gamma[k], U[k]).real.reshape(3, 3)
+            XX[k, k] -= TMP[k].real
         XX = XX.transpose((0, 2, 1, 3)).reshape(M3, M3)
         MM = RR[1].transpose((0, 2, 1, 3)).reshape(M3, M3)
         MM[:] = XX
         LLI = RR[2].transpose((0, 2, 1, 3)).reshape(M3, M3)
         LLI[:] = -LL.imag.transpose((0, 2, 1, 3)).reshape(M3, M3)
+        TMP = RR[3].reshape(M3,M3)
         for _ in range(M - 1):
-            np.dot(LLI, MM, MM)
-            MM[:] += XX
+            np.dot(LLI, MM, TMP)
+            TMP += XX
+            MM[:] = TMP
         pass
         Y = C33[2]
-        for k in range(M):
-            Y[k] = np.kron(gamma[k], V[k]).reshape(3, 3)
-        Y = Y.reshape(M3, 3)
-        PP = Y.real
-        QQ = -Y.imag
+        VecKron22(gamma,V,Y)
+        Y =Y.reshape(M3, 3)
+        TMP1 = C33[3].reshape(M3, 3)
+        TMP2 = C33[4].reshape(M3,3)
+        TMP2[:] = Y
         for _ in range(M - 1):
-            np.dot(LLI, PP, PP)
-            np.dot(LLI, QQ, QQ)
-            PP[:] += Y.real
-            QQ[:] -= Y.imag
-        pass
+            np.dot(LLI, np.conjugate(TMP2), TMP1)
+            TMP1[:] += Y
+            TMP2[:] = TMP1
+        PP = TMP2.real
+        QQ = - TMP2.imag
         QD = qd.transpose((1, 0, 2)).reshape(3, M3)
         P = np.dot(QD, PP)
         Q = np.dot(QD, QQ)
@@ -240,19 +261,21 @@ class SDEProcess():
         Lambda = -Z.imag - Y.T.dot(MM)
         Z = NS.dot(QD)
         Theta = Z.imag - Z.real.dot(MM)
-        CC = Theta.dot(Theta.T)
+        cc = Theta.dot(Theta.T)
         # eig=np.linalg.eigh(CC)
-        CCI = np.linalg.inv(CC)
-        Y = CCI.dot(Theta)
+        cci = np.linalg.inv(cc)
+        Y = cci.dot(Theta)
         Lambda -= Lambda.dot(Theta.T).dot(Y)
         # test =Lambda.dot(Theta.T)
         # test
-        TT = MM - MM.dot(Theta.T).dot(Y)
-        TT = TT.astype(complex).reshape(M, 3, M, 3).transpose((0, 2, 1, 3))
+        TMP1 = RR[3].reshape(M3,M3)
+        TMP1[:] = MM - MM.dot(Theta.T).dot(Y)
+        TT = CC[4]
+        TT[:] = TMP1.astype(complex).reshape(M, 3, M, 3).transpose((0, 2, 1, 3))
         TT[0] += Lambda.reshape(3, 3, M).transpose((2, 0, 1))
         for k in range(M - 1):
             TT[k + 1] += TT[k]
-        return TT.transpose((0, 2, 1, 3)).reshape(3 * M, 3 * M)
+        return TT.transpose((0, 2, 1, 3)).reshape(M3, M3)
 
     def ItoProcess(self, T, num_steps, chunk):
         tspan = np.linspace(0.0, T, num_steps)
@@ -263,9 +286,9 @@ class SDEProcess():
         def G(x, t):
             return np.zeros(self.M, dtype=complex)
 
-        result = sdeint.itoSRI2(f, G, F0, tspan).reshape(chunk, -1, len(F0))
+        result = sdeint.itoEuler(f, G, self.F0, tspan).reshape(chunk, -1, len(self.F0))
 
-        shared = [[ConstSharedArray(x)] for x in result[10:]]
+        shared = [[ConstSharedArray(x)] for x in result[1:]]
         print("finished Ito process")
         mp.set_start_method('fork')
 
@@ -279,19 +302,21 @@ class SDEProcess():
 
 ############### tests
 def testSDE():
-    global M, M3, LL, C33, R, C, RR, CC
+    global M, M3, LL, C33, R, C, RR, CC, G
     M = 4
     M3 = M * 3
     F0 = np.array([ff(k, M) for k in range(M)], complex)
-    R = [np.zeros((M, 3), float) for _ in range(3)]
+    R = [np.zeros((M, 3), float) for _ in range(4)]
     C = [np.zeros((M, 3), complex) for _ in range(4)]
-    RR = [np.zeros((M, M, 3, 3), float) for _ in range(3)]
-    CC = [np.zeros((M, M, 3, 3), complex) for _ in range(3)]
-    C33 = [np.zeros((M, 3, 3), complex) for _ in range(2)]
+    RR = [np.zeros((M, M, 3, 3), float) for _ in range(4)]
+    CC = [np.zeros((M, M, 3, 3), complex) for _ in range(5)]
+    C33 = [np.zeros((M, 3, 3), complex) for _ in range(5)]
     LL = CC[0]
+    G = np.zeros((M,), complex)
 
-    SD = SDEProcess()
+    SD = SDEProcess(F0)
     SD.Matrix(F0)
+    # SD.ItoProcess(10,100,10)
 
 
 def testFF():
