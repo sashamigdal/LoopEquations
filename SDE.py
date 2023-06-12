@@ -49,22 +49,26 @@ def ff(k, M):
 def RI(X):
     return np.array([X.real, X.imag]).transpose()
 
+
 def testDot3():
     a = np.random.random(4).reshape(2, 2)
     b = np.random.random(4).reshape(2, 2)
-    c = np.zeros((2,2),dtype = a.dtype)
-    np.dot(a,b,c)
-    np.dot(a,b,a)
+    c = np.zeros((2, 2), dtype=a.dtype)
+    np.dot(a, b, c)
+    np.dot(a, b, a)
     assert (a == c).all()
 
+
 def gamma_formula(u, ans):
-    (N, d) = u.shape
-    V = np.array([u.real, u.imag]).reshape(2, -1)
-    Q = pinvh(V.dot(V.T))
-    V1 =np.dot(Q, V).reshape(2, N, d)
-    ans[:] = V1[1] + V1[0] * 1j
+    assert u.ndim ==1
+    d = u.shape[0]
+    V = np.vstack([u.real, u.imag]).reshape(2, d)
+    Q = pinvh(V.T.dot(V))
+    V1 = np.dot(Q, V.T)# (d,2)
+    ans[:] = V1[:,1] + V1[:,0] * 1j
 
-
+def VecGamma(U, Ans):
+    pass
 def HodgeDual(v):
     return np.array([
         [0, v[2], -v[1]],
@@ -85,118 +89,51 @@ def test_LevyCivita():
     test = c - c1
     test
 
-
-# M = Length[F];
-# IM = ConstantArray[I,{M}];
-# q = Thread[RotateRight[F,1]- F,1];
-# (*Return[MatrixForm[q]];*)
-# qd = Normal @ HodgeDual[#] &/@ q;
-# (*Return[MatrixForm[qd]];*)
-# G =2 F[[#]]q[[#]]-I &/@ Range[M];
-# (*Return[G];*)
-# (* G is a complex M-array *);
-# U =-G[[#]] F[[#]]. qd[[#]] &/@ Range[M];
-# (* U is a  M-array of complex 3 vectors*);
-# (*Return[U];*)
-# \[Gamma] =\[Gamma]formula/@ U;
-# (*If[Length[Flatten[\[Gamma]null/@ U]] >0, Print["Nullspace!"]];*)
-# (*Return[\[Gamma]];*)
-# U =-G[[#]] F[[#]]. qd[[#]] &/@ Range[M];
-# V =2 G[[#]]*q[[#]]-F[[#]] &/@ Range[M];
-# (* V is a  M-array of complex 3 vectors*);
-# (*Return[V];*)
-# (* the arrays  of matrices *)
-# Z3 =ConstantArray[0,{3,3}];
-# LL = MyTable[If[j< i,\[Gamma][[i]]\[TensorProduct]V[[i]].qd[[j]],Z3],{i,M},{j,M}];
-# X = Re[LL];
-# X[[#,#]] += Re[\[Gamma][[#]]\[TensorProduct]U[[#]]]& /@ Range[M];
-# (*Print["X:", Dimensions[X]];
-# Print["LL:", Dimensions[LL]];*)
-# (*Return [X];*)
-# (*Print["MDot[Im[LL],X]:"];
-# Return[MDot[Im[LL],X]];*)
-# MM = X;
-# (*Print["MM:", Dimensions[MM]];*)
-# Do[MM = X - MDot[Im[LL],MM],M-1];
-# (* The arrays of vectors *)
-# (*Return[MM];*)
-# Y =\[Gamma][[#]]\[TensorProduct]V[[#]] & /@ Range[M];
-# (*M array of 3 X 3 complex matrix *)
-# (*Return[Y];*)
-# PP = Re[Y];
-# QQ = -Im[Y];
-# Do[PP =Re[Y] +MVDot[ Im[LL],PP],M-1];
-# Do[QQ =-Im[Y] +MVDot[ Im[LL],QQ],M-1];
-# P= VDot[qd,PP];
-# (*3 X 3 complex matrix *)
-# Q=VDot[qd,PP];
-# (*3 X 3 complex matrix *)
-# {PQM,NS} =PseudoInverseFromBlock[{ {Re[P],Re[Q]}, {Im[P], Im[Q]}}];
-# (* PQM is 2 X 2 block matrix with 3X3 real matrix elements *)
-# NS = (#[[1]]- I #[[2]])&/@NS;
-# K = Length[NS];
-# (*Return[NS];*)
-# I3 = IdentityMatrix[3];
-# X = VDot[VMDot[{I3, I I3}, PQM], {I3, - I I3}];
-# (* X is a 3X3 complex matrix *)
-# (*Return[X];*)
-# (*Return[NS];*)
-# (* Y is a M vector with elements being complex 3X3 matrices*)
-# Y = Re[X . #] & /@ qd;
-# (* MM is a M by M matrix with elements being real 3X3 matrices*)
-# (* Lambda is a M vector with elements being 3X3 complex matrices*)
-# \[CapitalLambda] = -(Im[ X . #] & /@ qd) - VMDot[Y, MM];
-# (*Return[\[CapitalLambda]];*)
-# (* Z is a K by M matrix with elements being complex 3 vectors*)
-# Z = MyTable[ NS[[i]] . qd[[n]], {i, K}, {n, M}];
-# (*Return[Z];*)
-# (* Theta is a K by M matrix with elements being real 3 vectors*)
-# \[CapitalTheta] = Im[Z] - MDot[Re[Z], MM];
-# (*Return[\[CapitalTheta]];*)
-# CC = MDot[\[CapitalTheta], Transpose[\[CapitalTheta]]];
-# (*Return[MatrixForm[CC]];*)
-
-
-
 def dot_shape(a, b):
-  x = np.zeros_like(a)
-  y = np.zeros_like(b)
-  return x.dot(y).shape
+    x = np.zeros_like(a)
+    y = np.zeros_like(b)
+    return x.dot(y).shape
 
-def VecKron(a,b):
+
+def VecKron(a, b):
     M = a.shape[0]
-    assert (M==b.shape[0])
+    assert (M == b.shape[0])
     S = a.shape[1:]
     T = b.shape[1:]
-    MST = (M,*S,*T)
-    return np.vstack(np.kron(a[k],b[k]) for k in range(M)).reshape(MST)
+    MST = (M, *S, *T)
+    return np.vstack(np.kron(a[k], b[k]) for k in range(M)).reshape(MST)
 
-def VecKron22(A,B, C):
-    assert A.ndim ==2
-    assert B.ndim ==2
+
+def VecKron22(A, B, C):
+    assert A.ndim == 2
+    assert B.ndim == 2
     C[:] = A[:, :, None] * B[:, None, :]
 
-def VecDot(a,b):
+
+def VecDot(a, b):
     M = a.shape[0]
     assert (M == b.shape[0])
     x = np.vstack(a[k].dot(b[k]) for k in range(M))
-    ST = dot_shape(a[0],b[0])
-    MST = (M,*ST)
+    ST = dot_shape(a[0], b[0])
+    MST = (M, *ST)
     return x.reshape(MST)
 
+
 def testVecOps():
-    a = np.arange(12).reshape(4,3)
-    b = np.arange(10,22).reshape(4, 3)
-    c = VecKron22(a,b)
-    assert c.shape == (4,3,3)
-    d = VecDot(a,b)
-    assert d.ndim ==1
+    a = np.arange(12).reshape(4, 3)
+    b = np.arange(10, 22).reshape(4, 3)
+    c = VecKron22(a, b)
+    assert c.shape == (4, 3, 3)
+    d = VecDot(a, b)
+    assert d.ndim == 1
     assert d.shape[0] == 4
+
+
 class SDEProcess():
     global M, M3, LL, C33, R, C, RR, CC, G
 
     def __init__(self, F0):
-        self.F0  = F0
+        self.F0 = F0
 
     def Matrix(self, F):
         q = np.roll(F, 1, axis=0) - F
@@ -204,24 +141,24 @@ class SDEProcess():
         qd = C33[0]
         np.dot(q, E3, qd)
         TMP = C33[1]
-        VecKron22(F,q, TMP)
-        G[:] = np.trace(TMP,axis1=1,axis2=2)
-        G[:] = 2 * G - 1j
+        VecKron22(F, q, TMP)
+        G[:] = np.trace(TMP, axis1=1, axis2=2)
+        G[:] = 2 * G - 1j           #OK, checked  with the paper
         U = C[1]
-        U[:] =np.trace(TMP.dot(E3),axis1 =1,axis2= 2)
-        U[:] = -G.reshape(M,1)*U
+        U[:] = np.trace(TMP.dot(E3), axis1=1, axis2=2)
+        U[:] = G.reshape(M, 1) * U               #OK, checked  with the paper
         # for k in range(M): U[k] = -G[k] * F[k].dot(qd[k])
         gamma = C[2]
-        gamma_formula(U, gamma)
+        gamma_formula(U, gamma)        #OK, checked  with the paper
         V = C[3]
-        V[:] = 2 * G.reshape(M,1) * q - F
+        V[:] = G.reshape(M, 1) * q - 2 * F        #OK, fixed bug  with the paper
         gammaXV = C33[1]
-        VecKron22(gamma,V,gammaXV)
+        VecKron22(gamma, V, gammaXV)
         LL[:] = gammaXV.reshape(M3, 3).dot(qd.reshape(M3, 3).T).reshape(M, 3, M, 3).transpose((0, 2, 1, 3))
         XX = RR[0]
         XX[:] = LL.real
-        TMP =  C33[4]
-        VecKron22(gamma,U, TMP)
+        TMP = C33[4]
+        VecKron22(gamma, U, TMP)
         for k in range(M):
             XX[k, k] -= TMP[k].real
         XX = XX.transpose((0, 2, 1, 3)).reshape(M3, M3)
@@ -229,17 +166,17 @@ class SDEProcess():
         MM[:] = XX
         LLI = RR[2].transpose((0, 2, 1, 3)).reshape(M3, M3)
         LLI[:] = -LL.imag.transpose((0, 2, 1, 3)).reshape(M3, M3)
-        TMP = RR[3].reshape(M3,M3)
+        TMP = RR[3].reshape(M3, M3)
         for _ in range(M - 1):
             np.dot(LLI, MM, TMP)
             TMP += XX
             MM[:] = TMP
         pass
         Y = C33[2]
-        VecKron22(gamma,V,Y)
-        Y =Y.reshape(M3, 3)
+        VecKron22(gamma, V, Y)
+        Y = Y.reshape(M3, 3)
         TMP1 = C33[3].reshape(M3, 3)
-        TMP2 = C33[4].reshape(M3,3)
+        TMP2 = C33[4].reshape(M3, 3)
         TMP2[:] = Y
         for _ in range(M - 1):
             np.dot(LLI, np.conjugate(TMP2), TMP1)
@@ -268,7 +205,7 @@ class SDEProcess():
         Lambda -= Lambda.dot(Theta.T).dot(Y)
         # test =Lambda.dot(Theta.T)
         # test
-        TMP1 = RR[3].reshape(M3,M3)
+        TMP1 = RR[3].reshape(M3, M3)
         TMP1[:] = MM - MM.dot(Theta.T).dot(Y)
         TT = CC[4]
         TT[:] = TMP1.astype(complex).reshape(M, 3, M, 3).transpose((0, 2, 1, 3))
@@ -331,7 +268,7 @@ def test_gamma_formula():
     u = np.array(
         [[1 + 1j, 2 + 2j, 3 + 3j], [1 - 1j, 2 - 2j, 3 - 3j], [5 - 6j, 7 - 8j, 9 - 10j], [-5 - 6j, -7 - 8j, -9 - 10j]])
     gamma = np.zeros_like(u)
-    gamma_formula(u, gamma)
+    gamma_formula(u[0], gamma[0])
     gamma
 
 
