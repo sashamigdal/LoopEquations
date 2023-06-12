@@ -6,11 +6,29 @@ import sdeint
 import multiprocessing as mp
 from parallel import parallel_map, ConstSharedArray
 from plot import Plot, PlotTimed, MakeDir
+import numba
+from numba import njit, prange
 
 MakeDir("plots")
 
+global BelowDiagTable
 
 # no changes, git test2
+def MakeBelowIdsTable(N):
+    global BelowDiagTable
+    lst = []
+    BelowDiagTable =[[]]
+    for n in range(1,N):
+        lst += [(k,n) for k in range(n)]
+        BelowDiagTable.append(lst.copy())
+    pass
+
+
+
+def test_BelowDiag():
+    MakeBelowIdsTable(6)
+    test =BelowDiagTable[5]
+    test
 
 def test_ItoProcess():
     A = np.array([[-0.5, -2.0],
@@ -59,16 +77,17 @@ def testDot3():
     assert (a == c).all()
 
 
-def gamma_formula(u, ans):
+def gamma_formula(u):
     assert u.ndim ==1
     d = u.shape[0]
     V = np.vstack([u.real, u.imag]).reshape(2, d)
     Q = pinvh(V.T.dot(V))
     V1 = np.dot(Q, V.T)# (d,2)
-    ans[:] = V1[:,1] + V1[:,0] * 1j
+    return V1[:,1] + V1[:,0] * 1j
 
 def VecGamma(U, Ans):
-    pass
+    Ans[:] = np.vstack([gamma_formula(u) for u in U])
+
 def HodgeDual(v):
     return np.array([
         [0, v[2], -v[1]],
@@ -110,6 +129,7 @@ def VecKron22(A, B, C):
     C[:] = A[:, :, None] * B[:, None, :]
 
 
+@njit(parallel=False)
 def VecDot(a, b):
     M = a.shape[0]
     assert (M == b.shape[0])
@@ -118,6 +138,31 @@ def VecDot(a, b):
     MST = (M, *ST)
     return x.reshape(MST)
 
+@njit(parallel=True)
+def AddToDiag(X,f):
+    N = len(f)
+    assert X.shape[:2] == (N,N)
+    for k in prange(N):
+        X[k,k] += f[k]
+    pass
+
+@njit(parallel=True)
+def SubFromDiag(X, f):
+    N = len(f)
+    assert X.shape[:2] == (N, N)
+    for k in prange(N):
+        X[k, k] -= f[k]
+    pass
+#@njit(parallel=False)
+def ZeroBelowDiag(X):
+    N = len(X)
+    assert X.shape[:2] == (N, N)
+    ids = BelowDiagTable[N-1]
+    M = len(ids)
+    for i in prange(M):
+        k,l = ids[i]
+        X[k,l].fill(0)
+    pass
 
 def testVecOps():
     a = np.arange(12).reshape(4, 3)
@@ -149,18 +194,18 @@ class SDEProcess():
         U[:] = G.reshape(M, 1) * U               #OK, checked  with the paper
         # for k in range(M): U[k] = -G[k] * F[k].dot(qd[k])
         gamma = C[2]
-        gamma_formula(U, gamma)        #OK, checked  with the paper
+        VecGamma(U, gamma)        #OK, fixed bug  with the paper
         V = C[3]
         V[:] = G.reshape(M, 1) * q - 2 * F        #OK, fixed bug  with the paper
         gammaXV = C33[1]
-        VecKron22(gamma, V, gammaXV)
+        VecKron22(gamma, V, gammaXV)      #OK, fixed bug  with the paper
         LL[:] = gammaXV.reshape(M3, 3).dot(qd.reshape(M3, 3).T).reshape(M, 3, M, 3).transpose((0, 2, 1, 3))
         XX = RR[0]
         XX[:] = LL.real
-        TMP = C33[4]
-        VecKron22(gamma, U, TMP)
-        for k in range(M):
-            XX[k, k] -= TMP[k].real
+        ZeroBelowDiag(XX)
+        gammaXU = C33[4]
+        VecKron22(gamma, U, gammaXU)
+        AddToDiag(XX,gammaXU.real)
         XX = XX.transpose((0, 2, 1, 3)).reshape(M3, M3)
         MM = RR[1].transpose((0, 2, 1, 3)).reshape(M3, M3)
         MM[:] = XX
@@ -241,6 +286,7 @@ class SDEProcess():
 def testSDE():
     global M, M3, LL, C33, R, C, RR, CC, G
     M = 4
+    MakeBelowIdsTable(M+1)
     M3 = M * 3
     F0 = np.array([ff(k, M) for k in range(M)], complex)
     R = [np.zeros((M, 3), float) for _ in range(4)]
@@ -268,7 +314,7 @@ def test_gamma_formula():
     u = np.array(
         [[1 + 1j, 2 + 2j, 3 + 3j], [1 - 1j, 2 - 2j, 3 - 3j], [5 - 6j, 7 - 8j, 9 - 10j], [-5 - 6j, -7 - 8j, -9 - 10j]])
     gamma = np.zeros_like(u)
-    gamma_formula(u[0], gamma[0])
+    gamma = np.vstack([gamma_formula(x) for x in u])
     gamma
 
 
