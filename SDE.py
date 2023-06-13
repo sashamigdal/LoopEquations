@@ -14,20 +14,20 @@ MakeDir("plots")
 global BelowDiagTable
 
 # no changes, git test2
-def MakeBelowIdsTable(N):
+def MakeBelowEqIdsTable(N):
     global BelowDiagTable
-    lst = []
-    BelowDiagTable =[[]]
-    for n in range(1,N):
-        lst += [(k,n) for k in range(n)]
-        BelowDiagTable.append(lst.copy())
+    BelowDiagTable = []
+    for n in range(N):
+        BelowDiagTable += [(k,n) for k in range(n+1)]
     pass
-
+def GetPairs(n):
+    N = int((n*(n+1))/2)
+    return BelowDiagTable[:N]
 
 
 def test_BelowDiag():
-    MakeBelowIdsTable(6)
-    test =BelowDiagTable[5]
+    MakeBelowEqIdsTable(6)
+    test =GetPairs(4)
     test
 
 def test_ItoProcess():
@@ -129,7 +129,7 @@ def VecKron22(A, B, C):
     C[:] = A[:, :, None] * B[:, None, :]
 
 
-@njit(parallel=False)
+#@njit(parallel=False)
 def VecDot(a, b):
     M = a.shape[0]
     assert (M == b.shape[0])
@@ -138,28 +138,20 @@ def VecDot(a, b):
     MST = (M, *ST)
     return x.reshape(MST)
 
-@njit(parallel=True)
-def AddToDiag(X,f):
+#@njit(parallel=True)
+def SetDiag(X,f):
     N = len(f)
     assert X.shape[:2] == (N,N)
     for k in prange(N):
-        X[k,k] += f[k]
+        X[k,k] = f[k]
     pass
 
-@njit(parallel=True)
-def SubFromDiag(X, f):
-    N = len(f)
-    assert X.shape[:2] == (N, N)
-    for k in prange(N):
-        X[k, k] -= f[k]
-    pass
 #@njit(parallel=False)
-def ZeroBelowDiag(X):
+def ZeroBelowEqDiag(X):
     N = len(X)
     assert X.shape[:2] == (N, N)
-    ids = BelowDiagTable[N-1]
-    M = len(ids)
-    for i in prange(M):
+    ids = GetPairs(N)
+    for i in prange(len(ids)):
         k,l = ids[i]
         X[k,l].fill(0)
     pass
@@ -177,10 +169,11 @@ def testVecOps():
 class SDEProcess():
     global M, M3, LL, C33, R, C, RR, CC, G
 
-    def __init__(self, F0):
-        self.F0 = F0
+    def __init__(self):
+        pass
 
-    def Matrix(self, F):
+    def Matrix(self, F_flattened):
+        F = F_flattened.reshape(M,3)
         q = np.roll(F, 1, axis=0) - F
         # qd0 = np.array([HodgeDual(v) for v in q])
         qd = C33[0]
@@ -198,17 +191,18 @@ class SDEProcess():
         V = C[3]
         V[:] = G.reshape(M, 1) * q - 2 * F        #OK, fixed bug  with the paper
         gammaXV = C33[1]
-        VecKron22(gamma, V, gammaXV)      #OK, fixed bug  with the paper
-        LL[:] = gammaXV.reshape(M3, 3).dot(qd.reshape(M3, 3).T).reshape(M, 3, M, 3).transpose((0, 2, 1, 3))
+        VecKron22(gamma, V, gammaXV)  #OK, fixed bug  with the paper
+        LL[:] = -gammaXV.reshape(M3, 3).dot(qd.reshape(M3, 3).T).reshape(M, 3, M, 3).transpose((0, 2, 1, 3))
+        #LL = gamma_k X Vk dot hat q
+        ZeroBelowEqDiag(LL)
         XX = RR[0]
-        XX[:] = LL.real
-        ZeroBelowDiag(XX)
+        XX[:] = LL.real        # Mk>l  = Re( gamma_k X Vk dot hat q)      # Mk<l =0
         gammaXU = C33[4]
-        VecKron22(gamma, U, gammaXU)
-        AddToDiag(XX,gammaXU.real)
+        VecKron22(gamma, U, gammaXU)      #OK, checked  with the paper
+        SetDiag(XX,gammaXU.real)        # Mkk  = Re( gamma_k X U_k)
         XX = XX.transpose((0, 2, 1, 3)).reshape(M3, M3)
         MM = RR[1].transpose((0, 2, 1, 3)).reshape(M3, M3)
-        MM[:] = XX
+        MM[:] = XX        #eq 2.135b wihout last term
         LLI = RR[2].transpose((0, 2, 1, 3)).reshape(M3, M3)
         LLI[:] = -LL.imag.transpose((0, 2, 1, 3)).reshape(M3, M3)
         TMP = RR[3].reshape(M3, M3)
@@ -217,18 +211,16 @@ class SDEProcess():
             TMP += XX
             MM[:] = TMP
         pass
-        Y = C33[2]
-        VecKron22(gamma, V, Y)
-        Y = Y.reshape(M3, 3)
-        TMP1 = C33[3].reshape(M3, 3)
-        TMP2 = C33[4].reshape(M3, 3)
-        TMP2[:] = Y
+        TMP = C33[3].reshape(M3, 3)
+        Gamma= C33[4].reshape(M3, 3)
+        Gamma[:] = gammaXV.reshape(M3,3)
+        LLI *= -1
         for _ in range(M - 1):
-            np.dot(LLI, np.conjugate(TMP2), TMP1)
-            TMP1[:] += Y
-            TMP2[:] = TMP1
-        PP = TMP2.real
-        QQ = - TMP2.imag
+            np.dot(LLI, np.conjugate(Gamma), TMP)
+            TMP[:] +=gammaXV.reshape(M3,3)
+            Gamma[:] = TMP
+        PP = Gamma.real
+        QQ = -Gamma.imag
         QD = qd.transpose((1, 0, 2)).reshape(3, M3)
         P = np.dot(QD, PP)
         Q = np.dot(QD, QQ)
@@ -239,13 +231,13 @@ class SDEProcess():
         K = len(NS)
         PQM = BB.reshape(2, 3, 2, 3).transpose((0, 2, 1, 3))
         X = PQM[0, 0] + PQM[1, 1] - 1j * PQM[1, 0] + 1j * PQM[0, 1]
-        Z = X.dot(qd.transpose(1, 2, 0).reshape(3, 3 * M))
-        Lambda = -Z.imag - Y.T.dot(MM)
+        Y = X.dot(qd.transpose(1, 2, 0).reshape(3, M3))
+        Lambda = -Y.imag - Y.dot(MM)
         Z = NS.dot(QD)
         Theta = Z.imag - Z.real.dot(MM)
         cc = Theta.dot(Theta.T)
         # eig=np.linalg.eigh(CC)
-        cci = np.linalg.inv(cc)
+        cci = pinvh(cc)
         Y = cci.dot(Theta)
         Lambda -= Lambda.dot(Theta.T).dot(Y)
         # test =Lambda.dot(Theta.T)
@@ -259,16 +251,16 @@ class SDEProcess():
             TT[k + 1] += TT[k]
         return TT.transpose((0, 2, 1, 3)).reshape(M3, M3)
 
-    def ItoProcess(self, T, num_steps, chunk):
+    def ItoProcess(self,F0, T, num_steps, chunk):
         tspan = np.linspace(0.0, T, num_steps)
 
-        def f(F, t):
+        def f(x, t):
+            return np.zeros((M3,), dtype=complex)
+
+        def g(F, t):
             return self.Matrix(F)
 
-        def G(x, t):
-            return np.zeros(self.M, dtype=complex)
-
-        result = sdeint.itoEuler(f, G, self.F0, tspan).reshape(chunk, -1, len(self.F0))
+        result = sdeint.itoEuler(f, g, F0, tspan)
 
         shared = [[ConstSharedArray(x)] for x in result[1:]]
         print("finished Ito process")
@@ -285,10 +277,10 @@ class SDEProcess():
 ############### tests
 def testSDE():
     global M, M3, LL, C33, R, C, RR, CC, G
-    M = 4
-    MakeBelowIdsTable(M+1)
+    M = 100
+    MakeBelowEqIdsTable(M)
     M3 = M * 3
-    F0 = np.array([ff(k, M) for k in range(M)], complex)
+    F0 = np.array([ff(k, M) for k in range(M)], complex).reshape(M3)
     R = [np.zeros((M, 3), float) for _ in range(4)]
     C = [np.zeros((M, 3), complex) for _ in range(4)]
     RR = [np.zeros((M, M, 3, 3), float) for _ in range(4)]
@@ -297,9 +289,9 @@ def testSDE():
     LL = CC[0]
     G = np.zeros((M,), complex)
 
-    SD = SDEProcess(F0)
-    SD.Matrix(F0)
-    # SD.ItoProcess(10,100,10)
+    SD = SDEProcess()
+    B =SD.Matrix(F0)
+    SD.ItoProcess(F0,10,100,10)
 
 
 def testFF():
