@@ -299,7 +299,7 @@ class SDEProcess():
 def testSDE():
     global M, M3, LL, C33, R, C, RR, CC, G
     mp.set_start_method('fork')
-    M = 100
+    M = 1000
     M3 = M * 3
     F0 = np.array([ff(k, M) for k in range(M)], complex).reshape(M3)
     R = [np.zeros((M, 3), float) for _ in range(6)]
