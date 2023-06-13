@@ -5,9 +5,8 @@ from scipy.linalg import pinvh, null_space
 import sdeint
 import multiprocessing as mp
 from parallel import parallel_map, ConstSharedArray, WritableSharedArray
-from plot import Plot, PlotTimed, MakeDir
-
-
+from plot import Plot, PlotTimed, MakeDir, XYPlot
+from Timer import MTimer as Timer
 MakeDir("plots")
 
 global BelowDiagTable
@@ -29,33 +28,6 @@ def test_BelowDiag():
     test =GetPairs(4)
     test
 
-def test_ItoProcess():
-    A = np.array([[-0.5, -2.0],
-                  [2.0, -1.0]])
-
-    B = np.diag([0.5, 0.5])  # diagonal, so independent driving Wiener processes
-
-    tspan = np.linspace(0.0, 10.0, 100000)
-    x0 = np.array([3.0, 3.0])
-
-    def f(x, t):
-        return A.dot(x)
-
-    def G(x, t):
-        return B
-
-    result = sdeint.itoSRI2(f, G, x0, tspan).reshape(100, -1, 2)
-
-    shared = [[ConstSharedArray(x)] for x in result[10:]]
-    print("finished Ito process")
-    mp.set_start_method('fork')
-
-    def Mean(x):
-        return np.mean(x[:])
-
-    cores = mp.cpu_count()
-    means = parallel_map(Mean, shared, cores)
-    Plot(means, os.path.join("plots", "test_ito_euler.png"), x_label='t', y_label='m', title='Ito')
 
 
 def ff(k, M):
@@ -127,7 +99,19 @@ def VecKron22(A, B, C):
     assert B.ndim == 2
     C[:] = A[:, :, None] * B[:, None, :]
 
-
+def parKron22(A,B,C):
+    assert B.shape == A.shape
+    assert A.ndim == 2
+    N,d = A.shape
+    assert C.shape == (N,d,d)
+    CS = WritableSharedArray(C)
+    AS = ConstSharedArray(A)
+    BS = ConstSharedArray(B)
+    def func(i):
+        CS[i] = np.kron(AS[i,:],BS[i,:]).reshape(d,d)
+    parallel_map(func,[[i] for i in range(N)],mp.cpu_count())
+    C[:] = CS[:]
+    pass
 def VecDot(a, b):
     M = a.shape[0]
     assert (M == b.shape[0])
@@ -143,7 +127,7 @@ def SetDiag(X,f):
     fS = ConstSharedArray(f)
     def func(k):
         XS[k, k] = fS[k]
-    parallel_map(func,range(N),mp.cpu_count())
+    parallel_map(func,[[k] for k in range(N)],mp.cpu_count())
 
 
 def ZeroBelowEqDiag(X):
@@ -151,16 +135,17 @@ def ZeroBelowEqDiag(X):
     assert X.shape[:2] == (N, N)
     XS = WritableSharedArray(X)
 
-    def func(k,l):
-        XS.clear([k,l])
-
+    def func(*key):
+        XS.clear(key)
     parallel_map(func,GetPairs(N),mp.cpu_count())
-
+    X[:] = XS[:]
+    pass
 def testVecOps():
+    mp.set_start_method('fork')
     a = np.arange(12).reshape(4, 3)
     b = np.arange(10, 22).reshape(4, 3)
-    c = VecKron22(a, b)
-    assert c.shape == (4, 3, 3)
+    c = np.zeros((4, 3, 3))
+    parKron22(a, b, c)
     d = VecDot(a, b)
     assert d.ndim == 1
     assert d.shape[0] == 4
@@ -230,22 +215,24 @@ class SDEProcess():
         K = len(NS)
         PQM = pinvh(H).reshape(2, 3, 2, 3).transpose((0, 2, 1, 3))
         X = PQM[0, 0] + PQM[1, 1] - 1j * PQM[1, 0] + 1j * PQM[0, 1]
-        Q = C33[5]
-        Q[:] = X.dot(qd.transpose(1, 2, 0).reshape(3, M3))
-        R = C33[6]
+        Q = C33[5].transpose(1, 0, 2).reshape(3, M3)
+        Q[:] = qd.transpose(1, 0, 2).reshape(3, M3)
+        R = C33[6].transpose(1, 0, 2).reshape(3, M3)
         np.dot(Q,MM,R)
-        R[:] = 1j * Q - R
-        #Lambda =
+        R[:] =  1j * Q - R
+        Lambda = X.dot(R)
         #HERE I STOPPED
-        Z = NS.dot(QD)
-        Theta = Z.imag - Z.real.dot(MM)
+        Theta = np.conjugate(NS).dot(R).real
         cc = Theta.dot(Theta.T)
-        # eig=np.linalg.eigh(CC)
+        eig=np.linalg.eigh(cc)
         cci = pinvh(cc)
         Y = cci.dot(Theta)
         Lambda -= Lambda.dot(Theta.T).dot(Y)
         # test =Lambda.dot(Theta.T)
         # test
+        GL = CC[4].reshape(M3, M3)
+        np.dot(Gamma,Lambda,GL)
+        MM += GL.real
         TMP1 = RR[3].reshape(M3, M3)
         TMP1[:] = MM - MM.dot(Theta.T).dot(Y)
         TT = CC[4]
@@ -264,39 +251,38 @@ class SDEProcess():
         def g(F, t):
             return self.Matrix(F)
 
-        result = ConstSharedArray(np.array(sdeint.itoEuler(f, g, F0, tspan)))
+        with Timer("ItoProcess with N=" +str(M)):
+            result = ConstSharedArray(np.array(sdeint.itoEuler(f, g, F0, tspan)))
 
-        # shared = [[ConstSharedArray(x)] for x in result[1:]]
-        print("finished Ito process")
 
-        def Mean(i,j):
-            return np.mean(result[i:j])
+        def Mean(*key):
+            return np.mean(result[key[0]:key[-1]+1])
 
         cores = mp.cpu_count()
         ranges = np.array(range(len(result))).reshape(-1,chunk)
-        means = parallel_map(Mean, ranges, cores)
-        Plot(means, os.path.join("plots", "test_ito_euler.png"), x_label='t', y_label='m', title='Ito')
+        means = np.array(parallel_map(Mean, ranges[1:], cores))
+        XYPlot([means.real, means.imag], plotpath=os.path.join("plots", "test_ito_euler.png"),scatter=False, title='Ito')
 
 
 ############### tests
 def testSDE():
     global M, M3, LL, C33, R, C, RR, CC, G
     mp.set_start_method('fork')
-    M = 4
+    M = 100
     MakeBelowEqIdsTable(M)
     M3 = M * 3
     F0 = np.array([ff(k, M) for k in range(M)], complex).reshape(M3)
-    R = [np.zeros((M, 3), float) for _ in range(4)]
-    C = [np.zeros((M, 3), complex) for _ in range(4)]
-    RR = [np.zeros((M, M, 3, 3), float) for _ in range(4)]
-    CC = [np.zeros((M, M, 3, 3), complex) for _ in range(5)]
+    R = [np.zeros((M, 3), float) for _ in range(6)]
+    C = [np.zeros((M, 3), complex) for _ in range(6)]
+    RR = [np.zeros((M, M, 3, 3), float) for _ in range(6)]
+    CC = [np.zeros((M, M, 3, 3), complex) for _ in range(6)]
     C33 = [np.zeros((M, 3, 3), complex) for _ in range(10)]
     LL = CC[0]
     G = np.zeros((M,), complex)
 
     SD = SDEProcess()
     B =SD.Matrix(F0)
-    SD.ItoProcess(F0,10,100,10)
+    SD.ItoProcess(F0,0.5,200,20)
 
 
 def testFF():
