@@ -1,10 +1,11 @@
+import concurrent.futures
 import numpy as np
 import os, sys
 from numpy import cos, sin, pi
 from scipy.linalg import pinvh, null_space
 import sdeint
 import multiprocessing as mp
-from parallel import parallel_map, ConstSharedArray, WritableSharedArray
+# from parallel import parallel_map, ConstSharedArray, WritableSharedArray
 from plot import Plot, PlotTimed, MakeDir, XYPlot
 from Timer import MTimer as Timer
 
@@ -112,15 +113,15 @@ def parKron22(A, B, C):
     assert A.ndim == 2
     N, d = A.shape
     assert C.shape == (N, d, d)
-    CS = WritableSharedArray(C)
-    AS = ConstSharedArray(A)
-    BS = ConstSharedArray(B)
+    # CS = WritableSharedArray(C)
+    # AS = ConstSharedArray(A)
+    # BS = ConstSharedArray(B)
 
     def func(i):
-        CS[i] = np.kron(AS[i, :], BS[i, :]).reshape(d, d)
-
-    parallel_map(func, [[i] for i in range(N)], mp.cpu_count())
-    C[:] = CS[:]
+        C[i] = np.kron(A[i, :], B[i, :]).reshape(d, d)
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        executor.map(func, range(N))
+    # C[:] = CS[:]
     pass
 
 
@@ -136,36 +137,25 @@ def VecDot(a, b):
 def SetDiag(X, f):
     N = len(f)
     assert X.shape[:2] == (N, N)
-    XS = WritableSharedArray(X)
-    fS = ConstSharedArray(f)
+    # XS = WritableSharedArray(X)
+    # fS = ConstSharedArray(f)
 
     def func(k):
-        XS[k, k] = fS[k]
-
-    parallel_map(func, [[k] for k in range(N)], mp.cpu_count())
+        X[k, k] = f[k]
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        executor.map(func, range(N))
 
 def ZeroBelowEqDiag(X):
+    assert X.flags.c_contiguous
     N = len(X)
     assert X.shape[:2] == (N, N)
-    XS = WritableSharedArray(X)
+    # XS = WritableSharedArray(X)
 
-    def func(i,j):
-        XS.clear((i,j))
-    cores = mp.cpu_count()
-    parallel_map(func, [(k,slice(k,N)) for k in range(N)], 0)
-    X[:] = XS[:]
-    pass
-def PairsZeroBelowEqDiag(X):
-    N = len(X)
-    assert X.shape[:2] == (N, N)
-    XS = WritableSharedArray(X)
+    def func(k):
+        X[k,k:]=0
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        executor.map(func, range(N))
 
-    def func(*key):
-        XS.clear(key)
-
-    parallel_map(func, GetPairs(N), mp.cpu_count())
-    X[:] = XS[:]
-    pass
 
 
 
@@ -188,9 +178,8 @@ def testVecOps():
     assert d.ndim == 1
     assert d.shape[0] == 4
     X1 = np.arange(36).reshape(3, 3, 2, 2)
-    X2 = X1.copy()
     ZeroBelowEqDiag(X1)
-    assert (X1 == X2).all
+
 
 
 class SDEProcess():
@@ -293,15 +282,15 @@ class SDEProcess():
         def g(F, t):
             return self.Matrix(F)
 
-        with Timer("ItoProcess with N=" + str(M)):
-            result = ConstSharedArray(np.array(sdeint.itoEuler(f, g, F0, tspan)))
+        with Timer("ItoProcess with N=" + str(M) + " and " + str(num_steps) + " steps"):
+            result = np.array(sdeint.itoEuler(f, g, F0, tspan))
 
-        def Mean(*key):
+        def Mean(key):
             return np.mean(result[key[0]:key[-1] + 1])
 
-        cores = mp.cpu_count()
         ranges = np.array(range(len(result))).reshape(-1, chunk)
-        means = np.array(parallel_map(Mean, ranges[1:], cores))
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            means = np.array(list(executor.map(Mean, ranges[1:])))
         XYPlot([means.real, means.imag], plotpath=os.path.join("plots", "test_ito_euler.png"), scatter=False,
                title='Ito')
 
@@ -323,7 +312,7 @@ def testSDE():
 
     SD = SDEProcess()
     B = SD.Matrix(F0)
-    SD.ItoProcess(F0, 0.5, 200, 20)
+    SD.ItoProcess(F0, 0.5, 20, 2)
 
 
 def testFF():

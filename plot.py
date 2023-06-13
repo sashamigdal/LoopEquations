@@ -391,16 +391,16 @@ def XYPlot(xy, plotpath, logy=False, lims=None, title='XY',scatter=False):
     import matplotlib.pyplot as plt
     import matplotlib.dates as md
 
-    filename = plotpath.replace('.png','.XYPlot')
-    with open(filename,'wb') as output:
-        params = dict((
-            ('xy', xy),
-            ('plotpath',plotpath),
-            ('logy',logy),
-            ('lims',lims),
-            ('title',title)
-        ))
-        pickle.dump(params,output,protocol=pickle.HIGHEST_PROTOCOL)
+    # filename = plotpath.replace('.png','.XYPlot')
+    # with open(filename,'wb') as output:
+    #     params = dict((
+    #         ('xy', xy),
+    #         ('plotpath',plotpath),
+    #         ('logy',logy),
+    #         ('lims',lims),
+    #         ('title',title)
+    #     ))
+    # pickle.dump(params,output,protocol=pickle.HIGHEST_PROTOCOL)
 
     if scatter:
         plt.scatter(np.asarray(xy[0]), np.asarray(xy[1]))
