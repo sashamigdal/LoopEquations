@@ -4,10 +4,9 @@ from numpy import cos, sin, pi
 from scipy.linalg import pinvh, null_space
 import sdeint
 import multiprocessing as mp
-from parallel import parallel_map, ConstSharedArray
+from parallel import parallel_map, ConstSharedArray, WritableSharedArray
 from plot import Plot, PlotTimed, MakeDir
-import numba
-from numba import njit, prange
+
 
 MakeDir("plots")
 
@@ -18,7 +17,7 @@ def MakeBelowEqIdsTable(N):
     global BelowDiagTable
     BelowDiagTable = []
     for n in range(N):
-        BelowDiagTable += [(k,n) for k in range(n+1)]
+        BelowDiagTable += [[k,n] for k in range(n+1)]
     pass
 def GetPairs(n):
     N = int((n*(n+1))/2)
@@ -129,7 +128,6 @@ def VecKron22(A, B, C):
     C[:] = A[:, :, None] * B[:, None, :]
 
 
-#@njit(parallel=False)
 def VecDot(a, b):
     M = a.shape[0]
     assert (M == b.shape[0])
@@ -138,23 +136,25 @@ def VecDot(a, b):
     MST = (M, *ST)
     return x.reshape(MST)
 
-#@njit(parallel=True)
 def SetDiag(X,f):
     N = len(f)
     assert X.shape[:2] == (N,N)
-    for k in prange(N):
-        X[k,k] = f[k]
-    pass
+    XS = WritableSharedArray(X)
+    fS = ConstSharedArray(f)
+    def func(k):
+        XS[k, k] = fS[k]
+    parallel_map(func,range(N),mp.cpu_count())
 
-#@njit(parallel=False)
+
 def ZeroBelowEqDiag(X):
     N = len(X)
     assert X.shape[:2] == (N, N)
-    ids = GetPairs(N)
-    for i in prange(len(ids)):
-        k,l = ids[i]
-        X[k,l].fill(0)
-    pass
+    XS = WritableSharedArray(X)
+
+    def func(k,l):
+        XS.clear([k,l])
+
+    parallel_map(func,GetPairs(N),mp.cpu_count())
 
 def testVecOps():
     a = np.arange(12).reshape(4, 3)
@@ -224,15 +224,19 @@ class SDEProcess():
         QD = qd.transpose((1, 0, 2)).reshape(3, M3)
         P = np.dot(QD, PP)
         Q = np.dot(QD, QQ)
-        BB = np.array([[P.real, Q.real], [P.imag, Q.imag]]).transpose(0, 2, 1, 3).reshape(6, 6)
-        NS = null_space(BB).reshape(2, 3, -1)
+        H = np.array([[P.real, Q.real], [P.imag, Q.imag]]).transpose(0, 2, 1, 3).reshape(6, 6)
+        NS = null_space(H).reshape(2, 3, -1)
         NS = (NS[0] - 1j * NS[1]).transpose()
-        BB = pinvh(BB)
         K = len(NS)
-        PQM = BB.reshape(2, 3, 2, 3).transpose((0, 2, 1, 3))
+        PQM = pinvh(H).reshape(2, 3, 2, 3).transpose((0, 2, 1, 3))
         X = PQM[0, 0] + PQM[1, 1] - 1j * PQM[1, 0] + 1j * PQM[0, 1]
-        Y = X.dot(qd.transpose(1, 2, 0).reshape(3, M3))
-        Lambda = -Y.imag - Y.dot(MM)
+        Q = C33[5]
+        Q[:] = X.dot(qd.transpose(1, 2, 0).reshape(3, M3))
+        R = C33[6]
+        np.dot(Q,MM,R)
+        R[:] = 1j * Q - R
+        #Lambda =
+        #HERE I STOPPED
         Z = NS.dot(QD)
         Theta = Z.imag - Z.real.dot(MM)
         cc = Theta.dot(Theta.T)
@@ -260,24 +264,25 @@ class SDEProcess():
         def g(F, t):
             return self.Matrix(F)
 
-        result = sdeint.itoEuler(f, g, F0, tspan)
+        result = ConstSharedArray(np.array(sdeint.itoEuler(f, g, F0, tspan)))
 
-        shared = [[ConstSharedArray(x)] for x in result[1:]]
+        # shared = [[ConstSharedArray(x)] for x in result[1:]]
         print("finished Ito process")
-        mp.set_start_method('fork')
 
-        def Mean(x):
-            return np.mean(x[:])
+        def Mean(i,j):
+            return np.mean(result[i:j])
 
         cores = mp.cpu_count()
-        means = parallel_map(Mean, shared, cores)
+        ranges = np.array(range(len(result))).reshape(-1,chunk)
+        means = parallel_map(Mean, ranges, cores)
         Plot(means, os.path.join("plots", "test_ito_euler.png"), x_label='t', y_label='m', title='Ito')
 
 
 ############### tests
 def testSDE():
     global M, M3, LL, C33, R, C, RR, CC, G
-    M = 100
+    mp.set_start_method('fork')
+    M = 4
     MakeBelowEqIdsTable(M)
     M3 = M * 3
     F0 = np.array([ff(k, M) for k in range(M)], complex).reshape(M3)
@@ -285,7 +290,7 @@ def testSDE():
     C = [np.zeros((M, 3), complex) for _ in range(4)]
     RR = [np.zeros((M, M, 3, 3), float) for _ in range(4)]
     CC = [np.zeros((M, M, 3, 3), complex) for _ in range(5)]
-    C33 = [np.zeros((M, 3, 3), complex) for _ in range(5)]
+    C33 = [np.zeros((M, 3, 3), complex) for _ in range(10)]
     LL = CC[0]
     G = np.zeros((M,), complex)
 
