@@ -309,6 +309,39 @@ def runSDE(number_of_vertices,node_num=0):
     SD.ItoProcess(F0, 0.1, 100, 2, node_num)
 
 
+
+def NullSpace(F0,F1, F2):
+    q0 = F1 - F0
+    q1 = F2 - F1
+    X = np.array([np.cross(q0,F0),np.cross(q1,F2)]) # 2 X 3
+    # X.dot(dt0) =0
+    A = np.conjugate(X).T.dot(X) # 3 by 3 hermitean
+    return null_space(A)
+
+def testNullSpace():
+    NS = NullSpace(ff(0,10),ff(1,10),ff(2,10))
+    pass
+def RunIterMoves(M):
+    Fstart = np.array([ff(k, M) for k in range(M)], complex)
+    Frun = Fstart.copy()
+    def MoveOneVertex(k, T,num_steps):
+        F0 = Frun[k]
+        F1 = Frun[(k+1)%M]
+        F2 = F[(k+2)%M]
+
+        Z = np.zeros_like(F1)
+        tspan = np.linspace(0.0, T, num_steps)
+
+        def f(x, t):
+            return Z
+
+        def g(F, t):
+            NS = NullSpace(F0, F, F2)
+            return  E3.dot(NS)
+
+        with Timer("ItoProcess with N=" + str(M) + " and " + str(num_steps) + " steps"):
+            result = np.array(sdeint.itoEuler(f, g, F1, tspan))
+
 def testSDE():
     M = 100
     runSDE(M,0)
