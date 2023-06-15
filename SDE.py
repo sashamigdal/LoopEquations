@@ -1,4 +1,6 @@
 import concurrent.futures
+from os.path import split
+
 import numpy as np
 import os, sys
 from numpy import cos, sin, pi
@@ -236,7 +238,7 @@ class SDEProcess():
             TT[k + 1] += TT[k]
         return TT.transpose((0, 2, 1, 3)).reshape(M3, M3)
 
-    def ItoProcess(self, F0, T, num_steps, chunk):
+    def ItoProcess(self, F0, T, num_steps, chunk, node_num):
         tspan = np.linspace(0.0, T, num_steps)
         def f(x, t):
             return np.zeros((M3,), dtype=complex)
@@ -247,7 +249,7 @@ class SDEProcess():
         with Timer("ItoProcess with N=" + str(M) + " and " + str(num_steps) + " steps"):
             result = np.array(sdeint.itoEuler(f, g, F0, tspan)).reshape(-1,M3)
 
-        result.tofile(os.path.join("plots", "test_ito_euler.result.np"))
+        result.tofile(os.path.join("plots", "test_ito_euler." + str(node_num) + ".np"))
 
 
 
@@ -262,12 +264,19 @@ class SDEProcess():
             if z.imag != 0:
                 z *= np.sign(z.imag)
             # \frac{1}{2} \, _0F_1\left(;2;-\frac{z^2}{4}\right)+\frac{2 i z \, _1F_2\left(1;\frac{3}{2},\frac{5}{2};-\frac{z^2}{4}\right)}{3 \pi }
-                result = 1/2* hyp0f1(2,-z*z/4) + 2j * z/(3*pi)*hyp1f2(1,3./2,5./2,-z*z/4)
+                ans = 1/2* hyp0f1(2,-z*z/4) + 2j * z/(3*pi)*hyp1f2(1,3./2,5./2,-z*z/4)
             else:
-                result = 1./2 *hyp0f1(2, -z*z / 4)
-            return complex(result)
-
-        result = np.fromfile(os.path.join("plots", "test_ito_euler.result.np"),dtype=complex).reshape(-1,M3)
+                ans = 1./2 *hyp0f1(2, -z*z / 4)
+            return complex(ans)
+        result = None
+        for filename in os.listdir("plots"):
+            if filename.endswith(".np"):
+                try:
+                    node = int(filename.split(".")[-2])
+                    data =np.fromfile(os.path.join("plots", "test_ito_euler."+str(node)+".np"), dtype=complex).reshape(-1, M3)
+                    result = data if (result is None) else np.append(result,data)
+                except:
+                    print("could not read ", filename)
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
             emap =executor.map(Psi, result)
@@ -277,9 +286,10 @@ class SDEProcess():
                title='Ito')
 
 ############### tests
-def runSDE(M):
+def runSDE(number_of_vertices,node_num=0):
     global M, M3, LL, C33, R, C, RR, CC, G
     # mp.set_start_method('fork')
+    M = number_of_vertices
     M3 = M * 3
     F0 = np.array([ff(k, M) for k in range(M)], complex).reshape(M3)
     R = [np.zeros((M, 3), float) for _ in range(6)]
@@ -291,13 +301,15 @@ def runSDE(M):
     G = np.zeros((M,), complex)
 
     SD = SDEProcess()
-    B = SD.Matrix(F0)
-    SD.ItoProcess(F0, 0.5, 20, 2)
-    C0 = np.array([cc(k, M) for k in range(M)])
-    # SD.PlotResults(C0)
+    # B = SD.Matrix(F0)
+    SD.ItoProcess(F0, 0.5, 20, 2, node_num)
+
 
 def testSDE():
-    runSDE(100)
+    M = 100
+    runSDE(M,0)
+    C0 = np.array([cc(k,M) for k in range(M)])
+    SDEProcess().PlotResults(C0)
 
 def testFF():
     print(ff(3, 10))
@@ -341,6 +353,7 @@ def testDual():
 
 
 if __name__ == '__main__':
-    if len(sys.argv) == 2:
-        N = sys.argv[1]
-        testSDE(N)
+    if len(sys.argv) == 3:
+        N = int(sys.argv[1])
+        P = int(sys.argv[2])
+        runSDE(N,P)
