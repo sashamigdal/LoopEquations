@@ -314,38 +314,62 @@ def runSDE(number_of_vertices,node_num=0):
 
 
 
-def NullSpace(F0,F1, F2):
+def NullSpace(F0, F1, F2):
     q0 = F1 - F0
     q1 = F2 - F1
-    X = np.array([np.cross(q0,F0),np.cross(q1,F2)]) # 2 X 3
-    # X.dot(dt0) =0
-    A = np.conjugate(X).T.dot(X) # 3 by 3 hermitean
-    return null_space(A)
+    #dq0 = dt0 X q0 = dt0.dot.E3.dot.q0
+    #dq1 = dt1 X q1 = dt1.dot.E3.dot.q1
+    # dt0 .dot q0 X F0 = F0 dot dt0 X q0 =0
+    # dt1 .dot q1 X F2 = F2 dot dt1 X q1 =0
+    # dq0 + dq1 =0
+    Z = np.zeros((3),dtype=complex)
+    lst = [[q0.dot(E3.dot(F0)),Z],[Z,q1.dot(E3.dot(F2))]]
+    A = np.array(lst).reshape(2,6)
+    B = np.array([E3.dot(q0), E3.dot(q1)]).transpose(1,0,2).reshape(3,6)
+    X = np.vstack([A,B]) # 5 X6
+    # X.dot(np.array([dt0,dt1]).reshape(6))  =0
+    C = np.conjugate(X).T.dot(X) # 6 by 6 hermitean
+    return null_space(C).T.reshape(-1,2,3)
 
 def testNullSpace():
     NS = NullSpace(ff(0,10),ff(1,10),ff(2,10))
     pass
-def RunIterMoves(M):
-    Fstart = np.array([ff(k, M) for k in range(M)], complex)
-    Frun = Fstart.copy()
-    def MoveOneVertex(k, T,num_steps):
-        F0 = Frun[k]
-        F1 = Frun[(k+1)%M]
-        F2 = F[(k+2)%M]
+class IterMoves():
+    def __init__(self, M):
+        self.M = M
+        self.Fstart = np.array([ff(k, M) for k in range(M)], complex)
+        self.Frun = self.Fstart.copy()
+
+    def MoveOneVertex(self, k, T, num_steps):
+        M = self.M
+        F0 = self.Frun[(k+M-1)%M]
+        F1 = self.Frun[k]
+        F2 = self.Frun[(k+1)%M]
 
         Z = np.zeros_like(F1)
         tspan = np.linspace(0.0, T, num_steps)
-
+        NS = None
         def f(x, t):
             return Z
 
-        def g(F, t):
-            NS = NullSpace(F0, F, F2)
-            return  E3.dot(NS)
-
+        def g(q, t):
+            NS = NullSpace(F0, F0+q, F2) # K, 2,3
+            K = NS.shape[0]
+            Y =NS.dot(E3).dot(q).transpose(1,2,0) #K, 2,3 -> 2,3,K
+            X = Y[0].reshape(3,K)
+            return  X
+        noise = np.random.normal(size=2) + 1j * np.random.normal(size=2)
+        dq = g(F1-F0,0).dot(noise) # delta q = test.dot(q)
+        test1 = dq.dot(F1-F0)
+        test2 = dq.dot(F0)
+        dq
         with Timer("ItoProcess with N=" + str(M) + " and " + str(num_steps) + " steps"):
-            result = np.array(sdeint.itoEuler(f, g, F1, tspan))
+            result = sdeint.itoEuler(f, g, F1-F0, tspan)
+        return result[-1]
 
+def test_IterMoves():
+    Moves = IterMoves(10)
+    Moves.MoveOneVertex(0,1,100)
 def testSDE():
     M = 100
     runSDE(M,0)
