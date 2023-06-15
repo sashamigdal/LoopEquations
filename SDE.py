@@ -20,6 +20,7 @@ def ff(k, M):
     delta = pi / M
     return np.array([cos(2 * k * delta), sin(2 * k * delta), cos(delta) * 1j]) / (2 * sin(delta))
 
+
 def cc(k, M):
     delta = pi / M
     return np.array([cos(2 * k * delta), sin(2 * k * delta), 0],dtype=float)
