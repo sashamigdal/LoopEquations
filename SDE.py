@@ -277,10 +277,9 @@ class SDEProcess():
                title='Ito')
 
 ############### tests
-def testSDE():
+def runSDE(M):
     global M, M3, LL, C33, R, C, RR, CC, G
     # mp.set_start_method('fork')
-    M = 100
     M3 = M * 3
     F0 = np.array([ff(k, M) for k in range(M)], complex).reshape(M3)
     R = [np.zeros((M, 3), float) for _ in range(6)]
@@ -297,6 +296,8 @@ def testSDE():
     C0 = np.array([cc(k, M) for k in range(M)])
     # SD.PlotResults(C0)
 
+def testSDE():
+    runSDE(100)
 
 def testFF():
     print(ff(3, 10))
@@ -340,4 +341,6 @@ def testDual():
 
 
 if __name__ == '__main__':
-    testFF()
+    if len(sys.argv) == 2:
+        N = sys.argv[1]
+        testSDE(N)
