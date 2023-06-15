@@ -5,6 +5,7 @@ import numpy as np
 import os, sys
 from numpy import cos, sin, pi
 from scipy.linalg import pinvh, null_space
+from scipy.stats import ortho_group
 from mpmath import hyp0f1, hyp1f2
 import sdeint
 import multiprocessing as mp
@@ -159,12 +160,12 @@ class SDEProcess():
         # qd0 = np.array([HodgeDual(v) for v in q])
         qd = C33[0]
         np.dot(q, E3, qd)
-        TMP = C33[1]
-        parKron22(F, q, TMP)
-        G[:] = np.trace(TMP, axis1=1, axis2=2)
+        FXq = C33[1]
+        parKron22(F, q, FXq)
+        G[:] = np.trace(FXq, axis1=1, axis2=2)
         G[:] = 2 * G - 1j  # OK, checked  with the paper
         U = C[1]
-        U[:] = np.trace(TMP.dot(E3), axis1=1, axis2=2)
+        U[:] = np.trace(FXq.dot(E3), axis1=1, axis2=2)
         U[:] = G.reshape(M, 1) * U  # OK, checked  with the paper
         # for k in range(M): U[k] = -G[k] * F[k].dot(qd[k])
         gamma = C[2]
@@ -291,7 +292,10 @@ def runSDE(number_of_vertices,node_num=0):
     # mp.set_start_method('fork')
     M = number_of_vertices
     M3 = M * 3
-    F0 = np.array([ff(k, M) for k in range(M)], complex).reshape(M3)
+    np.random.seed(node_num)
+    F0 = np.array([ff(k, M) for k in range(M)], complex)
+    m = ortho_group.rvs(dim=3)
+    F0 = F0.dot(m).reshape(M3)
     R = [np.zeros((M, 3), float) for _ in range(6)]
     C = [np.zeros((M, 3), complex) for _ in range(6)]
     RR = [np.zeros((M, M, 3, 3), float) for _ in range(6)]
@@ -301,14 +305,16 @@ def runSDE(number_of_vertices,node_num=0):
     G = np.zeros((M,), complex)
 
     SD = SDEProcess()
-    # B = SD.Matrix(F0)
-    SD.ItoProcess(F0, 0.5, 20, 2, node_num)
+    B = SD.Matrix(F0)
+    SD.ItoProcess(F0, 0.1, 100, 2, node_num)
 
 
 def testSDE():
     M = 100
     runSDE(M,0)
     C0 = np.array([cc(k,M) for k in range(M)])
+    m = ortho_group.rvs(dim=3)
+    C0 = C0.dot(m)
     SDEProcess().PlotResults(C0)
 
 def testFF():
