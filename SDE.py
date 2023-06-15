@@ -127,6 +127,7 @@ def SetDiag(X, f):
     with concurrent.futures.ThreadPoolExecutor() as executor:
         executor.map(func, range(N))
 
+
 def ZeroBelowEqDiag(X):
     assert X.flags.c_contiguous
     N = len(X)
