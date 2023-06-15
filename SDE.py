@@ -3,6 +3,7 @@ import numpy as np
 import os, sys
 from numpy import cos, sin, pi
 from scipy.linalg import pinvh, null_space
+from mpmath import hyp0f1, hyp1f2
 import sdeint
 import multiprocessing as mp
 # from parallel import parallel_map, ConstSharedArray, WritableSharedArray
@@ -11,35 +12,14 @@ from Timer import MTimer as Timer
 
 MakeDir("plots")
 
-global NonBelowDiagTable
-
-
-# no changes, git test2
-def MakeNonAboveIdsTable(N):
-    global NonBelowDiagTable
-    lst = []
-    NonBelowDiagTable = [[]]
-    for n in range(N):
-        lst += [[k, n] for k in range(n + 1)]
-    pass
-
-
-def GetPairs(n):
-    N = int((n * (n + 1)) / 2)
-    return NonBelowDiagTable[:N]
-
-
-def test_KeepAboveDiag():
-    MakeNonAboveIdsTable(6)
-    test = GetPairs(5)
-    test
-
 
 def ff(k, M):
     delta = pi / M
     return np.array([cos(2 * k * delta), sin(2 * k * delta), cos(delta) * 1j]) / (2 * sin(delta))
 
-
+def cc(k, M):
+    delta = pi / M
+    return np.array([cos(2 * k * delta), sin(2 * k * delta), 0],dtype=float)
 def RI(X):
     return np.array([X.real, X.imag]).transpose()
 
@@ -113,15 +93,12 @@ def parKron22(A, B, C):
     assert A.ndim == 2
     N, d = A.shape
     assert C.shape == (N, d, d)
-    # CS = WritableSharedArray(C)
-    # AS = ConstSharedArray(A)
-    # BS = ConstSharedArray(B)
 
     def func(i):
         C[i] = np.kron(A[i, :], B[i, :]).reshape(d, d)
     with concurrent.futures.ThreadPoolExecutor() as executor:
         executor.map(func, range(N))
-    # C[:] = CS[:]
+
     pass
 
 
@@ -137,8 +114,7 @@ def VecDot(a, b):
 def SetDiag(X, f):
     N = len(f)
     assert X.shape[:2] == (N, N)
-    # XS = WritableSharedArray(X)
-    # fS = ConstSharedArray(f)
+
 
     def func(k):
         X[k, k] = f[k]
@@ -149,26 +125,13 @@ def ZeroBelowEqDiag(X):
     assert X.flags.c_contiguous
     N = len(X)
     assert X.shape[:2] == (N, N)
-    # XS = WritableSharedArray(X)
 
     def func(k):
         X[k,k:]=0
     with concurrent.futures.ThreadPoolExecutor() as executor:
         executor.map(func, range(N))
 
-
-
-
-
-
-
-
-
-
-
 def testVecOps():
-    MakeNonAboveIdsTable(6)
-
     mp.set_start_method('fork')
     a = np.arange(12).reshape(4, 3)
     b = np.arange(10, 22).reshape(4, 3)
@@ -275,7 +238,6 @@ class SDEProcess():
 
     def ItoProcess(self, F0, T, num_steps, chunk):
         tspan = np.linspace(0.0, T, num_steps)
-
         def f(x, t):
             return np.zeros((M3,), dtype=complex)
 
@@ -283,23 +245,42 @@ class SDEProcess():
             return self.Matrix(F)
 
         with Timer("ItoProcess with N=" + str(M) + " and " + str(num_steps) + " steps"):
-            result = np.array(sdeint.itoEuler(f, g, F0, tspan))
+            result = np.array(sdeint.itoEuler(f, g, F0, tspan)).reshape(-1,M3)
 
-        def Mean(key):
-            return np.mean(result[key[0]:key[-1] + 1])
+        result.tofile(os.path.join("plots", "test_ito_euler.result.np"))
 
-        ranges = np.array(range(len(result))).reshape(-1, chunk)
+
+
+    def PlotResults(self, C0):
+        C1 = C0 + np.roll(C0, 1, axis=0)
+        C1 = 0.5 * C1
+        def Psi(R):
+            F = R.reshape(M,3) #(M by 3 complex tensor)
+            q = np.roll(F, 1, axis=0) - F #(M by 3 complex tensor)
+            X = np.dot(C1.T,q) # (3 by 3 complex tensor)
+            z = np.sqrt(np.trace(X.dot(X.T)))
+            if z.imag != 0:
+                z *= np.sign(z.imag)
+            # \frac{1}{2} \, _0F_1\left(;2;-\frac{z^2}{4}\right)+\frac{2 i z \, _1F_2\left(1;\frac{3}{2},\frac{5}{2};-\frac{z^2}{4}\right)}{3 \pi }
+                result = 1/2* hyp0f1(2,-z*z/4) + 2j * z/(3*pi)*hyp1f2(1,3./2,5./2,-z*z/4)
+            else:
+                result = 1./2 *hyp0f1(2, -z*z / 4)
+            return complex(result)
+
+        result = np.fromfile(os.path.join("plots", "test_ito_euler.result.np"),dtype=complex).reshape(-1,M3)
+
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            means = np.array(list(executor.map(Mean, ranges[1:])))
-        XYPlot([means.real, means.imag], plotpath=os.path.join("plots", "test_ito_euler.png"), scatter=False,
-               title='Ito')
+            emap =executor.map(Psi, result)
 
+        psidata = np.array(list(emap),complex)
+        XYPlot([psidata.real, psidata.imag], plotpath=os.path.join("plots", "test_ito_euler.png"), scatter=True,
+               title='Ito')
 
 ############### tests
 def testSDE():
     global M, M3, LL, C33, R, C, RR, CC, G
-    mp.set_start_method('fork')
-    M = 1000
+    # mp.set_start_method('fork')
+    M = 100
     M3 = M * 3
     F0 = np.array([ff(k, M) for k in range(M)], complex).reshape(M3)
     R = [np.zeros((M, 3), float) for _ in range(6)]
@@ -313,6 +294,8 @@ def testSDE():
     SD = SDEProcess()
     B = SD.Matrix(F0)
     SD.ItoProcess(F0, 0.5, 20, 2)
+    C0 = np.array([cc(k, M) for k in range(M)])
+    # SD.PlotResults(C0)
 
 
 def testFF():
