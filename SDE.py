@@ -158,7 +158,7 @@ class SDEProcess():
         qd = C33[0]
         np.dot(q, E3, qd)
         TMP = C33[1]
-        VecKron22(F, q, TMP)
+        parKron22(F, q, TMP)
         G[:] = np.trace(TMP, axis1=1, axis2=2)
         G[:] = 2 * G - 1j  # OK, checked  with the paper
         U = C[1]
@@ -170,14 +170,14 @@ class SDEProcess():
         V = C[3]
         V[:] = G.reshape(M, 1) * q - 2 * F  # OK, fixed bug  with the paper
         gammaXV = C33[1]
-        VecKron22(gamma, V, gammaXV)  # OK, fixed bug  with the paper
+        parKron22(gamma, V, gammaXV)  # OK, fixed bug  with the paper
         LL[:] = -gammaXV.reshape(M3, 3).dot(qd.reshape(M3, 3).T).reshape(M, 3, M, 3).transpose((0, 2, 1, 3))
         # LL = gamma_k X Vk dot hat q
         ZeroBelowEqDiag(LL)
         XX = RR[0]
         XX[:] = LL.real  # Mk>l  = Re( gamma_k X Vk dot hat q)      # Mk<l =0
         gammaXU = C33[4]
-        VecKron22(gamma, U, gammaXU)  # OK, checked  with the paper
+        parKron22(gamma, U, gammaXU)  # OK, checked  with the paper
         SetDiag(XX, gammaXU.real)  # Mkk  = Re( gamma_k X U_k)
         XX = XX.transpose((0, 2, 1, 3)).reshape(M3, M3)
         MM = RR[1].transpose((0, 2, 1, 3)).reshape(M3, M3)
