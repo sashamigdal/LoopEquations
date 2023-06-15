@@ -24,6 +24,8 @@ def ff(k, M):
 def cc(k, M):
     delta = pi / M
     return np.array([cos(2 * k * delta), sin(2 * k * delta), 0],dtype=float)
+
+
 def RI(X):
     return np.array([X.real, X.imag]).transpose()
 
