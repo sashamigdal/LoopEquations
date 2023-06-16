@@ -23,7 +23,7 @@ def ff(k, M):
 
 def cc(k, M):
     delta = pi / M
-    return np.array([cos(2 * k * delta), sin(2 * k * delta), 0],dtype=float)
+    return np.array([cos(2 * k * delta), sin(2 * k * delta), 0], dtype=float)
 
 
 def RI(X):
@@ -102,6 +102,7 @@ def parKron22(A, B, C):
 
     def func(i):
         C[i] = np.kron(A[i, :], B[i, :]).reshape(d, d)
+
     with concurrent.futures.ThreadPoolExecutor() as executor:
         executor.map(func, range(N))
 
@@ -121,9 +122,9 @@ def SetDiag(X, f):
     N = len(f)
     assert X.shape[:2] == (N, N)
 
-
     def func(k):
         X[k, k] = f[k]
+
     with concurrent.futures.ThreadPoolExecutor() as executor:
         executor.map(func, range(N))
 
@@ -134,9 +135,11 @@ def ZeroBelowEqDiag(X):
     assert X.shape[:2] == (N, N)
 
     def func(k):
-        X[k,k:]=0
+        X[k, k:] = 0
+
     with concurrent.futures.ThreadPoolExecutor() as executor:
         executor.map(func, range(N))
+
 
 def testVecOps():
     mp.set_start_method('fork')
@@ -149,7 +152,6 @@ def testVecOps():
     assert d.shape[0] == 4
     X1 = np.arange(36).reshape(3, 3, 2, 2)
     ZeroBelowEqDiag(X1)
-
 
 
 class SDEProcess():
@@ -245,6 +247,7 @@ class SDEProcess():
 
     def ItoProcess(self, F0, T, num_steps, chunk, node_num):
         tspan = np.linspace(0.0, T, num_steps)
+
         def f(x, t):
             return np.zeros((M3,), dtype=complex)
 
@@ -252,46 +255,48 @@ class SDEProcess():
             return self.Matrix(F)
 
         with Timer("ItoProcess with N=" + str(M) + " and " + str(num_steps) + " steps"):
-            result = np.array(sdeint.itoEuler(f, g, F0, tspan)).reshape(-1,M3)
+            result = np.array(sdeint.itoEuler(f, g, F0, tspan)).reshape(-1, M3)
 
         result.tofile(os.path.join("plots", "test_ito_euler." + str(node_num) + ".np"))
-
-
 
     def PlotResults(self, C0):
         C1 = C0 + np.roll(C0, 1, axis=0)
         C1 = 0.5 * C1
+
         def Psi(R):
-            F = R.reshape(M,3) #(M by 3 complex tensor)
-            q = np.roll(F, 1, axis=0) - F #(M by 3 complex tensor)
-            X = np.dot(C1.T,q) # (3 by 3 complex tensor)
+            F = R.reshape(M, 3)  # (M by 3 complex tensor)
+            q = np.roll(F, 1, axis=0) - F  # (M by 3 complex tensor)
+            X = np.dot(C1.T, q)  # (3 by 3 complex tensor)
             z = np.sqrt(np.trace(X.dot(X.T)))
             if z.imag != 0:
                 z *= np.sign(z.imag)
-            # \frac{1}{2} \, _0F_1\left(;2;-\frac{z^2}{4}\right)+\frac{2 i z \, _1F_2\left(1;\frac{3}{2},\frac{5}{2};-\frac{z^2}{4}\right)}{3 \pi }
-                ans = 1/2* hyp0f1(2,-z*z/4) + 2j * z/(3*pi)*hyp1f2(1,3./2,5./2,-z*z/4)
+                # \frac{1}{2} \, _0F_1\left(;2;-\frac{z^2}{4}\right)+\frac{2 i z \, _1F_2\left(1;\frac{3}{2},\frac{5}{2};-\frac{z^2}{4}\right)}{3 \pi }
+                ans = 1 / 2 * hyp0f1(2, -z * z / 4) + 2j * z / (3 * pi) * hyp1f2(1, 3. / 2, 5. / 2, -z * z / 4)
             else:
-                ans = 1./2 *hyp0f1(2, -z*z / 4)
+                ans = 1. / 2 * hyp0f1(2, -z * z / 4)
             return complex(ans)
+
         result = None
         for filename in os.listdir("plots"):
             if filename.endswith(".np"):
                 try:
                     node = int(filename.split(".")[-2])
-                    data =np.fromfile(os.path.join("plots", "test_ito_euler."+str(node)+".np"), dtype=complex).reshape(-1, M3)
-                    result = data if (result is None) else np.append(result,data)
+                    data = np.fromfile(os.path.join("plots", "test_ito_euler." + str(node) + ".np"),
+                                       dtype=complex).reshape(-1, M3)
+                    result = data if (result is None) else np.append(result, data)
                 except:
                     print("could not read ", filename)
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            emap =executor.map(Psi, result)
+            emap = executor.map(Psi, result)
 
-        psidata = np.array(list(emap),complex)
+        psidata = np.array(list(emap), complex)
         XYPlot([psidata.real, psidata.imag], plotpath=os.path.join("plots", "test_ito_euler.png"), scatter=True,
                title='Ito')
 
+
 ############### tests
-def runSDE(number_of_vertices,node_num=0):
+def runSDE(number_of_vertices, node_num=0):
     global M, M3, LL, C33, R, C, RR, CC, G
     # mp.set_start_method('fork')
     M = number_of_vertices
@@ -313,27 +318,82 @@ def runSDE(number_of_vertices,node_num=0):
     SD.ItoProcess(F0, 0.1, 100, 2, node_num)
 
 
-
-def NullSpace(F0, F1, F2):
+def NullSpace3(F0, F1, F2):
     q0 = F1 - F0
     q1 = F2 - F1
-    #dq0 = dt0 X q0 = dt0.dot.E3.dot.q0
-    #dq1 = dt1 X q1 = dt1.dot.E3.dot.q1
+    # dq0 = dt0 X q0 = dt0.dot.E3.dot.q0
+    # dq1 = dt1 X q1 = dt1.dot.E3.dot.q1
     # dt0 .dot q0 X F0 = F0 dot dt0 X q0 =0
     # dt1 .dot q1 X F2 = F2 dot dt1 X q1 =0
     # dq0 + dq1 =0
-    Z = np.zeros((3),dtype=complex)
-    lst = [[q0.dot(E3.dot(F0)),Z],[Z,q1.dot(E3.dot(F2))]]
-    A = np.array(lst).reshape(2,6)
-    B = np.array([E3.dot(q0), E3.dot(q1)]).transpose(1,0,2).reshape(3,6)
-    X = np.vstack([A,B]) # 5 X6
+    Z = np.zeros((3), dtype=complex)
+    Z2 = np.zeros((3,3), dtype=complex)
+    lst = [[q0.dot(E3.dot(F0)), Z], [Z, q1.dot(E3.dot(F2))]]
+    A = np.array(lst).reshape(2, 6)
+    B = np.array([E3.dot(q0), E3.dot(q1)]).transpose(1, 0, 2).reshape(3, 6)
+    X = np.vstack([A, B])  # 5 X6
     # X.dot(np.array([dt0,dt1]).reshape(6))  =0
-    C = np.conjugate(X).T.dot(X) # 6 by 6 hermitean
-    return null_space(C).T.reshape(-1,2,3)
+    NS = null_space(X)
+    test0 = X.dot(NS)
+    Q1 = np.array([E3.dot(q0),Z2]).transpose(1,0,2).reshape(3,6)
+    test1 = Q1.dot(NS)
+    Q2 = np.array([Z2,E3.dot(q1)]).transpose(1, 0, 2).reshape(3, 6)
+    test = Q2.dot(NS)
+    Q1 = np.hstack([qd0, qd1])
+    return NS.T.reshape(-1, 2, 3)
+
+
+def NullSpace4(F0, F1, F2, F3):
+    q0 = F1 - F0
+    q1 = F2 - F1
+    q2 = F3 - F2
+    #############################
+    # (F0 dot q0 - i/2)^2 = F0^2 + (2 i -1)/4  # scalar equation, (trivial, as delta F0 =0)  #0
+    # (F3 dot q2 + i/2)^2 = F3^2 + (2 i -1)/4 # scalar equation (trivial, as delta F3 =0)   #1
+
+
+    # qd_k = E3 dot q_k
+    # G1 = 2 F1 dot q1 - i # scalar equation
+    # dq_k = qd_k dot dt_k
+    #############################
+    # (F0 dot qd0) dot dt0  + 0 dot dt1 + 0 dot dt2= 0  # scalar eq 0
+    # 0 dot dt0 + 0 dot dt1 + (F3 dot qd2) dot dt2 = 0  # scalar eq 1
+
+    # (F1 dot q1 - i/2)^2 = F1^2 + (2 i -1)/4  # scalar equation # scalar eq 2
+    # G1 F1 dot dq1 +  G1 q1 dot d F1 - 2 F1 dot dF1 =0 # scalar eq 2
+    # (G1 q1 dot qd0 - 2 F1 dot qd0) dot dt0   + (G1 F1 dot qd1) dot dt1  + 0 dot dt2 =0  # scalar eq 2
+
+    # qd0 dot dt0 + qd1 dot dt1 + qd2 dot dt2 =0 # vector eq 1
+    #
+    Z = np.zeros((3), dtype=complex)
+    Z2 = np.zeros((3,3), dtype=complex)
+    qd0 = E3.dot(q0)
+    qd1 = E3.dot(q1)
+    qd2 = E3.dot(q2)
+    G1 = 2 * F1.dot(q1) - 1j
+    lst = []
+    lst.append([F0.dot(qd0), Z, Z])  # scalar eq 0
+    lst.append([Z, Z, F3.dot(qd2)])  # scalar eq 1
+    lst.append([G1 * q1.dot(qd0) - 2 * F1.dot(qd0), G1 * F1.dot(qd1), Z])  # scalar eq 2
+    A = np.array(lst).reshape(3, 9)  # 3e,3t, d ->3e, 3 *d
+    B = np.array([qd0, qd1, qd2]).transpose(1, 0, 2).reshape(3, 9)  # (3t,d,d) ->  (d, 3t*d)
+    X = np.vstack([A, B])  # (3 + d)) X 3 d
+    NS = null_space(X)
+    test0 = X.dot(NS)
+    Q0 = np.array([E3.dot(q0), E3.dot(q1),E3.dot(q2)]).transpose(1,0,2).reshape(3,9)
+    Q1 = np.array([Z2, Z2, E3.dot(q2)]).transpose(1,0,2).reshape(3,9)
+    Q2 = np.array([Z2, E3.dot(q1), Z2]).transpose(1,0,2).reshape(3,9)
+    Q3 = np.array([E3.dot(q0), Z2, Z2]).transpose(1,0,2).reshape(3,9)
+    test = [Q0.dot(NS),Q1.dot(NS),Q2.dot(NS),Q3.dot(NS)]
+    return NS
+
 
 def testNullSpace():
-    NS = NullSpace(ff(0,10),ff(1,10),ff(2,10))
+    NS = NullSpace3(ff(0, 10), ff(1, 10), ff(2, 10))
+    NS = NullSpace4(ff(0, 10), ff(1, 10), ff(2, 10), ff(3, 10))
     pass
+
+
 class IterMoves():
     def __init__(self, M):
         self.M = M
@@ -342,38 +402,43 @@ class IterMoves():
 
     def MoveOneVertex(self, k, T, num_steps):
         M = self.M
-        F0 = self.Frun[(k+M-1)%M]
+        F0 = self.Frun[(k + M - 1) % M]
         F1 = self.Frun[k]
-        F2 = self.Frun[(k+1)%M]
+        F2 = self.Frun[(k + 1) % M]
 
         Z = np.zeros_like(F1)
         tspan = np.linspace(0.0, T, num_steps)
         NS = None
+
         def f(x, t):
             return Z
 
         def g(q, t):
-            NS = NullSpace(F0, F0+q, F2) # K, 2,3
+            NS = NullSpace(F0, F0 + q, F2)  # K, 2,3
             K = NS.shape[0]
-            Y =NS.dot(E3).dot(q).transpose(1,2,0) #K, 2,3 -> 2,3,K
-            X = Y[0].reshape(3,K)
-            return  X
+            Y = NS.dot(E3).dot(q).transpose(1, 2, 0)  # K, 2,3 -> 2,3,K
+            X = Y[0].reshape(3, K)
+            return X
+
         noise = np.random.normal(size=2) + 1j * np.random.normal(size=2)
-        dq = g(F1-F0,0).dot(noise) # delta q = test.dot(q)
-        test1 = dq.dot(F1-F0)
+        dq = g(F1 - F0, 0).dot(noise)  # delta q = test.dot(q)
+        test1 = dq.dot(F1 - F0)
         test2 = dq.dot(F0)
         dq
         with Timer("ItoProcess with N=" + str(M) + " and " + str(num_steps) + " steps"):
-            result = sdeint.itoEuler(f, g, F1-F0, tspan)
+            result = sdeint.itoEuler(f, g, F1 - F0, tspan)
         return result[-1]
+
 
 def test_IterMoves():
     Moves = IterMoves(10)
-    Moves.MoveOneVertex(0,1,100)
+    Moves.MoveOneVertex(0, 1, 100)
+
+
 def testSDE():
     M = 100
-    runSDE(M,0)
-    C0 = np.array([cc(k,M) for k in range(M)])
+    runSDE(M, 0)
+    C0 = np.array([cc(k, M) for k in range(M)])
     m = ortho_group.rvs(dim=3)
     C0 = C0.dot(m)
     SDEProcess().PlotResults(C0)
@@ -424,4 +489,4 @@ if __name__ == '__main__':
     if len(sys.argv) == 3:
         N = int(sys.argv[1])
         P = int(sys.argv[2])
-        runSDE(N,P)
+        runSDE(N, P)
