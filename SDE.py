@@ -11,7 +11,7 @@ from mpmath import hyp0f1, hyp1f2
 import sdeint
 import multiprocessing as mp
 # from parallel import parallel_map, ConstSharedArray, WritableSharedArray
-from plot import Plot, PlotTimed, MakeDir, XYPlot
+from plot import Plot, PlotTimed, MakeDir, XYPlot, MakeNewDir
 from Timer import MTimer as Timer
 
 MakeDir("plots")
@@ -400,40 +400,71 @@ def testNullSpace():
     pass
 
 
+def RealToComplexVec(a, b):
+    N = len(b)
+    assert len(a) == 2 * N
+    a = a.reshape(2, N)
+    b[:] = a[0] + 1j * a[1]
+
+def ComplexToRealVec(b,a):
+    N = len(b)
+    assert len(a) == 2 * N
+    a = a.reshape(2, N)
+    a[0, :] = b.real
+    a[1, :] = b.imag
+
+
+def RealToComplexMat(A, B):
+    N, M = B.shape
+    assert A.shape == (2 * N, 2 * M)
+    a = A.reshape(2, N, 2, M).transpose((0,2,1,3))
+    B[:] = a[0,0] + 1j*a[1,0]
+
+def ComplextoRealMat(B,A):
+    N, M = B.shape
+    assert A.shape == (2 *N, 2 * M)
+    a = A.reshape(2, N, 2, M).transpose((0,2,1,3))
+    a[0, 0] = B.real
+    a[0, 1] = -B.imag
+    a[1, 0] = B.imag
+    a[1, 1] = B.real
+
+def test_ComplexToRealVec():
+    A = np.arange(24,dtype= float)
+    B = np.arange(12,dtype= complex) * (1 + 1j)
+    R = np.zeros_like(A)
+    C = np.zeros_like(B)
+    RealToComplexVec(A, C)
+    ComplexToRealVec(B, R)
+    AA = np.arange(24,dtype= float).reshape(6,4)
+    BB = np.arange(6,dtype= complex).reshape(3,2)
+    RR = np.zeros_like(AA)
+    CC = np.zeros_like(BB)
+    ComplextoRealMat(BB, RR)
+    RealToComplexMat(RR, CC)
+    assert (CC  == BB).all()
+    R = np.arange(4,dtype= float)
+    X = RR.dot(R)
+    C = np.zeros(2, dtype=complex)
+    RealToComplexVec(R, C)
+    Y = np.zeros_like(X)
+    ComplexToRealVec(CC.dot(C),Y)
+    assert (X == Y).all()
+
 class IterMoves():
     def __init__(self, M):
         self.M = M
         self.Fstart = np.array([ff(k, M) for k in range(M)], complex)
         self.Frun = self.Fstart.copy()
 
-    def MoveOneVertex(self, k, T, num_steps):
-        M = self.M
-        F0 = self.Frun[(k + M - 1) % M]
-        F1 = self.Frun[k]
-        F2 = self.Frun[(k + 1) % M]
 
-        Z = np.zeros_like(F1)
-        tspan = np.linspace(0.0, T, num_steps)
-        NS = None
+    def GetSaveDirname(self):
+        # os.path.join("plots", "curve_cycle_node." + str(cycle) + "." + str(node_num) + ".np")
+        return os.path.join("plots", str(self.M))
 
-        def f(x, t):
-            return Z
-
-        def g(q, t):
-            NS = NullSpace3(F0, F0 + q, F2)  # K, 2,3
-            K = NS.shape[0]
-            Y = NS.dot(E3).dot(q).transpose(1, 2, 0)  # K, 2,3 -> 2,3,K
-            X = Y[0].reshape(3, K)
-            return X
-
-        noise = np.random.normal(size=2) + 1j * np.random.normal(size=2)
-        dq = g(F1 - F0, 0).dot(noise)  # delta q = test.dot(q)
-        test1 = dq.dot(F1 - F0)
-        test2 = dq.dot(F0)
-        dq
-        with Timer("ItoProcess with N=" + str(M) + " and " + str(num_steps) + " steps"):
-            result = sdeint.itoEuler(f, g, F1 - F0, tspan)
-        return result[-1]
+    def GetSaveFilename(self, cycle, node_num):
+        # os.path.join("plots", "curve_cycle_node." + str(cycle) + "." + str(node_num) + ".np")
+        return os.path.join(self.GetSaveDirname(), "curve_cycle_node." + str(cycle) + "." + str(node_num) + ".np")
 
     def MoveTwoVertices(self, k, T, num_steps):
         M = self.M
@@ -443,37 +474,89 @@ class IterMoves():
         F2 = self.Frun[(k + 2) % M]
         F3 = self.Frun[(k + 3) % M]
 
-        X0 = np.vstack([F1 - F0, F2 - F1]).reshape(6)
-        Z = np.zeros_like(X0)
+
+        ZR = np.zeros(12,dtype = float)
+        ZC = np.zeros( 6, dtype=complex)
+        X0 = ZR.copy()
+        Y = np.vstack([F1 - F0, F2 - F1]).reshape(6)
+        ComplexToRealVec(Y,X0)
 
         tspan = np.linspace(0.0, T, num_steps)
 
         def f(x, t):
-            return Z
+            return ZR
 
-        def g(X, t):
-            Q = X.reshape(2, 3)
+        def g(R, t):#  (12,)
+            C = ZC.copy()
+            RealToComplexVec(R, C) # (6)
+            Q = C.reshape(2, 3)
             q0 = Q[0]
             q1 = Q[1]
-            return NullSpace4(F0, F0 + q0, F0 + q0 + q1, F3)  # 6,K
+            NS = NullSpace4(F0, F0 + q0, F0 + q0 + q1, F3)  # 6,K
+            K = NS.shape[1]
+            NSR = np.zeros((12,2*K),dtype=float)
+            ComplextoRealMat(NS, NSR)
+            return NSR
 
         #######TEST BEGIN
-        noise = np.random.normal(size=4) + 1j * np.random.normal(size=4)
+        noise = np.random.normal(size=8)
         dq = g(X0, 0).dot(noise)  # delta q = test.dot(q)
+        dqc = ZC.copy()
+        RealToComplexVec(dq,dqc)
         #######TEST E#ND
         result = list(sdeint.itoEuler(f, g, X0, tspan))
-        X = result[-1]
-        Q = X.reshape(2, 3)
+        R = result[-1]
+        C = ZC.copy()
+        RealToComplexVec(R, C)  # (6)
+        Q = C.reshape(2, 3)
         q0 = Q[0]
         q1 = Q[1]
         self.Frun[(k + 1) % M][:] = F0 + q0
         self.Frun[(k + 2) % M][:] = self.Frun[(k + 1) % M] + q1
 
     def SaveCurve(self, cycle, node_num):
-        self.Frun.tofile(os.path.join("plots", "curve_cycle_" + str(cycle) + "_node_" + str(node_num) + ".np"))
+        self.Frun.tofile(self.GetSaveFilename(cycle, node_num))
 
     def CollectStatistics(self):
         pass
+
+    def PlotResults(self, C0):
+        C1 = C0 + np.roll(C0, 1, axis=0)
+        C1 = 0.5 * C1
+        M = self.M
+
+        def Psi(F):
+            assert F.shape == (M, 3)  # (M by 3 complex tensor)
+            q = np.roll(F, 1, axis=0) - F  # (M by 3 complex tensor)
+            X = np.dot(C1.T, q)  # (3 by 3 complex tensor)
+            z = np.sqrt(np.trace(X.dot(X.T)))
+            if z.imag != 0:
+                z *= np.sign(z.imag)
+                # \frac{1}{2} \, _0F_1\left(;2;-\frac{z^2}{4}\right)+\frac{2 i z \, _1F_2\left(1;\frac{3}{2},\frac{5}{2};-\frac{z^2}{4}\right)}{3 \pi }
+                ans = 1 / 2 * hyp0f1(2, -z * z / 4) + 2j * z / (3 * pi) * hyp1f2(1, 3. / 2, 5. / 2, -z * z / 4)
+            else:
+                ans = 1. / 2 * hyp0f1(2, -z * z / 4)
+            return complex(ans)
+
+        curves = []
+        for filename in os.listdir(self.GetSaveDirname()):
+            if filename.endswith(".np"):
+                try:
+                    splits = filename.split(".")
+                    cycle = int(splits[-3])
+                    node_num = int(splits[-2])
+                    curve = np.fromfile(os.path.join(self.GetSaveDirname(), filename), dtype=complex).reshape(-1, 3)
+                    curves.append(curve)
+                except:
+                    print("could not read ", filename)
+
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            emap = executor.map(Psi, curves)
+
+        psidata = np.array(list(emap), complex)
+        XYPlot([psidata.real, psidata.imag], plotpath=os.path.join(self.GetSaveDirname(), "WilsonLoop.png"),
+               scatter=True,
+               title='Wilson Loop')
 
 
 def runIterMoves(num_vertices=100, num_cycles=10, T=1, num_steps=1000, node=0):
@@ -483,17 +566,28 @@ def runIterMoves(num_vertices=100, num_cycles=10, T=1, num_steps=1000, node=0):
     def MoveTwo(k):
         mover.MoveTwoVertices(k, T, num_steps)
 
-    with Timer("ItoProcess with N=" + str(M) + " and " + str(num_steps) + " steps"):
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            for cycle in range(num_cycles):
-                for k in range(3):
-                    executor.map(MoveTwo, range(k, M + k, 3))
-                mover.SaveCurve(cycle, node)
+    # MoveTwo(0)
+    if True:
+        MakeNewDir(mover.GetSaveDirname())
+        with Timer("ItoProcess with N=" + str(M) + " and " + str(num_cycles) + " cycles each with " + str(
+                num_steps) + " Ito steps"):
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                for cycle in range(num_cycles):
+                    for k in range(3):
+                        executor.map(MoveTwo, range(k, M + k, 3))
+                    mover.SaveCurve(cycle, node)
+                pass
             pass
+        pass
+    pass
+    C0 = np.array([cc(k, M) for k in range(M)])
+    m = ortho_group.rvs(dim=3)
+    C0 = C0.dot(m)
+    mover.PlotResults(C0)
 
 
 def test_IterMoves():
-    runIterMoves(num_vertices=1000, num_cycles=10, T=1, num_steps=1000, node=0)
+    runIterMoves(num_vertices=1000, num_cycles=100, T=1, num_steps=1000, node=0)
 
 
 def testSDE():
