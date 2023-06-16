@@ -1,4 +1,5 @@
 import concurrent.futures
+import math
 from os.path import split
 
 import numpy as np
@@ -327,7 +328,7 @@ def NullSpace3(F0, F1, F2):
     # dt1 .dot q1 X F2 = F2 dot dt1 X q1 =0
     # dq0 + dq1 =0
     Z = np.zeros((3), dtype=complex)
-    Z2 = np.zeros((3,3), dtype=complex)
+    Z2 = np.zeros((3, 3), dtype=complex)
     lst = [[q0.dot(E3.dot(F0)), Z], [Z, q1.dot(E3.dot(F2))]]
     A = np.array(lst).reshape(2, 6)
     B = np.array([E3.dot(q0), E3.dot(q1)]).transpose(1, 0, 2).reshape(3, 6)
@@ -335,12 +336,16 @@ def NullSpace3(F0, F1, F2):
     # X.dot(np.array([dt0,dt1]).reshape(6))  =0
     NS = null_space(X)
     test0 = X.dot(NS)
-    Q1 = np.array([E3.dot(q0),Z2]).transpose(1,0,2).reshape(3,6)
+    Q1 = np.array([E3.dot(q0), Z2]).transpose(1, 0, 2).reshape(3, 6)
     test1 = Q1.dot(NS)
-    Q2 = np.array([Z2,E3.dot(q1)]).transpose(1, 0, 2).reshape(3, 6)
+    Q2 = np.array([Z2, E3.dot(q1)]).transpose(1, 0, 2).reshape(3, 6)
     test = Q2.dot(NS)
-    Q1 = np.hstack([qd0, qd1])
     return NS.T.reshape(-1, 2, 3)
+
+
+def MaxAbsComplexArray(errs):
+    mm = [errs.min().real, errs.min().imag, errs.max().real, errs.max().imag]
+    return np.max(np.abs(mm))
 
 
 def NullSpace4(F0, F1, F2, F3):
@@ -350,7 +355,6 @@ def NullSpace4(F0, F1, F2, F3):
     #############################
     # (F0 dot q0 - i/2)^2 = F0^2 + (2 i -1)/4  # scalar equation, (trivial, as delta F0 =0)  #0
     # (F3 dot q2 + i/2)^2 = F3^2 + (2 i -1)/4 # scalar equation (trivial, as delta F3 =0)   #1
-
 
     # qd_k = E3 dot q_k
     # G1 = 2 F1 dot q1 - i # scalar equation
@@ -366,7 +370,7 @@ def NullSpace4(F0, F1, F2, F3):
     # qd0 dot dt0 + qd1 dot dt1 + qd2 dot dt2 =0 # vector eq 1
     #
     Z = np.zeros((3), dtype=complex)
-    Z2 = np.zeros((3,3), dtype=complex)
+    Z2 = np.zeros((3, 3), dtype=complex)
     qd0 = E3.dot(q0)
     qd1 = E3.dot(q1)
     qd2 = E3.dot(q2)
@@ -379,17 +383,19 @@ def NullSpace4(F0, F1, F2, F3):
     B = np.array([qd0, qd1, qd2]).transpose(1, 0, 2).reshape(3, 9)  # (3t,d,d) ->  (d, 3t*d)
     X = np.vstack([A, B])  # (3 + d)) X 3 d
     NS = null_space(X)
-    test0 = X.dot(NS)
-    Q0 = np.array([E3.dot(q0), E3.dot(q1),E3.dot(q2)]).transpose(1,0,2).reshape(3,9)
-    Q1 = np.array([Z2, Z2, E3.dot(q2)]).transpose(1,0,2).reshape(3,9)
-    Q2 = np.array([Z2, E3.dot(q1), Z2]).transpose(1,0,2).reshape(3,9)
-    Q3 = np.array([E3.dot(q0), Z2, Z2]).transpose(1,0,2).reshape(3,9)
-    test = [Q0.dot(NS),Q1.dot(NS),Q2.dot(NS),Q3.dot(NS)]
-    return NS
+    assert MaxAbsComplexArray(X.dot(NS)) < 1e-12
+    Q0 = np.array([E3.dot(q0), E3.dot(q1), E3.dot(q2)]).transpose(1, 0, 2).reshape(3, 9)
+    assert MaxAbsComplexArray(Q0.dot(NS)) < 1e-12
+
+    Q0 = np.array([qd0, Z2, Z2]).transpose(1, 0, 2).reshape(3, 9)
+    Q1 = np.array([Z2, qd1, Z2]).transpose(1, 0, 2).reshape(3, 9)
+    Q2 = np.array([Z2, Z2, qd2]).transpose(1, 0, 2).reshape(3, 9)
+    QDNS = np.vstack([Q0.dot(NS), Q1.dot(NS)])
+    return QDNS
 
 
 def testNullSpace():
-    NS = NullSpace3(ff(0, 10), ff(1, 10), ff(2, 10))
+    # NS = NullSpace3(ff(0, 10), ff(1, 10), ff(2, 10))
     NS = NullSpace4(ff(0, 10), ff(1, 10), ff(2, 10), ff(3, 10))
     pass
 
@@ -414,7 +420,7 @@ class IterMoves():
             return Z
 
         def g(q, t):
-            NS = NullSpace(F0, F0 + q, F2)  # K, 2,3
+            NS = NullSpace3(F0, F0 + q, F2)  # K, 2,3
             K = NS.shape[0]
             Y = NS.dot(E3).dot(q).transpose(1, 2, 0)  # K, 2,3 -> 2,3,K
             X = Y[0].reshape(3, K)
@@ -429,10 +435,65 @@ class IterMoves():
             result = sdeint.itoEuler(f, g, F1 - F0, tspan)
         return result[-1]
 
+    def MoveTwoVertices(self, k, T, num_steps):
+        M = self.M
+
+        F0 = self.Frun[k % M]
+        F1 = self.Frun[(k + 1) % M]
+        F2 = self.Frun[(k + 2) % M]
+        F3 = self.Frun[(k + 3) % M]
+
+        X0 = np.vstack([F1 - F0, F2 - F1]).reshape(6)
+        Z = np.zeros_like(X0)
+
+        tspan = np.linspace(0.0, T, num_steps)
+
+        def f(x, t):
+            return Z
+
+        def g(X, t):
+            Q = X.reshape(2, 3)
+            q0 = Q[0]
+            q1 = Q[1]
+            return NullSpace4(F0, F0 + q0, F0 + q0 + q1, F3)  # 6,K
+
+        #######TEST BEGIN
+        noise = np.random.normal(size=4) + 1j * np.random.normal(size=4)
+        dq = g(X0, 0).dot(noise)  # delta q = test.dot(q)
+        #######TEST E#ND
+        result = list(sdeint.itoEuler(f, g, X0, tspan))
+        X = result[-1]
+        Q = X.reshape(2, 3)
+        q0 = Q[0]
+        q1 = Q[1]
+        self.Frun[(k + 1) % M][:] = F0 + q0
+        self.Frun[(k + 2) % M][:] = self.Frun[(k + 1) % M] + q1
+
+    def SaveCurve(self, cycle, node_num):
+        self.Frun.tofile(os.path.join("plots", "curve_cycle_" + str(cycle) + "_node_" + str(node_num) + ".np"))
+
+    def CollectStatistics(self):
+        pass
+
+
+def runIterMoves(num_vertices=100, num_cycles=10, T=1, num_steps=1000, node=0):
+    M = num_vertices
+    mover = IterMoves(M)
+
+    def MoveTwo(k):
+        mover.MoveTwoVertices(k, T, num_steps)
+
+    with Timer("ItoProcess with N=" + str(M) + " and " + str(num_steps) + " steps"):
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            for cycle in range(num_cycles):
+                for k in range(3):
+                    executor.map(MoveTwo, range(k, M + k, 3))
+                mover.SaveCurve(cycle, node)
+            pass
+
 
 def test_IterMoves():
-    Moves = IterMoves(10)
-    Moves.MoveOneVertex(0, 1, 100)
+    runIterMoves(num_vertices=1000, num_cycles=10, T=1, num_steps=1000, node=0)
 
 
 def testSDE():
