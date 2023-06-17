@@ -285,9 +285,9 @@ def runIterMoves(num_vertices=100, num_cycles=10, T=0.1, num_steps=1000,
 
 
 def test_IterMoves():
-    runIterMoves(num_vertices=300, num_cycles=10, T=10, num_steps=1000,
+    runIterMoves(num_vertices=300, num_cycles=100, T=0.1, num_steps=1000,
                  t0=1, t1=1, time_steps=10,
-                 node=0, NewRandomWalk=False)
+                 node=0, NewRandomWalk=True)
 
 
 def testFF():
