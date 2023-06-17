@@ -1,8 +1,25 @@
 import numpy as np
+from numpy import cos, sin, pi
 import multiprocessing as mp
 from parallel import parallel_map
 from scipy.linalg import null_space
 
+
+
+def circle(k, M):
+    delta = pi / M
+    return np.array([cos(2 * k * delta), sin(2 * k * delta), 0], dtype=float)
+
+def randomLoop(N,L ):
+    coeffs = np.random.normal(size=L * 3) + 1j * np.random.normal(size=L*3)
+    FF = coeffs.reshape(3,L)
+    a2 = np.kron(np.arange(L),np.arange(N)).reshape(L,N)
+    exps = np.exp(a2 * (2.j * pi /N))
+    return FF.dot(exps).real.T
+
+def test_RandomLoop():
+    C = randomLoop(10,3)
+    pass
 def HodgeDual(v):
     return np.array([
         [0, v[2], -v[1]],
@@ -15,13 +32,13 @@ E3 = np.array([HodgeDual(v) for v in np.eye(3)], dtype=float)
 
 
 def test_LevyCivita():
-    a = np.array([1, 2, 3], float)
-    b = np.array([4, 5, 6], float)
+    a = np.array([1, 2, 3], int)
+    b = np.array([4, 5, 6], int)
     ad = a.dot(E3)
     c = ad.dot(b)
     c1 = np.cross(a, b)
-    test = c - c1
-    test
+    assert (c == c1).all
+
 
 
 def dot_shape(a, b):

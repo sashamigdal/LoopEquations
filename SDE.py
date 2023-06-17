@@ -1,6 +1,9 @@
 import math
 from os.path import split
 
+import scipy
+
+DEBUG = True
 import numpy as np
 import os, sys
 from numpy import cos, sin, pi
@@ -12,25 +15,63 @@ import sdeint
 import multiprocessing as mp
 
 from ComplexToReal import ComplexToRealVec, RealToComplexVec, ComplextoRealMat, ReformatRealMatrix, MaxAbsComplexArray
-from VectorOperations import NullSpace4, HodgeDual, E3
+from VectorOperations import NullSpace4, HodgeDual, E3, randomLoop
 from parallel import parallel_map, ConstSharedArray, WritableSharedArray
 from plot import Plot, PlotTimed, MakeDir, XYPlot, MakeNewDir
 from Timer import MTimer as Timer
 import logging
+from mpmath import mp as mpm
 
+mpm.dps = 30
+prec = 20
 logger = logging.Logger("debug")
 
 MakeDir("plots")
 
+def Sqr(v):
+    return v.dot(v)
 
+def ImproveF1F2(F0, F1, F2, F3):
+    pass
+    #(F{k+1} - Fk)^2 =1
+    # (F{k+1}^2 - Fk^2 -I)^2 = (F{k+1} + Fk)^2 -1
+
+    def Eq(fi,fj):
+        return [Sqr(fi-fj) -1 , (Sqr(fj) - Sqr(fi) -1j)**2 + 1 - Sqr(fi+fj)]
+
+
+    def pack(X):
+        y = np.array(X,float).reshape(2,6)
+        return np.array(y[0]+ 1j * y[1],complex).reshape(2,3)
+
+    def unpack(f1, f2):
+        x= np.vstack([f1,f2]).reshape(6)
+        return np.vstack([x.real,x.imag]).reshape(12).astype(float)
+
+    def Eqs(*args):
+         P = pack(args)
+         f1 = P[0]
+         f2 = P[1]
+         return Eq(F0, f1) + Eq(f1, f2) + Eq(f2, F3)
+    def f(*args):
+        return sum([np.abs(eq)**2 for eq in Eqs(*args)])
+    pass
+    ee = Eqs(unpack(F1,F2))
+    err0 = MaxAbsComplexArray(np.array(ee,dtype=complex))
+    res = scipy.optimize.minimize(f,unpack(F1,F2),tol=1e-16)
+    ee1 = Eqs(res.x)
+    err1 = MaxAbsComplexArray(np.array(ee1,dtype=complex))
+    P = pack(res.x)
+    # x = mpm.findroot(Eqs, unpack(F1,F2), solver='bisect')
+    # P = pack(x)
+    return  P[0],P[1]
+
+def test_list():
+    test = [1,2,3] + [4,5,6,7]
+    test
 def ff(k, M):
     delta = pi / M
     return np.array([cos(2 * k * delta), sin(2 * k * delta), cos(delta) * 1j]) / (2 * sin(delta))
-
-
-def cc(k, M):
-    delta = pi / M
-    return np.array([cos(2 * k * delta), sin(2 * k * delta), 0], dtype=float)
 
 
 def gamma_formula(u):
@@ -117,7 +158,7 @@ class IterMoves():
         q0 = FF[0] - F0
         q1 = FF[1] - FF[0]
         q2 = F3 - FF[1]
-        test = np.array([q0.dot(q0) - 1, q2.dot(q2) - 1])
+        test = np.array([q0.dot(q0) - 1, q1.dot(q1) - 1,q2.dot(q2) - 1])
         err = MaxAbsComplexArray(test)
         if err > 1e-5:
             print("correcting large error in q_i^2", err)
@@ -128,39 +169,24 @@ class IterMoves():
 
         if False:  # just for test
             np.set_printoptions(linewidth=np.inf)
+            print("(F2-F1)^2-1 = ", (F2 - F1).dot(F2 - F1) - 1)
             print(f"F0,F3 :\n{F0}\n{F3}")
             print(f"F1(0),F1(t) :\n{F1}\n{FF[0]}")
             print(f"F2(0),F2(t) :\n{F2}\n{FF[1]}")
         pass
-        self.Frun[(zero_index + 1) % M][:] = FF[0]
-        self.Frun[(zero_index + 2) % M][:] = FF[1]
+        # f10, f20 = ImproveF1F2(F0,F1, F2, F3)
+        f1,f2 = ImproveF1F2(F0,FF[0],FF[1],F3)
+        self.Frun[(zero_index + 1) % M][:] = f1
+        self.Frun[(zero_index + 2) % M][:] = f2
         pass
 
     def SaveCurve(self, cycle, node_num):
         self.Frun.tofile(self.GetSaveFilename(cycle, node_num))
 
-    def CollectStatistics(self):
-        pass
-
-    def PlotResults(self, C0):
-        C1 = C0 + np.roll(C0, 1, axis=0)
-        C1 = 0.5 * C1
+    def CollectStatistics(self, C0, t0, t1, time_steps):
+        CDir = 0.5 * (C0 + np.roll(C0, 1, axis=0))
+        CRev = CDir[::-1]
         M = self.M
-
-        def Psi(pathname):
-            F = np.fromfile(pathname, dtype=complex).reshape(-1, 3)
-            assert F.shape == (M, 3)  # (M by 3 complex tensor)
-            q = np.roll(F, 1, axis=0) - F  # (M by 3 complex tensor)
-            X = np.dot(C1.T, q)  # (3 by 3 complex tensor)
-            z = np.sqrt(np.trace(X.dot(X.T)))
-            if z.imag != 0:
-                z *= np.sign(z.imag)
-                # \frac{1}{2} \, _0F_1\left(;2;-\frac{z^2}{4}\right)+\frac{2 i z \, _1F_2\left(1;\frac{3}{2},\frac{5}{2};-\frac{z^2}{4}\right)}{3 \pi }
-                ans = 1 / 2 * hyp0f1(2, -z * z / 4) + 2j * z / (3 * pi) * hyp1f2(1, 3. / 2, 5. / 2, -z * z / 4)
-            else:
-                ans = 1. / 2 * hyp0f1(2, -z * z / 4)
-            return complex(ans)
-
         pathnames = []
         for filename in os.listdir(self.GetSaveDirname()):
             if filename.endswith(".np"):
@@ -168,19 +194,64 @@ class IterMoves():
                     splits = filename.split(".")
                     cycle = int(splits[-3])
                     node_num = int(splits[-2])
-                    pathnames.append([os.path.join(self.GetSaveDirname(), filename)])
+                    pathnames.append(os.path.join(self.GetSaveDirname(), filename))
                 except Exception as ex:
                     print(ex)
+                pass
+            pass
+        pass
 
-        emap = parallel_map(Psi, pathnames, mp.cpu_count())
+        def Psi(pathname):
+            ans = []
+            try:
+                F = np.fromfile(pathname, dtype=complex).reshape(-1, 3)
+                assert F.shape == (M, 3)  # (M by 3 complex tensor)
+                Q = np.roll(F, 1, axis=0) - F  # (M by 3 complex tensor)
+                X = np.dot(CDir.T, Q)  # (3 by 3 complex tensor for direct curve)
+                z0 = np.sqrt(np.trace(X.dot(X.T)))
+                X = np.dot(CRev.T, np.conjugate(Q))  # (3 by 3 complex tensor for reflected curve)
+                z1 = np.sqrt(np.trace(X.dot(X.T)))
+                for t in np.linspace(t0, t1, time_steps):
+                    psi = 0. + 0.j
+                    for z in (z0 / np.sqrt(t), z1 / np.sqrt(t)):
+                        if z.imag != 0:
+                            z *= np.sign(z.imag)
+                            # \frac{1}{2} \, _0F_1\left(;2;-\frac{z^2}{4}\right)+\frac{2 i z \, _1F_2\left(1;\frac{3}{2},\frac{5}{2};-\frac{z^2}{4}\right)}{3 \pi }
+                            psi += 1. / 4. * hyp0f1(2, -z * z / 4) + 2j * z / (3 * pi) * hyp1f2(1, 3. / 2, 5. / 2,
+                                                                                                -z * z / 4)
+                        else:
+                            psi += 1. / 4. * hyp0f1(2, -z * z / 4)
+                        pass
+                    pass
+                    ans.append([t, psi])
+                    return ans
+            except Exception as ex:
+                print(ex)
+                return None
 
-        psidata = np.array(list(emap), complex)
-        XYPlot([psidata.real, psidata.imag], plotpath=os.path.join(self.GetSaveDirname(), "WilsonLoop.png"),
+        result = parallel_map(Psi, pathnames, mp.cpu_count())
+        psidata = np.array([x for x in result if x is not None], complex)
+        psidata.tofile(
+            os.path.join(self.GetSaveDirname(), "psidata." + str(t0) + "." + str(t1) + "." + str(time_steps) + ".np"))
+
+    def PlotWilsonLoop(self, t0, t1, time_steps):
+        psidata = np.fromfile(
+            os.path.join(self.GetSaveDirname(), "psidata." + str(t0) + "." + str(t1) + "." + str(time_steps) + ".np"),
+            dtype=complex).reshape(-1, time_steps, 2)
+
+        psidata = psidata.transpose((2, 1, 0))  # (2,time_steps, N)
+        times = np.mean(psidata[0], axis=1)  # (time_steps,N)->time_steps
+        psiR = np.mean(psidata[1].real, axis=1)  # (time_steps,N)->time_steps
+        psiI = np.mean(psidata[1].imag, axis=1)  # (time_steps,N)->time_steps
+
+        XYPlot([psiR, psiI], plotpath=os.path.join(self.GetSaveDirname(), "WilsonLoop.png"),
                scatter=True,
                title='Wilson Loop')
 
 
-def runIterMoves(num_vertices=100, num_cycles=10, T=0.1, num_steps=1000, node=0, NewRandomWalk=False):
+def runIterMoves(num_vertices=100, num_cycles=10, T=0.1, num_steps=1000,
+                 t0=1, t1=10, time_steps=100,
+                 node=0, NewRandomWalk=False):
     M = num_vertices
     mover = IterMoves(M)
 
@@ -191,32 +262,32 @@ def runIterMoves(num_vertices=100, num_cycles=10, T=0.1, num_steps=1000, node=0,
             print("Exception ", ex)
 
     MoveTwo(0)
+    C0 = randomLoop(M, 5)
     if NewRandomWalk:
         MakeNewDir(mover.GetSaveDirname())
         mess = "ItoProcess with N=" + str(M) + " and " + str(num_cycles) + " cycles each with " + str(
             num_steps) + " Ito steps"
-        logger.debug("starting " + mess, exc_info=1)
+        print("starting " + mess)
         with Timer(mess):
             for cycle in range(num_cycles):
                 for zero_index in range(3):
                     parallel_map(MoveTwo, range(zero_index, M + zero_index, 3), mp.cpu_count())
-                    logger.debug("after cycle " + str(cycle) + " zero index " + str(zero_index))
+                    print("after cycle " + str(cycle) + " zero index " + str(zero_index))
                 pass
                 mover.SaveCurve(cycle, node)
-                logger.debug("after saving curve at cycle " + str(cycle))
+                print("after saving curve at cycle " + str(cycle))
             pass
-            logger.debug("all cycles done " + str(cycle))
-        pass
+            print("all cycles done " + str(cycle))
         pass
     pass
-    C0 = np.array([cc(k, M) for k in range(M)])
-    m = ortho_group.rvs(dim=3)
-    C0 = C0.dot(m)
-    mover.PlotResults(C0)
+    mover.CollectStatistics(C0, t0, t1, time_steps)
+    mover.PlotWilsonLoop(t0, t1, time_steps)
 
 
 def test_IterMoves():
-    runIterMoves(num_vertices=300, num_cycles=10, T=0.1, num_steps=1000, node=0, NewRandomWalk=True)
+    runIterMoves(num_vertices=300, num_cycles=10, T=10, num_steps=1000,
+                 t0=1, t1=1, time_steps=10,
+                 node=0, NewRandomWalk=False)
 
 
 def testFF():

@@ -19,9 +19,14 @@ def _serial_map(func, args_list):
     results = []
     for args in args_list:
         if isinstance(args, dict):
-            results.append(func(**args))
+            res = func(**args)
+        elif isinstance(args, str):
+            res = func(args)
+        elif hasattr(args, '__iter__'):
+            res = func(*args)
         else:
-            results.append(func(*args))
+            res = func(args)
+        results.append(res)
     return results
 
 
@@ -31,8 +36,12 @@ def _parallel_run(func, inputs, outputs):
             i, args = inputs.get_nowait()
             if isinstance(args, dict):
                 res = func(**args)
-            else:
+            elif isinstance(args, str):
+                res = func(args)
+            elif hasattr(args, '__iter__'):
                 res = func(*args)
+            else:
+                res = func(args)
             outputs.put((i, res))
         except Empty:
             continue
