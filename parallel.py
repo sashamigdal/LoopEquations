@@ -6,7 +6,7 @@ from multiprocessing.shared_memory import SharedMemory
 import numpy as np
 
 
-# mp.set_start_method('fork')
+mp.set_start_method('fork')
 
 # import cProfile
 
@@ -77,6 +77,9 @@ class ConstSharedArray:
     def __getitem__(self, key):
         return self.array[key]
 
+    def tofile(self, fname):
+        self.array.tofile(fname)
+
     def __setstate__(self, state):
         name, shape, dtype = state
         self.shm = SharedMemory(name=name, create=False)
@@ -107,6 +110,8 @@ class WritableSharedArray:
     def __getitem__(self, key):
         return self.array[key]
 
+    def tofile(self, fname):
+        self.array.tofile(fname)
     def __setitem__(self, key, value):
         self.array.__setitem__(key, value)
 
