@@ -389,9 +389,10 @@ def NullSpace4(F0, F1, F2, F3):
 
     Q0 = np.array([qd0, Z2, Z2]).transpose(1, 0, 2).reshape(3, 9)
     Q1 = np.array([Z2, qd1, Z2]).transpose(1, 0, 2).reshape(3, 9)
-    Q2 = np.array([Z2, Z2, qd2]).transpose(1, 0, 2).reshape(3, 9)
-    QDNS = np.vstack([Q0.dot(NS), Q1.dot(NS)])
-    return QDNS
+    dF1 = Q0.dot(NS)
+    dF2 = dF1 + Q1.dot(NS)
+    dF1dF2 = np.vstack([dF1, dF2])
+    return dF1dF2
 
 
 def testNullSpace():
@@ -429,6 +430,19 @@ def ComplextoRealMat(B,A):
     a[1, 0] = B.imag
     a[1, 1] = B.real
 
+
+def ReformatRealMatrix(A,K):
+    assert A.ndim ==2
+    N, M = A.shape
+    if M ==K: return A
+    R = np.zeros((N,K), dtype=float)
+    if M < K:#pad with zeros
+        R[:,:M] = A
+    else: #M >K, truncate
+        R[:,:] = A[:,:K]
+
+    return R
+
 def test_ComplexToRealVec():
     A = np.arange(24,dtype= float)
     B = np.arange(12,dtype= complex) * (1 + 1j)
@@ -450,6 +464,8 @@ def test_ComplexToRealVec():
     Y = np.zeros_like(X)
     ComplexToRealVec(CC.dot(C),Y)
     assert (X == Y).all()
+    XX = ReformatRealMatrix(RR,5)
+    YY = ReformatRealMatrix(RR,3)
 
 class IterMoves():
     def __init__(self, M):
@@ -466,53 +482,57 @@ class IterMoves():
         # os.path.join("plots", "curve_cycle_node." + str(cycle) + "." + str(node_num) + ".np")
         return os.path.join(self.GetSaveDirname(), "curve_cycle_node." + str(cycle) + "." + str(node_num) + ".np")
 
-    def MoveTwoVertices(self, k, T, num_steps):
+    def MoveTwoVertices(self, zero_index, T, num_steps):
         M = self.M
 
-        F0 = self.Frun[k % M]
-        F1 = self.Frun[(k + 1) % M]
-        F2 = self.Frun[(k + 2) % M]
-        F3 = self.Frun[(k + 3) % M]
+        F0 = self.Frun[zero_index % M]
+        F1 = self.Frun[(zero_index + 1) % M]
+        F2 = self.Frun[(zero_index + 2) % M]
+        F3 = self.Frun[(zero_index + 3) % M]
 
 
         ZR = np.zeros(12,dtype = float)
         ZC = np.zeros( 6, dtype=complex)
         X0 = ZR.copy()
-        Y = np.vstack([F1 - F0, F2 - F1]).reshape(6)
+        Y = np.vstack([F1, F2]).reshape(6)
         ComplexToRealVec(Y,X0)
+
+        def g0(F1F2R):#  (12,)
+            F1F2C = ZC.copy()
+            RealToComplexVec(F1F2R, F1F2C) # (6)
+            Q = F1F2C.reshape(2, 3)
+            f1 = Q[0]
+            f2 = Q[1]
+            dF1dF2c = NullSpace4(F0, f1, f2, F3)  # 6,K
+            k =dF1dF2c.shape[1]
+            dF1dF2R = np.zeros((12,2*k),dtype=float)
+            ComplextoRealMat(dF1dF2c, dF1dF2R)
+            return dF1dF2R
+
+        K2 = g0(X0).shape[1] # the dimension of real null space, to use in Wiener process
+        def g(X,t):
+            dXR = g0(X)
+            return ReformatRealMatrix(dXR,K2) # clip or truncate the derivative matrix
 
         tspan = np.linspace(0.0, T, num_steps)
 
         def f(x, t):
             return ZR
 
-        def g(R, t):#  (12,)
-            C = ZC.copy()
-            RealToComplexVec(R, C) # (6)
-            Q = C.reshape(2, 3)
-            q0 = Q[0]
-            q1 = Q[1]
-            NS = NullSpace4(F0, F0 + q0, F0 + q0 + q1, F3)  # 6,K
-            K = NS.shape[1]
-            NSR = np.zeros((12,2*K),dtype=float)
-            ComplextoRealMat(NS, NSR)
-            return NSR
 
         #######TEST BEGIN
-        noise = np.random.normal(size=8)
-        dq = g(X0, 0).dot(noise)  # delta q = test.dot(q)
-        dqc = ZC.copy()
-        RealToComplexVec(dq,dqc)
+        noise = np.random.normal(size=K2)
+        df1df2R = g(X0, 0).dot(noise)  # delta q = test.dot(q)
+        dF1dF2C = ZC.copy()
+        RealToComplexVec(df1df2R,dF1dF2C)
         #######TEST E#ND
         result = list(sdeint.itoEuler(f, g, X0, tspan))
-        R = result[-1]
-        C = ZC.copy()
-        RealToComplexVec(R, C)  # (6)
-        Q = C.reshape(2, 3)
-        q0 = Q[0]
-        q1 = Q[1]
-        self.Frun[(k + 1) % M][:] = F0 + q0
-        self.Frun[(k + 2) % M][:] = self.Frun[(k + 1) % M] + q1
+        F1F2R = result[-1]
+        F1F2C = ZC.copy()
+        RealToComplexVec(F1F2R, F1F2C)  # (6)
+        FF = F1F2C.reshape(2, 3)
+        self.Frun[(zero_index + 1) % M][:] = FF[0]
+        self.Frun[(zero_index + 2) % M][:] = FF[1]
 
     def SaveCurve(self, cycle, node_num):
         self.Frun.tofile(self.GetSaveFilename(cycle, node_num))
@@ -559,22 +579,22 @@ class IterMoves():
                title='Wilson Loop')
 
 
-def runIterMoves(num_vertices=100, num_cycles=10, T=1, num_steps=1000, node=0):
+def runIterMoves(num_vertices=100, num_cycles=10, T=1, num_steps=1000, node=0, NewRandomWalk=False):
     M = num_vertices
     mover = IterMoves(M)
 
-    def MoveTwo(k):
-        mover.MoveTwoVertices(k, T, num_steps)
+    def MoveTwo(zero_index):
+        mover.MoveTwoVertices(zero_index, T, num_steps)
 
     # MoveTwo(0)
-    if True:
+    if NewRandomWalk:
         MakeNewDir(mover.GetSaveDirname())
         with Timer("ItoProcess with N=" + str(M) + " and " + str(num_cycles) + " cycles each with " + str(
                 num_steps) + " Ito steps"):
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 for cycle in range(num_cycles):
-                    for k in range(3):
-                        executor.map(MoveTwo, range(k, M + k, 3))
+                    for zero_index in range(3):
+                        executor.map(MoveTwo, range(zero_index, M + zero_index, 3))
                     mover.SaveCurve(cycle, node)
                 pass
             pass
@@ -587,7 +607,7 @@ def runIterMoves(num_vertices=100, num_cycles=10, T=1, num_steps=1000, node=0):
 
 
 def test_IterMoves():
-    runIterMoves(num_vertices=1000, num_cycles=100, T=1, num_steps=1000, node=0)
+    runIterMoves(num_vertices=100, num_cycles=10, T=1, num_steps=1000, node=0, NewRandomWalk=True)
 
 
 def testSDE():
@@ -644,4 +664,6 @@ if __name__ == '__main__':
     if len(sys.argv) == 3:
         N = int(sys.argv[1])
         P = int(sys.argv[2])
-        runSDE(N, P)
+        runIterMoves(num_vertices=N,num_cycles=100, num_steps=1000,T=1,node=P,NewRandomWalk=True)
+    else:
+        test_IterMoves()
