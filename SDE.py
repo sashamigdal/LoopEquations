@@ -20,55 +20,104 @@ from parallel import parallel_map, ConstSharedArray, WritableSharedArray
 from plot import Plot, PlotTimed, MakeDir, XYPlot, MakeNewDir
 from Timer import MTimer as Timer
 import logging
-from mpmath import mp as mpm
+from sympy import MatrixSymbol, Matrix, I, series, trace, diff
 
-mpm.dps = 30
-prec = 20
+# from mpmath import mp as mpm
+#
+# mpm.dps = 30
+# prec = 20
 logger = logging.Logger("debug")
 
 MakeDir("plots")
 
-def Sqr(v):
-    return v.dot(v)
 
-def ImproveF1F2(F0, F1, F2, F3):
+def Sqr(v):  # Matrix (n,m) in sympy or in numpy
+    return trace(v.T * v)
+
+
+class SolveTwoVertices:  # using sympy
+    def __init__(self, F0, F1, F2, F3):
+        self.F0 = Matrix(F0.reshape(3,1))
+        self.F1 = Matrix(F1.reshape(3,1))
+        self.F2 = Matrix(F2.reshape(3,1))
+        self.F3 = Matrix(F3.reshape(3,1))
+
     pass
-    #(F{k+1} - Fk)^2 =1
+
+    # (F{k+1} - Fk)^2 =1
     # (F{k+1}^2 - Fk^2 -I)^2 = (F{k+1} + Fk)^2 -1
+    @staticmethod
+    def Dual(v):  # first index is a vector index
+        x = np.array(v).astype(complex).reshape(3)
+        y = E3.dot(x)
+        return Matrix(y)
 
-    def Eq(fi,fj):
-        return [Sqr(fi-fj) -1 , (Sqr(fj) - Sqr(fi) -1j)**2 + 1 - Sqr(fi+fj)]
+    @staticmethod
+    def Eq( fi, fj):
+        si = Sqr(fi)
+        sj= Sqr(fj)
+        sij = Sqr(fi + fj)
+        return ( sj- si- I) ** 2 + 1 - sij
 
+    @staticmethod
+    def pack( X):
+        y = np.array(X, float).reshape(2, 6)
+        return np.array(y[0] + 1j * y[1], complex).reshape(2, 3)
 
-    def pack(X):
-        y = np.array(X,float).reshape(2,6)
-        return np.array(y[0]+ 1j * y[1],complex).reshape(2,3)
-
+    @staticmethod
     def unpack(f1, f2):
-        x= np.vstack([f1,f2]).reshape(6)
-        return np.vstack([x.real,x.imag]).reshape(12).astype(float)
+        x = np.vstack([f1, f2]).reshape(6)
+        return np.vstack([x.real, x.imag]).reshape(12).astype(float)
 
-    def Eqs(*args):
-         P = pack(args)
-         f1 = P[0]
-         f2 = P[1]
-         return Eq(F0, f1) + Eq(f1, f2) + Eq(f2, F3)
-    def f(*args):
-        return sum([np.abs(eq)**2 for eq in Eqs(*args)])
-    pass
-    ee = Eqs(unpack(F1,F2))
-    err0 = MaxAbsComplexArray(np.array(ee,dtype=complex))
-    res = scipy.optimize.minimize(f,unpack(F1,F2),tol=1e-16)
-    ee1 = Eqs(res.x)
-    err1 = MaxAbsComplexArray(np.array(ee1,dtype=complex))
-    P = pack(res.x)
-    # x = mpm.findroot(Eqs, unpack(F1,F2), solver='bisect')
-    # P = pack(x)
-    return  P[0],P[1]
+    def Eqs(self, *args):
+        P = self.pack(args)
+        f1 = P[0]
+        f2 = P[1]
+        return [self.Eq(self.F0, f1), self.Eq(f1, f2), self.Eq(f2, self.F3)]
 
+    def GradientMatrix(self):
+        q0 = self.F1 - self.F0
+        q1 = self.F2 - self.F1
+        q2 = self.F3 - self.F2
+        dt0 = MatrixSymbol('dt0', 3, 1)
+        dt1 = MatrixSymbol('dt1', 3, 1)
+        dt2 = MatrixSymbol('dt2', 3, 1)
+        Z3 = Matrix(np.zeros((3, 3), dtype=complex))
+        qd0 = self.Dual(q0)
+        qd1 = self.Dual(q1)
+        qd2 = self.Dual(q2)
+        dq0 = qd0 * dt0  # (3 by NZ) infinitesimal rotation opf q0
+        dq1 = qd1 * dt1  # (3 by NZ)infinitesimal rotation opf q1
+        dq2 = qd2 * dt2 # (3 by NZ)infinitesimal rotation opf q2
+        f1 = self.F1 + dq0
+        f2 = self.F3 - dq2
+        eqs = [self.Eq(self.F0, f1), self.Eq(f1, f2), self.Eq(f2, self.F3), dq0 + dq1 + dq2]
+        lineqs = [series(eq, dt0, Z3, 1) for eq in eqs]
+        pass
+    def Correction(self, tol=1e-16):
+        def f(*args):
+            return sum([np.abs(eq) ** 2 for eq in self.Eqs(*args)])
+
+        pass
+        X0 = self.unpack(self.F1, self.F2)
+        ee = self.Eqs(X0)
+        err0 = MaxAbsComplexArray(np.array(ee, dtype=complex))
+        res = scipy.optimize.minimize(f, X0, tol=tol)
+        ee1 = self.Eqs(res.x)
+        err1 = MaxAbsComplexArray(np.array(ee1, dtype=complex))
+        P = self.pack(res.x)
+        self.F1 = P[0]
+        self.F2 = P[1]
+
+def test_SolveTwoVertices():
+    FF = randomLoop(10,2) + 1j * randomLoop(10,2)
+    solver = SolveTwoVertices(FF[0],FF[1],FF[2],FF[3])
+    solver.GradientMatrix()
 def test_list():
-    test = [1,2,3] + [4,5,6,7]
+    test = [1, 2, 3] + [4, 5, 6, 7]
     test
+
+
 def ff(k, M):
     delta = pi / M
     return np.array([cos(2 * k * delta), sin(2 * k * delta), cos(delta) * 1j]) / (2 * sin(delta))
@@ -158,7 +207,7 @@ class IterMoves():
         q0 = FF[0] - F0
         q1 = FF[1] - FF[0]
         q2 = F3 - FF[1]
-        test = np.array([q0.dot(q0) - 1, q1.dot(q1) - 1,q2.dot(q2) - 1])
+        test = np.array([q0.dot(q0) - 1, q1.dot(q1) - 1, q2.dot(q2) - 1])
         err = MaxAbsComplexArray(test)
         if err > 1e-5:
             print("correcting large error in q_i^2", err)
@@ -175,7 +224,7 @@ class IterMoves():
             print(f"F2(0),F2(t) :\n{F2}\n{FF[1]}")
         pass
         # f10, f20 = ImproveF1F2(F0,F1, F2, F3)
-        f1,f2 = ImproveF1F2(F0,FF[0],FF[1],F3)
+        f1, f2 = ImproveF1F2(F0, FF[0], FF[1], F3)
         self.Frun[(zero_index + 1) % M][:] = f1
         self.Frun[(zero_index + 2) % M][:] = f2
         pass

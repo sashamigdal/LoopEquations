@@ -5,21 +5,24 @@ from parallel import parallel_map
 from scipy.linalg import null_space
 
 
-
 def circle(k, M):
     delta = pi / M
     return np.array([cos(2 * k * delta), sin(2 * k * delta), 0], dtype=float)
 
-def randomLoop(N,L ):
-    coeffs = np.random.normal(size=L * 3) + 1j * np.random.normal(size=L*3)
-    FF = coeffs.reshape(3,L)
-    a2 = np.kron(np.arange(L),np.arange(N)).reshape(L,N)
-    exps = np.exp(a2 * (2.j * pi /N))
+
+def randomLoop(N, L):
+    coeffs = np.random.normal(size=L * 3) + 1j * np.random.normal(size=L * 3)
+    FF = coeffs.reshape(3, L)
+    a2 = np.kron(np.arange(L), np.arange(N)).reshape(L, N)
+    exps = np.exp(a2 * (2.j * pi / N))
     return FF.dot(exps).real.T
 
+
 def test_RandomLoop():
-    C = randomLoop(10,3)
+    C = randomLoop(10, 3)
     pass
+
+
 def HodgeDual(v):
     return np.array([
         [0, v[2], -v[1]],
@@ -38,7 +41,6 @@ def test_LevyCivita():
     c = ad.dot(b)
     c1 = np.cross(a, b)
     assert (c == c1).all
-
 
 
 def dot_shape(a, b):
@@ -143,8 +145,6 @@ def NullSpace3(F0, F1, F2):
     return NS.T.reshape(-1, 2, 3)
 
 
-
-
 def NullSpace4(F0, F1, F2, F3):
     q0 = F1 - F0
     q1 = F2 - F1
@@ -179,16 +179,20 @@ def NullSpace4(F0, F1, F2, F3):
     A = np.array(lst).reshape(3, 9)  # 3e,3t, d ->3e, 3 *d
     B = np.array([qd0, qd1, qd2]).transpose(1, 0, 2).reshape(3, 9)  # (3t,d,d) ->  (d, 3t*d)
     X = np.vstack([A, B])  # (3 + d)) X 3 d
-    NS = null_space(X) # 3t* d X K
+    NS = null_space(X)  # 3t* d X K
     # assert MaxAbsComplexArray(X.dot(NS)) < 1e-12
     #
-    NS = NS.reshape(3,3,-1)
-    dF1 = qd0.dot(NS[0])  #= dq0
-    dF2 = -qd2.dot(NS[2]) # -dq2
+    NS = NS.reshape(3, 3, -1)
+    dF1 = qd0.dot(NS[0])  # = dq0
+    dF2 = -qd2.dot(NS[2])  # -dq2
     dF1dF2 = np.vstack([dF1, dF2])
     return dF1dF2
 
 
+def test():
+    
+
+    pass
 
 
 def RI(X):
@@ -202,6 +206,7 @@ def testDot3():
     np.dot(a, b, c)
     np.dot(a, b, a)
     assert (a == c).all()
+
 
 def testRI():
     print(RI(np.array([1 + 2j, -1 + 3j, -5 + 6j])))
