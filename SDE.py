@@ -222,9 +222,8 @@ class IterMoves():
             print(f"F0,F3 :\n{F0}\n{F3}")
             print(f"F1(0),F1(t) :\n{F1}\n{FF[0]}")
             print(f"F2(0),F2(t) :\n{F2}\n{FF[1]}")
-        pass
-        # f10, f20 = ImproveF1F2(F0,F1, F2, F3)
-        #f1, f2 = ImproveF1F2(F0, FF[0], FF[1], F3)
+        #restore the imnprove function here
+        #F1, F2 = ImproveF1F2(F0, FF[0], FF[1], F3)
         self.Frun[(zero_index + 1) % M][:] = F1
         self.Frun[(zero_index + 2) % M][:] = F2
         pass
