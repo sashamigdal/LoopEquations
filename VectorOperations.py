@@ -149,48 +149,20 @@ def NullSpace4(F0, F1, F2, F3):
     q0 = F1 - F0
     q1 = F2 - F1
     q2 = F3 - F2
-    #############################
-    # (F0 dot q0 - i/2)^2 = F0^2 + (2 i -1)/4  # scalar equation, (trivial, as delta F0 =0)  #0
-    # (F3 dot q2 + i/2)^2 = F3^2 + (2 i -1)/4 # scalar equation (trivial, as delta F3 =0)   #1
-
-    # qd_k = E3 dot q_k
-    # G1 = 2 F1 dot q1 - i # scalar equation
-    # dq_k = qd_k dot dt_k
-    #############################
-    # (F0 dot qd0) dot dt0  + 0 dot dt1 + 0 dot dt2= 0  # scalar eq 0
-    # 0 dot dt0 + 0 dot dt1 + (F3 dot qd2) dot dt2 = 0  # scalar eq 1
-
-    # (F1 dot q1 - i/2)^2 = F1^2 + (2 i -1)/4  # scalar equation # scalar eq 2
-    # G1 F1 dot dq1 +  G1 q1 dot d F1 - 2 F1 dot dF1 =0 # scalar eq 2
-    # (G1 q1 dot qd0 - 2 F1 dot qd0) dot dt0   + (G1 F1 dot qd1) dot dt1  + 0 dot dt2 =0  # scalar eq 2
-
-    # qd0 dot dt0 + qd1 dot dt1 + qd2 dot dt2 =0 # vector eq 1
-    #
-    Z = np.zeros((3), dtype=complex)
-    Z2 = np.zeros((3, 3), dtype=complex)
-    qd0 = E3.dot(q0)
-    qd1 = E3.dot(q1)
-    qd2 = E3.dot(q2)
-    G1 = 2 * F1.dot(q1) - 1j
-    lst = []
-    lst.append([F0.dot(qd0), Z, Z])  # scalar eq 0
-    lst.append([Z, Z, F3.dot(qd2)])  # scalar eq 1
-    lst.append([G1 * q1.dot(qd0) - 2 * F1.dot(qd0), G1 * F1.dot(qd1), Z])  # scalar eq 2
-    A = np.array(lst).reshape(3, 9)  # 3e,3t, d ->3e, 3 *d
-    B = np.array([qd0, qd1, qd2]).transpose(1, 0, 2).reshape(3, 9)  # (3t,d,d) ->  (d, 3t*d)
-    X = np.vstack([A, B])  # (3 + d)) X 3 d
-    NS = null_space(X)  # 3t* d X K
+    # insert the translated to python code for the matric=x in the end of notebook
+    # lst= {}
+    # NS = null_space(X)  # 3t* d X K
     # assert MaxAbsComplexArray(X.dot(NS)) < 1e-12
     #
-    NS = NS.reshape(3, 3, -1)
-    dF1 = qd0.dot(NS[0])  # = dq0
-    dF2 = -qd2.dot(NS[2])  # -dq2
-    dF1dF2 = np.vstack([dF1, dF2])
-    return dF1dF2
+    # NS = NS.reshape(3, 3, -1)
+    # dF1 = qd0.dot(NS[0])  # = dq0
+    # dF2 = -qd2.dot(NS[2])  # -dq2
+    # dF1dF2 = np.vstack([dF1, dF2])
+    # return dF1dF2
 
 
 def test():
-    
+
 
     pass
 
