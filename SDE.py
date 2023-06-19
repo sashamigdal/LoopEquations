@@ -163,9 +163,11 @@ class IterMoves():
         F1 = self.Frun[(zero_index + 1) % M]
         F2 = self.Frun[(zero_index + 2) % M]
         F3 = self.Frun[(zero_index + 3) % M]
-
-        ZR = np.zeros(12, dtype=float)
-        ZC = np.zeros(6, dtype=complex)
+        NF = 2
+        NC = 3 * NF
+        NR = 2 * NC
+        ZR = np.zeros(NR, dtype=float)
+        ZC = np.zeros(NC, dtype=complex)
         X0 = ZR.copy()
         Y = np.vstack([F1, F2]).reshape(6)
         ComplexToRealVec(Y, X0)
@@ -199,7 +201,7 @@ class IterMoves():
         dF1dF2C = ZC.copy()
         RealToComplexVec(df1df2R, dF1dF2C)
         #######TEST E#ND
-        result = sdeint.itoSRI2(f, g, X0, tspan)
+        result = sdeint.itoEuler(f, g, X0, tspan)
         F1F2R = result[-1]
         F1F2C = ZC.copy()
         RealToComplexVec(F1F2R, F1F2C)  # (6)
@@ -302,7 +304,7 @@ def runIterMoves(num_vertices=100, num_cycles=10, T=0.1, num_steps=1000,
                  node=0, NewRandomWalk=False):
     M = num_vertices
     mover = IterMoves(M)
-
+    mp.set_start_method('fork')
     def MoveTwo(zero_index):
         try:
             mover.MoveTwoVertices(zero_index, T, num_steps)
@@ -319,7 +321,7 @@ def runIterMoves(num_vertices=100, num_cycles=10, T=0.1, num_steps=1000,
         with Timer(mess):
             for cycle in range(num_cycles):
                 for zero_index in range(3):
-                    parallel_map(MoveTwo, range(zero_index, M + zero_index, 3), mp.cpu_count())
+                    parallel_map(MoveTwo, range(zero_index, M + zero_index, 3),0)# mp.cpu_count())
                     print("after cycle " + str(cycle) + " zero index " + str(zero_index))
                 pass
                 mover.SaveCurve(cycle, node)
