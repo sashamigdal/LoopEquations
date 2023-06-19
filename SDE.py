@@ -22,10 +22,10 @@ from Timer import MTimer as Timer
 import logging
 from sympy import MatrixSymbol, Matrix, I, series, trace, diff
 
-# from mpmath import mp as mpm
+from mpmath import mp as mpm
 #
-# mpm.dps = 30
-# prec = 20
+mpm.dps = 30
+prec = 20
 logger = logging.Logger("debug")
 
 MakeDir("plots")
@@ -141,7 +141,6 @@ def testNullSpace():
     NS = NullSpace4(ff(0, 10), ff(1, 10), ff(2, 10), ff(3, 10))
     pass
 def ImproveF1F2(F0, F1, F2, F3):
-    pass
     #(F{k+1} - Fk)^2 =1
     # (F{k+1}^2 - Fk^2 -I)^2 = (F{k+1} + Fk)^2 -1
 
@@ -161,18 +160,21 @@ def ImproveF1F2(F0, F1, F2, F3):
          P = pack(args)
          f1 = P[0]
          f2 = P[1]
-         return  [Eq(F0, f1),Eq(f1, f2),Eq(f2, F3)]
+         return  np.array([Eq(F0, f1),Eq(f1, f2),Eq(f2, F3)]).reshape(-1)
     def f(*args):
-        return sum([np.abs(eq)**2 for eq in Eqs(*args)])
+        eqs = Eqs(*args)
+        return np.conjugate(eqs).dot(eqs).real
     pass
     ee = Eqs(unpack(F1,F2))
-    err0 = MaxAbsComplexArray(np.array(ee,dtype=complex))
-    res = scipy.optimize.minimize(f,unpack(F1,F2),tol=1e-16)
-    ee1 = Eqs(res.x)
-    err1 = MaxAbsComplexArray(np.array(ee1,dtype=complex))
-    P = pack(res.x)
-    # x = mpm.findroot(Eqs, unpack(F1,F2), solver='bisect')
-    # P = pack(x)
+    err0 = MaxAbsComplexArray(ee)
+    # res = scipy.optimize.minimize(f,unpack(F1,F2),tol=1e-16)
+    # ee1 = Eqs(res.x)
+    # err1 = MaxAbsComplexArray(np.array(ee1,dtype=complex))complex
+    # if(err0 > 1e-6):
+    #     print("error reduced from ", err0, " to ", err1 )
+    # P = pack(res.x)
+    x = mpm.findroot(Eqs, unpack(F1,F2), solver='bisect')
+    P = pack(x)
     return  P[0],P[1]
 
 class IterMoves():
@@ -245,16 +247,16 @@ class IterMoves():
         test = np.array([q0.dot(q0) - 1, q1.dot(q1) - 1, q2.dot(q2) - 1])
         err = MaxAbsComplexArray(test)
         if err >1e-4:  # just for test
-            print_debug("err =",err)
+            print("err =",err)
             # np.set_printoptions(linewidth=np.inf)
             # print_debug("(F2-F1)^2-1 = ", (F2 - F1).dot(F2 - F1) - 1)
             # print_debug(f"F0,F3 :\n{F0}\n{F3}")
             # print_debug(f"F1(0),F1(t) :\n{F1}\n{FF[0]}")
             # print_debug(f"F2(0),F2(t) :\n{F2}\n{FF[1]}")
         #restore the imnprove function here
-        # F1, F2 = ImproveF1F2(F0, FF[0], FF[1], F3)
-        self.Frun[(zero_index + 1) % M][:] = FF[0]
-        self.Frun[(zero_index + 2) % M][:] = FF[1]
+        F1, F2 = ImproveF1F2(F0, FF[0], FF[1], F3)
+        self.Frun[(zero_index + 1) % M][:] = F1
+        self.Frun[(zero_index + 2) % M][:] = F2
         pass
 
     def SaveCurve(self, cycle, node_num):
@@ -362,7 +364,7 @@ def runIterMoves(num_vertices=100, num_cycles=10, T=0.1, num_steps=1000,
 
 
 def test_IterMoves():
-    runIterMoves(num_vertices=300, num_cycles=100, T=0.1, num_steps=1000,
+    runIterMoves(num_vertices=300, num_cycles=100, T=1, num_steps=100,
                  t0=1, t1=1, time_steps=100,
                  node=0, NewRandomWalk=True)
 
