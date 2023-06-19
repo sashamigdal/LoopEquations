@@ -174,6 +174,9 @@ def ImproveF1F2(F0, F1, F2, F3):
     #     print("error reduced from ", err0, " to ", err1 )
     # P = pack(res.x)
     x = mpm.findroot(Eqs, unpack(F1,F2), solver='bisect')
+    err1 = MaxAbsComplexArray(Eqs(x))
+    if(err0 > 1e-6):
+       print("error reduced from ", err0, " to ", err1 )
     P = pack(x)
     return  P[0],P[1]
 
