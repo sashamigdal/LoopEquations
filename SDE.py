@@ -32,7 +32,7 @@ MakeDir("plots")
 
 
 def Sqr(v):  # Matrix (n,m) in sympy or in numpy
-    return trace(v.T * v)
+    return v.T.dot(v)
 
 
 class SolveTwoVertices:  # using sympy
@@ -140,7 +140,40 @@ def testNullSpace():
     # NS = NullSpace3(ff(0, 10), ff(1, 10), ff(2, 10))
     NS = NullSpace4(ff(0, 10), ff(1, 10), ff(2, 10), ff(3, 10))
     pass
+def ImproveF1F2(F0, F1, F2, F3):
+    pass
+    #(F{k+1} - Fk)^2 =1
+    # (F{k+1}^2 - Fk^2 -I)^2 = (F{k+1} + Fk)^2 -1
 
+    def Eq(fi,fj):
+        return [Sqr(fi-fj) -1 , (Sqr(fj) - Sqr(fi) -1j)**2 + 1 - Sqr(fi+fj)]
+
+
+    def pack(X):
+        y = np.array(X,float).reshape(2,6)
+        return np.array(y[0]+ 1j * y[1],complex).reshape(2,3)
+
+    def unpack(f1, f2):
+        x= np.vstack([f1,f2]).reshape(6)
+        return np.vstack([x.real,x.imag]).reshape(12).astype(float)
+
+    def Eqs(*args):
+         P = pack(args)
+         f1 = P[0]
+         f2 = P[1]
+         return  [Eq(F0, f1),Eq(f1, f2),Eq(f2, F3)]
+    def f(*args):
+        return sum([np.abs(eq)**2 for eq in Eqs(*args)])
+    pass
+    ee = Eqs(unpack(F1,F2))
+    err0 = MaxAbsComplexArray(np.array(ee,dtype=complex))
+    res = scipy.optimize.minimize(f,unpack(F1,F2),tol=1e-16)
+    ee1 = Eqs(res.x)
+    err1 = MaxAbsComplexArray(np.array(ee1,dtype=complex))
+    P = pack(res.x)
+    # x = mpm.findroot(Eqs, unpack(F1,F2), solver='bisect')
+    # P = pack(x)
+    return  P[0],P[1]
 
 class IterMoves():
     def __init__(self, M):
@@ -211,23 +244,16 @@ class IterMoves():
         q2 = F3 - FF[1]
         test = np.array([q0.dot(q0) - 1, q1.dot(q1) - 1, q2.dot(q2) - 1])
         err = MaxAbsComplexArray(test)
-        if err > 1e-5:
-            print("correcting large error in q_i^2", err)
-            q0 /= np.sqrt(q0.dot(q0))
-            q2 /= np.sqrt(q2.dot(q2))
-            FF[0] = F0 + q0
-            FF[1] = F3 - q2
-
-        if False:  # just for test
+        if err >1e-7:  # just for test
             np.set_printoptions(linewidth=np.inf)
             print("(F2-F1)^2-1 = ", (F2 - F1).dot(F2 - F1) - 1)
             print(f"F0,F3 :\n{F0}\n{F3}")
             print(f"F1(0),F1(t) :\n{F1}\n{FF[0]}")
             print(f"F2(0),F2(t) :\n{F2}\n{FF[1]}")
         #restore the imnprove function here
-        #F1, F2 = ImproveF1F2(F0, FF[0], FF[1], F3)
-        self.Frun[(zero_index + 1) % M][:] = F1
-        self.Frun[(zero_index + 2) % M][:] = F2
+        # F1, F2 = ImproveF1F2(F0, FF[0], FF[1], F3)
+        self.Frun[(zero_index + 1) % M][:] = FF[0]
+        self.Frun[(zero_index + 2) % M][:] = FF[1]
         pass
 
     def SaveCurve(self, cycle, node_num):
@@ -321,7 +347,7 @@ def runIterMoves(num_vertices=100, num_cycles=10, T=0.1, num_steps=1000,
         with Timer(mess):
             for cycle in range(num_cycles):
                 for zero_index in range(3):
-                    parallel_map(MoveTwo, range(zero_index, M + zero_index, 3),0)# mp.cpu_count())
+                    parallel_map(MoveTwo, range(zero_index, M + zero_index, 3), mp.cpu_count())
                     print("after cycle " + str(cycle) + " zero index " + str(zero_index))
                 pass
                 mover.SaveCurve(cycle, node)
@@ -335,7 +361,7 @@ def runIterMoves(num_vertices=100, num_cycles=10, T=0.1, num_steps=1000,
 
 
 def test_IterMoves():
-    runIterMoves(num_vertices=300, num_cycles=100, T=0.1, num_steps=1000,
+    runIterMoves(num_vertices=300, num_cycles=100, T=0.1, num_steps=10000,
                  t0=1, t1=1, time_steps=10,
                  node=0, NewRandomWalk=True)
 

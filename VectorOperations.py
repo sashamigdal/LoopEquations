@@ -177,8 +177,10 @@ def NullSpace4(F0, F1, F2, F3):
     NS = null_space(X)
     assert MaxAbsComplexArray(X.dot(NS)) < 1e-10
     NS = NS.reshape(3, 3, -1)
-    dF1 = mdot([q0,E3,NS[0]])
-    dF2 = -mdot([q0, E3, NS[2]])
+    qd0 = E3.dot(q0)
+    qd2 = E3.dot(q2)
+    dF1 = mdot([qd0,NS[0]])
+    dF2 = -mdot([qd2, NS[2]])
     dF1dF2 = np.vstack([dF1, dF2])
     return dF1dF2
 
