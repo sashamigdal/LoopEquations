@@ -6,7 +6,7 @@ from multiprocessing.shared_memory import SharedMemory
 import numpy as np
 
 
-mp.set_start_method('fork')
+#mp.set_start_method('fork')
 
 # import cProfile
 
@@ -48,6 +48,7 @@ def _parallel_run(func, inputs, outputs):
 
 
 def _run_jobs(work, args_list, num_cores):
+    mp.set_start_method('fork')
     jobs = []
     for rank in range(min(len(args_list), num_cores)):
         job = mp.Process(target=work, name="worker_%s" % rank, args=(rank,))

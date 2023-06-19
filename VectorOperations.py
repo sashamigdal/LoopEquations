@@ -1,8 +1,14 @@
+import functools
+
 import numpy as np
 from numpy import cos, sin, pi
+#import numpy.linalg.multi_dot as mdot
 import multiprocessing as mp
 from parallel import parallel_map
 from scipy.linalg import null_space
+
+
+def mdot(arrays): return functools.reduce(np.dot, arrays)
 
 
 def circle(k, M):
@@ -20,6 +26,17 @@ def randomLoop(N, L):
 
 def test_RandomLoop():
     C = randomLoop(10, 3)
+    pass
+
+
+def test_multi_dot():
+    a = np.arange(6)
+    b = np.arange(30).reshape(6, 5)
+    c = np.arange(5)
+    y = a.dot(b.dot(c))
+    pass
+    x = mdot([a, b, c])
+    assert (x == y).all
     pass
 
 
@@ -109,7 +126,6 @@ def ZeroBelowEqDiag(X):
 
 
 def testVecOps():
-    mp.set_start_method('fork')
     a = np.arange(12).reshape(4, 3)
     b = np.arange(10, 22).reshape(4, 3)
     c = np.zeros((4, 3, 3))
@@ -149,7 +165,14 @@ def NullSpace4(F0, F1, F2, F3):
     q0 = F1 - F0
     q1 = F2 - F1
     q2 = F3 - F2
-    # insert the translated to python code for the matric=x in the end of notebook
+    Ort = np.eye(3)
+    def res(l):
+        return np.array([np.array([((-4*mdot([F0,E3[l],q0]))+(4*((((1-1j))+(2*mdot([F0,q0]))))*mdot([F0,E3[l],q0]))),((-4*mdot([F0,E3[l],q0])*(-4)*mdot([F3,E3[l],q0]))+(2*((((-1j)*mdot([(-F0),F0]))-(2*mdot([F0,q0]))+mdot([F3,F3])-(2*mdot([F3,q2]))))*(((-2*mdot([F0,E3[l],q0]))+(2*mdot([F3,E3[l],q0])*(-2)*mdot([q2,E3[l],q0])))))+(4*mdot([q2,E3[l],q0]))),((-4*mdot([F3,E3[l],q0]))+(2*mdot([q2,E3[l],q0]))+(2*((((-1-1j))+(2*mdot([F3,q2]))))*(((-2*mdot([F3,E3[l],q0]))+(2*mdot([q2,E3[l],q0])))))),np.array([mdot([Ort[0],E3[l],q0]),mdot([Ort[1],E3[l],q0]),mdot([Ort[2],E3[l],q0])])]),np.array([0,((-2*mdot([F0,E3[l],q1])*(-2)*mdot([F3,E3[l],q1]))-(2*mdot([q0,E3[l],q1]))+(2*((((-1j)*mdot([(-F0),F0])*(-2)*mdot([F0,q0]))+(mdot([F3,F3])*(-2)*mdot([F3,q2]))))*(((2*mdot([F3,E3[l],q1]))-(2*mdot([q2,E3[l],q1])))))+(2*mdot([q2,E3[l],q1]))),((-4*mdot([F3,E3[l],q1]))+(2*mdot([q2,E3[l],q1]))+(2*((((-1-1j))+(2*mdot([F3,q2]))))*(((-2*mdot([F3,E3[l],q1]))+(2*mdot([q2,E3[l],q1])))))),np.array([mdot([Ort[0],E3[l],q1]),mdot([Ort[1],E3[l],q1]),mdot([Ort[2],E3[l],q1])])]),np.array([0,0,0,np.array([mdot([Ort[0],E3[l],q2]),mdot([Ort[1],E3[l],q2]),mdot([Ort[2],E3[l],q2])])])])
+        pass
+    res0 = res(0)
+    Mat = np.array([res(0), res(1), res(2)], dtype=complex)
+    pass
+
     # lst= {}
     # NS = null_space(X)  # 3t* d X K
     # assert MaxAbsComplexArray(X.dot(NS)) < 1e-12
@@ -161,9 +184,7 @@ def NullSpace4(F0, F1, F2, F3):
     # return dF1dF2
 
 
-def test():
-
-
+def test_NullSpace():
     pass
 
 
