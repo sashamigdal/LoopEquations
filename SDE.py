@@ -16,7 +16,7 @@ import multiprocessing as mp
 
 from ComplexToReal import ComplexToRealVec, RealToComplexVec, ComplextoRealMat, ReformatRealMatrix, MaxAbsComplexArray
 from VectorOperations import NullSpace4, HodgeDual, E3, randomLoop
-from parallel import parallel_map, ConstSharedArray, WritableSharedArray
+from parallel import parallel_map, ConstSharedArray, WritableSharedArray, print_debug
 from plot import Plot, PlotTimed, MakeDir, XYPlot, MakeNewDir
 from Timer import MTimer as Timer
 import logging
@@ -244,12 +244,13 @@ class IterMoves():
         q2 = F3 - FF[1]
         test = np.array([q0.dot(q0) - 1, q1.dot(q1) - 1, q2.dot(q2) - 1])
         err = MaxAbsComplexArray(test)
-        if err >1e-7:  # just for test
-            np.set_printoptions(linewidth=np.inf)
-            print("(F2-F1)^2-1 = ", (F2 - F1).dot(F2 - F1) - 1)
-            print(f"F0,F3 :\n{F0}\n{F3}")
-            print(f"F1(0),F1(t) :\n{F1}\n{FF[0]}")
-            print(f"F2(0),F2(t) :\n{F2}\n{FF[1]}")
+        if err >1e-4:  # just for test
+            print_debug("err =",err)
+            # np.set_printoptions(linewidth=np.inf)
+            # print_debug("(F2-F1)^2-1 = ", (F2 - F1).dot(F2 - F1) - 1)
+            # print_debug(f"F0,F3 :\n{F0}\n{F3}")
+            # print_debug(f"F1(0),F1(t) :\n{F1}\n{FF[0]}")
+            # print_debug(f"F2(0),F2(t) :\n{F2}\n{FF[1]}")
         #restore the imnprove function here
         # F1, F2 = ImproveF1F2(F0, FF[0], FF[1], F3)
         self.Frun[(zero_index + 1) % M][:] = FF[0]
@@ -272,7 +273,7 @@ class IterMoves():
                     node_num = int(splits[-2])
                     pathnames.append(os.path.join(self.GetSaveDirname(), filename))
                 except Exception as ex:
-                    print(ex)
+                    print_debug(ex)
                 pass
             pass
         pass
@@ -302,7 +303,7 @@ class IterMoves():
                     ans.append([t, psi])
                     return ans
             except Exception as ex:
-                print(ex)
+                print_debug(ex)
                 return None
 
         result = parallel_map(Psi, pathnames, mp.cpu_count())
@@ -335,7 +336,7 @@ def runIterMoves(num_vertices=100, num_cycles=10, T=0.1, num_steps=1000,
         try:
             mover.MoveTwoVertices(zero_index, T, num_steps)
         except Exception as ex:
-            print("Exception ", ex)
+            print_debug("Exception ", ex)
 
     MoveTwo(0)
     C0 = randomLoop(M, 5)
@@ -343,17 +344,17 @@ def runIterMoves(num_vertices=100, num_cycles=10, T=0.1, num_steps=1000,
         MakeNewDir(mover.GetSaveDirname())
         mess = "ItoProcess with N=" + str(M) + " and " + str(num_cycles) + " cycles each with " + str(
             num_steps) + " Ito steps"
-        print("starting " + mess)
+        print_debug("starting " + mess)
         with Timer(mess):
             for cycle in range(num_cycles):
                 for zero_index in range(3):
                     parallel_map(MoveTwo, range(zero_index, M + zero_index, 3), mp.cpu_count())
-                    print("after cycle " + str(cycle) + " zero index " + str(zero_index))
+                    print_debug("after cycle " + str(cycle) + " zero index " + str(zero_index))
                 pass
                 mover.SaveCurve(cycle, node)
-                print("after saving curve at cycle " + str(cycle))
+                print_debug("after saving curve at cycle " + str(cycle))
             pass
-            print("all cycles done " + str(cycle))
+            print_debug("all cycles done " + str(cycle))
         pass
     pass
     mover.CollectStatistics(C0, t0, t1, time_steps)
@@ -361,13 +362,13 @@ def runIterMoves(num_vertices=100, num_cycles=10, T=0.1, num_steps=1000,
 
 
 def test_IterMoves():
-    runIterMoves(num_vertices=300, num_cycles=100, T=0.1, num_steps=10000,
-                 t0=1, t1=1, time_steps=10,
+    runIterMoves(num_vertices=300, num_cycles=100, T=0.1, num_steps=1000,
+                 t0=1, t1=1, time_steps=100,
                  node=0, NewRandomWalk=True)
 
 
 def testFF():
-    print(ff(3, 10))
+    print_debug(ff(3, 10))
 
 
 def test_gamma_formula():
@@ -409,5 +410,5 @@ if __name__ == '__main__':
         P = int(sys.argv[2])
         runIterMoves(num_vertices=N, num_cycles=100, num_steps=1000, T=1, node=P, NewRandomWalk=True)
     else:
-        print("test iter moves")
+        print_debug("test iter moves")
         test_IterMoves()

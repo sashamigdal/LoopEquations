@@ -6,7 +6,7 @@ from numpy import cos, sin, pi
 import multiprocessing as mp
 
 from ComplexToReal import MaxAbsComplexArray
-from parallel import parallel_map
+from parallel import parallel_map, print_debug
 from scipy.linalg import null_space
 
 
@@ -168,18 +168,22 @@ def NullSpace4(F0, F1, F2, F3):
     q1 = F2 - F1
     q2 = F3 - F2
     Ort = np.eye(3)
+    # the code in res(l) is imported from Mathematica notebook
+    # https: // www.wolframcloud.com / obj / sasha.migdal / Published / FEquationasAnalytic.nb
+    # using the small tool math2py.py in this project (thanks to Arthur Migdal)
     def res(l):
-        return np.array([np.array([((-4*mdot([F0,E3[l],q0]))+(4*((((1-1j))+(2*mdot([F0,q0]))))*mdot([F0,E3[l],q0]))),((-4*mdot([F0,E3[l],q0]))-(4*mdot([F3,E3[l],q0]))+(2*(((-1j)-(mdot([F0,F0])*(-2)*mdot([F0,q0]))+(mdot([F3,F3])*(-2)*mdot([F3,q2]))))*(((-2*mdot([F0,E3[l],q0]))+(2*mdot([F3,E3[l],q0])*(-2)*mdot([q2,E3[l],q0])))))+(4*mdot([q2,E3[l],q0]))),((-4*mdot([F3,E3[l],q0]))+(2*mdot([q2,E3[l],q0]))+(2*((((-1-1j))+(2*mdot([F3,q2]))))*(((-2*mdot([F3,E3[l],q0]))+(2*mdot([q2,E3[l],q0])))))),mdot([Ort[0],E3[l],q0]),mdot([Ort[1],E3[l],q0]),mdot([Ort[2],E3[l],q0])]),np.array([0,((-2*mdot([F0,E3[l],q1])*(-2)*mdot([F3,E3[l],q1]))-(2*mdot([q0,E3[l],q1]))+(2*((((-1j)*mdot([(-F0),F0])*(-2)*mdot([F0,q0]))+(mdot([F3,F3])*(-2)*mdot([F3,q2]))))*(((2*mdot([F3,E3[l],q1]))-(2*mdot([q2,E3[l],q1])))))+(2*mdot([q2,E3[l],q1]))),((-4*mdot([F3,E3[l],q1]))+(2*mdot([q2,E3[l],q1]))+(2*((((-1-1j))+(2*mdot([F3,q2]))))*(((-2*mdot([F3,E3[l],q1]))+(2*mdot([q2,E3[l],q1])))))),mdot([Ort[0],E3[l],q1]),mdot([Ort[1],E3[l],q1]),mdot([Ort[2],E3[l],q1])]),np.array([0,0,0,mdot([Ort[0],E3[l],q2]),mdot([Ort[1],E3[l],q2]),mdot([Ort[2],E3[l],q2])])])
+        return np.array([np.array([((-4*mdot([F0,E3[l],q0]))+(4*((((1-1j))+(2*mdot([F0,q0]))))*mdot([F0,E3[l],q0]))),((-4*mdot([F0,E3[l],q0])*(-4)*mdot([F3,E3[l],q0]))+(2*((((-1j)*mdot([(-F0),F0])*(-2)*mdot([F0,q0]))+(mdot([F3,F3])*(-2)*mdot([F3,q2]))))*(((-2*mdot([F0,E3[l],q0]))+(2*mdot([F3,E3[l],q0])*(-2)*mdot([q2,E3[l],q0])))))+(4*mdot([q2,E3[l],q0]))),((-4*mdot([F3,E3[l],q0]))+(2*mdot([q2,E3[l],q0]))+(2*((((-1-1j))+(2*mdot([F3,q2]))))*(((-2*mdot([F3,E3[l],q0]))+(2*mdot([q2,E3[l],q0])))))),mdot([Ort[0],E3[l],q0]),mdot([Ort[1],E3[l],q0]),mdot([Ort[2],E3[l],q0])]),np.array([0,((-2*mdot([F0,E3[l],q1]))-(2*mdot([F3,E3[l],q1])*(-2)*mdot([q0,E3[l],q1]))+(2*(((-1j)-(mdot([F0,F0])*(-2)*mdot([F0,q0]))+(mdot([F3,F3])*(-2)*mdot([F3,q2]))))*(((2*mdot([F3,E3[l],q1]))-(2*mdot([q2,E3[l],q1])))))+(2*mdot([q2,E3[l],q1]))),((-4*mdot([F3,E3[l],q1]))+(2*mdot([q2,E3[l],q1]))+(2*((((-1-1j))+(2*mdot([F3,q2]))))*(((-2*mdot([F3,E3[l],q1]))+(2*mdot([q2,E3[l],q1])))))),mdot([Ort[0],E3[l],q1]),mdot([Ort[1],E3[l],q1]),mdot([Ort[2],E3[l],q1])]),np.array([0,0,0,mdot([Ort[0],E3[l],q2]),mdot([Ort[1],E3[l],q2]),mdot([Ort[2],E3[l],q2])])])
+    pass
     # (3 projections of ti,3 vectors t0,t1,t2, 6 equations)
     # Eq_i = Mat.transpose().dot(T), T ={\vec t0, \vec t1, \vec t2} = (3,3), Mat = {res(0),res(1), res(2)} (6,3,3)
-    X = np.array([res(0), res(1), res(2)], dtype=complex).transpose((2,1,0)).reshape(6,9)
+    X = np.array([res(0), res(1), res(2)], dtype=complex).transpose((2, 1, 0)).reshape(6, 9)
     # test = np.array([q0,q1,q2]).reshape(9)
     NS = null_space(X)
     assert MaxAbsComplexArray(X.dot(NS)) < 1e-10
     NS = NS.reshape(3, 3, -1)
     qd0 = E3.dot(q0)
     qd2 = E3.dot(q2)
-    dF1 = mdot([qd0,NS[0]])
+    dF1 = mdot([qd0, NS[0]])
     dF2 = -mdot([qd2, NS[2]])
     dF1dF2 = np.vstack([dF1, dF2])
     return dF1dF2

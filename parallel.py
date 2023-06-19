@@ -4,7 +4,11 @@ from queue import Empty
 import multiprocessing as mp
 from multiprocessing.shared_memory import SharedMemory
 import numpy as np
+DEBUG = False
 
+def print_debug(*msg):
+    if DEBUG:
+        print(*msg)
 
 #mp.set_start_method('fork')
 
@@ -68,7 +72,7 @@ def parallel_map(func, args_list, num_cores=16):
         inputs.put((i, args))
 
     def work(rank):
-        print("starting core %d" % rank)
+        print_debug("starting core %d" % rank)
         _parallel_run(func, inputs, outputs)
 
     _run_jobs(work, args_list, num_cores)
