@@ -188,6 +188,21 @@ def NullSpace4(F0, F1, F2, F3):
     dF1dF2 = np.vstack([dF1, dF2])
     return dF1dF2
 
+
+def NullSpace5(F):
+    E = np.eye(3).astype(complex)
+    Z = np.zeros((3,3),dtype=complex)
+    ZZ = np.array([Z, Z, Z])
+    dF1 = np.array([E, Z, Z])
+    dF2 = np.array([Z, E, Z])
+    dF3 = np.array([Z, Z, E])
+    dF= [ZZ,dF1, dF2, dF3,ZZ]
+    Lineq =np.array([(((-2)*mdot([F[0],dF[1]]))+(2*mdot([F[1],dF[1]]))),((-2)*((mdot([F[0],dF[1]])+(mdot([F[1],dF[1]])*((((1+(2*1j)))+(2*mdot([F[0],F[0]]))-(2*mdot([F[1],F[1]])))))))),(2*((mdot([F[1],dF[1]])-mdot([F[1],dF[2]])-mdot([F[2],dF[1]])+mdot([F[2],dF[2]])))),(((-2)*((mdot([F[1],dF[2]])+mdot([F[2],dF[1]])+(mdot([F[2],dF[2]])*((((1+(2*1j)))+(2*mdot([F[1],F[1]]))-(2*mdot([F[2],F[2]]))))))))+(mdot([F[1],dF[1]])*(((((-2)+(4*1j)))+(4*mdot([F[1],F[1]]))-(4*mdot([F[2],F[2]])))))),(2*((mdot([F[2],dF[2]])-mdot([F[2],dF[3]])-mdot([F[3],dF[2]])+mdot([F[3],dF[3]])))),(((-2)*((mdot([F[2],dF[3]])+mdot([F[3],dF[2]])+(mdot([F[3],dF[3]])*((((1+(2*1j)))+(2*mdot([F[2],F[2]]))-(2*mdot([F[3],F[3]]))))))))+(mdot([F[2],dF[2]])*(((((-2)+(4*1j)))+(4*mdot([F[2],F[2]]))-(4*mdot([F[3],F[3]])))))),(2*((mdot([F[3],dF[3]])-mdot([F[4],dF[3]])))),(((-2)*mdot([F[4],dF[3]]))+(mdot([F[3],dF[3]])*(((((-2)+(4*1j)))+(4*mdot([F[3],F[3]]))-(4*mdot([F[4],F[4]]))))))])
+    X = Lineq.reshape(8,9)
+    dF1dF2dF3 =null_space(X)
+    assert(MaxAbsComplexArray(X.dot(dF1dF2dF3)) < 1e-10)
+    return dF1dF2dF3
+
 def RI(X):
     return np.array([X.real, X.imag]).transpose()
 

@@ -16,7 +16,7 @@ import sdeint
 import multiprocessing as mp
 
 from ComplexToReal import ComplexToRealVec, RealToComplexVec, ComplextoRealMat, ReformatRealMatrix, MaxAbsComplexArray
-from VectorOperations import NullSpace4, HodgeDual, E3, randomLoop
+from VectorOperations import NullSpace5, HodgeDual, E3, randomLoop
 from parallel import parallel_map, ConstSharedArray, WritableSharedArray, print_debug
 from plot import Plot, PlotTimed, MakeDir, XYPlot, MakeNewDir
 from Timer import MTimer as Timer
@@ -25,8 +25,7 @@ from sympy import MatrixSymbol, Matrix, I, series, trace, diff
 
 from mpmath import mp as mpm
 #
-mpm.dps = 30
-prec = 20
+
 logger = logging.Logger("debug")
 
 MakeDir("plots")
@@ -35,85 +34,6 @@ MakeDir("plots")
 def Sqr(v):  # Matrix (n,m) in sympy or in numpy
     return v.T.dot(v)
 
-
-class SolveTwoVertices:  # using sympy
-    def __init__(self, F0, F1, F2, F3):
-        self.F0 = Matrix(F0.reshape(3,1))
-        self.F1 = Matrix(F1.reshape(3,1))
-        self.F2 = Matrix(F2.reshape(3,1))
-        self.F3 = Matrix(F3.reshape(3,1))
-
-    pass
-
-    # (F{k+1} - Fk)^2 =1
-    # (F{k+1}^2 - Fk^2 -I)^2 = (F{k+1} + Fk)^2 -1
-    @staticmethod
-    def Dual(v):  # first index is a vector index
-        x = np.array(v).astype(complex).reshape(3)
-        y = E3.dot(x)
-        return Matrix(y)
-
-    @staticmethod
-    def Eq( fi, fj):
-        si = Sqr(fi)
-        sj= Sqr(fj)
-        sij = Sqr(fi + fj)
-        return ( sj- si- I) ** 2 + 1 - sij
-
-    @staticmethod
-    def pack( X):
-        y = np.array(X, float).reshape(2, 6)
-        return np.array(y[0] + 1j * y[1], complex).reshape(2, 3)
-
-    @staticmethod
-    def unpack(f1, f2):
-        x = np.vstack([f1, f2]).reshape(6)
-        return np.vstack([x.real, x.imag]).reshape(12).astype(float)
-
-    def Eqs(self, *args):
-        P = self.pack(args)
-        f1 = P[0]
-        f2 = P[1]
-        return [self.Eq(self.F0, f1), self.Eq(f1, f2), self.Eq(f2, self.F3)]
-
-    def GradientMatrix(self):
-        q0 = self.F1 - self.F0
-        q1 = self.F2 - self.F1
-        q2 = self.F3 - self.F2
-        dt0 = MatrixSymbol('dt0', 3, 1)
-        dt1 = MatrixSymbol('dt1', 3, 1)
-        dt2 = MatrixSymbol('dt2', 3, 1)
-        Z3 = Matrix(np.zeros((3, 3), dtype=complex))
-        qd0 = self.Dual(q0)
-        qd1 = self.Dual(q1)
-        qd2 = self.Dual(q2)
-        dq0 = qd0 * dt0  # (3 by NZ) infinitesimal rotation opf q0
-        dq1 = qd1 * dt1  # (3 by NZ)infinitesimal rotation opf q1
-        dq2 = qd2 * dt2 # (3 by NZ)infinitesimal rotation opf q2
-        f1 = self.F1 + dq0
-        f2 = self.F3 - dq2
-        eqs = [self.Eq(self.F0, f1), self.Eq(f1, f2), self.Eq(f2, self.F3), dq0 + dq1 + dq2]
-        lineqs = [series(eq, dt0, Z3, 1) for eq in eqs]
-        pass
-    def Correction(self, tol=1e-16):
-        def f(*args):
-            return sum([np.abs(eq) ** 2 for eq in self.Eqs(*args)])
-
-        pass
-        X0 = self.unpack(self.F1, self.F2)
-        ee = self.Eqs(X0)
-        err0 = MaxAbsComplexArray(np.array(ee, dtype=complex))
-        res = scipy.optimize.minimize(f, X0, tol=tol)
-        ee1 = self.Eqs(res.x)
-        err1 = MaxAbsComplexArray(np.array(ee1, dtype=complex))
-        P = self.pack(res.x)
-        self.F1 = P[0]
-        self.F2 = P[1]
-
-def test_SolveTwoVertices():
-    FF = randomLoop(10,2) + 1j * randomLoop(10,2)
-    solver = SolveTwoVertices(FF[0],FF[1],FF[2],FF[3])
-    solver.GradientMatrix()
 def test_list():
     test = [1, 2, 3] + [4, 5, 6, 7]
     test
@@ -139,43 +59,44 @@ def VecGamma(U, Ans):
 
 def testNullSpace():
     # NS = NullSpace3(ff(0, 10), ff(1, 10), ff(2, 10))
-    NS = NullSpace4(ff(0, 10), ff(1, 10), ff(2, 10), ff(3, 10))
+    #NS = NullSpace4(ff(0, 10), ff(1, 10), ff(2, 10), ff(3, 10))
+    NS = NullSpace5(np.array([ff(0, 10), ff(1, 10), ff(2, 10),ff(3, 10),ff(4, 10)],dtype=complex))
     pass
 
-def ImproveF1F2(F0, F1, F2, F3):
-    #(F{k+1} - Fk)^2 =1
-    # (F{k+1}^2 - Fk^2 -I)^2 = (F{k+1} + Fk)^2 -1
+def ImproveF1F2F3(F0, F1, F2, F3, F4):
+    Dim = 3
+    NF = 3
 
     def Eq(fi,fj):
-        return [Sqr(fi-fj) - 1,
-                (Sqr(fj) - Sqr(fi) -1j)**2 + 1 - Sqr(fi+fj)]
+        return [Sqr(fi-fj) -1,(Sqr(fj) - Sqr(fi) -1j)**2 + 1 - Sqr(fi+fj)]
 
 
-    def pack(X):
-        y = np.array(X,float).reshape(2,6)
-        return np.array(y[0]+ 1j * y[1],complex).reshape(2,3)
+    def pack(X): # NF*Dim -> (NF,Dim)
+        return np.array(X[0]).reshape(NF,Dim)
 
-    def unpack(f1, f2):
-        x= np.vstack([f1,f2]).reshape(6)
-        retval = np.vstack([x.real,x.imag]).reshape(12).astype(float)
-        return retval
+    def unpack(f1, f2, f3):# (NF,Dim) ->NF*Dim
+        return np.vstack([f1,f2,f3]).reshape(NF*Dim)
 
     def Eqs(*args):
         P = pack(args)
         f1 = P[0]
         f2 = P[1]
-        return np.array([Eq(F0, f1), Eq(f1, f2), Eq(f2, F3)]).reshape(-1)
+        f3 = P[2]
+        eqs = np.array([Eq(F0, f1), Eq(f1, f2), Eq(f2, f3), Eq(f3, F4)]).reshape(8)
+        extra1 = f1.T.dot(F0) - F1.T.dot(F0)
+        # extra2 = f2.T.dot(F3) - F2.T.dot(F3)
+        retval = np.append(eqs,extra1)
+        return np.array(retval).reshape(-1)
 
     def f(*args):
         eqs = Eqs(*args)
         return np.conjugate(eqs).dot(eqs).real
 
     def g(*args):
-        eqs = Eqs(args)
-        return [mpmath.mpc(z) for z in eqs]
+        return [z for z in Eqs(args)]
 
     pass
-    ee = Eqs(unpack(F1,F2))
+    ee = Eqs(unpack(F1,F2,F3))
     err0 = MaxAbsComplexArray(ee)
     # res = scipy.optimize.minimize(f,unpack(F1,F2),tol=1e-16)
     # ee1 = Eqs(res.x)
@@ -183,14 +104,17 @@ def ImproveF1F2(F0, F1, F2, F3):
     # if(err0 > 1e-6):
     #     print("error reduced from ", err0, " to ", err1 )
     # P = pack(res.x)
-
-    initial_value = [mpmath.mpf(x) for x in unpack(F1, F2)]
-    x = mpm.findroot(g, initial_value, solver='bisect')
+    mpm.dps = 8
+    X = unpack(F1, F2,F3)
+    initial_value = [mpm.mpc(x) for x in X]
+    test = g(initial_value)
+    X = mpm.findroot(g, initial_value, solver='bisect')
+    x = np.array(X,dtype=complex)
     err1 = MaxAbsComplexArray(Eqs(x))
     if(err0 > 1e-6):
        print("error reduced from ", err0, " to ", err1 )
-    P = pack(x)
-    return  P[0],P[1]
+    P = pack([x])
+    return  P
 
 class IterMoves():
     def __init__(self, M):
@@ -206,33 +130,36 @@ class IterMoves():
         # os.path.join("plots", "curve_cycle_node." + str(cycle) + "." + str(node_num) + ".np")
         return os.path.join(self.GetSaveDirname(), "curve_cycle_node." + str(cycle) + "." + str(node_num) + ".np")
 
-    def MoveTwoVertices(self, zero_index, T, num_steps):
+    def MoveThreeVertices(self, zero_index, T, num_steps):
         M = self.M
 
         F0 = self.Frun[zero_index % M]
         F1 = self.Frun[(zero_index + 1) % M]
         F2 = self.Frun[(zero_index + 2) % M]
         F3 = self.Frun[(zero_index + 3) % M]
-        NF = 2
-        NC = 3 * NF
+        F4 = self.Frun[(zero_index + 4) % M]
+        Dim = 3
+        NF = 3
+        NC = Dim * NF
         NR = 2 * NC
         ZR = np.zeros(NR, dtype=float)
         ZC = np.zeros(NC, dtype=complex)
         X0 = ZR.copy()
-        Y = np.vstack([F1, F2]).reshape(6)
+        Y = np.vstack([F1, F2, F3]).reshape(NC)
         ComplexToRealVec(Y, X0)
 
-        def g0(F1F2R):  # (12,)
-            F1F2C = ZC.copy()
-            RealToComplexVec(F1F2R, F1F2C)  # (6)
-            Q = F1F2C.reshape(2, 3)
+        def g0(F1F2F3R):  # (NR,)
+            F1F2F3C = ZC.copy()
+            RealToComplexVec(F1F2F3R, F1F2F3C)  # (NC)
+            Q = F1F2F3C.reshape(NF, Dim)
             f1 = Q[0]
             f2 = Q[1]
-            dF1dF2c = NullSpace4(F0, f1, f2, F3)  # 6,K
-            k = dF1dF2c.shape[1]
-            dF1dF2R = np.zeros((12, 2 * k), dtype=float)
-            ComplextoRealMat(dF1dF2c, dF1dF2R)
-            return dF1dF2R
+            f3 = Q[2]
+            df1df2df3c = NullSpace5(np.array([F0, f1, f2, f3, F4]))  # NC,K
+            k = df1df2df3c.shape[1]
+            df1df2df3R = np.zeros((NR, 2 * k), dtype=float)
+            ComplextoRealMat(df1df2df3c, df1df2df3R)
+            return df1df2df3R
 
         K2 = g0(X0).shape[1]  # the dimension of real null space, to use in Wiener process
 
@@ -247,31 +174,23 @@ class IterMoves():
 
         #######TEST BEGIN
         noise = np.random.normal(size=K2)
-        df1df2R = g(X0, 0).dot(noise)  # delta q = test.dot(q)
-        dF1dF2C = ZC.copy()
-        RealToComplexVec(df1df2R, dF1dF2C)
+        df1df2df3R = g(X0, 0).dot(noise)  # delta q = test.dot(q)
+        df1df2df3c = ZC.copy()
+        RealToComplexVec(df1df2df3R, df1df2df3c)
         #######TEST E#ND
         result = sdeint.itoEuler(f, g, X0, tspan)
-        F1F2R = result[-1]
-        F1F2C = ZC.copy()
-        RealToComplexVec(F1F2R, F1F2C)  # (6)
-        FF = F1F2C.reshape(2, 3)
-        q0 = FF[0] - F0
-        q1 = FF[1] - FF[0]
-        q2 = F3 - FF[1]
-        test = np.array([q0.dot(q0) - 1, q1.dot(q1) - 1, q2.dot(q2) - 1])
-        err = MaxAbsComplexArray(test)
-        if err >1e-4:  # just for test
-            print("err =",err)
-            # np.set_printoptions(linewidth=np.inf)
-            # print_debug("(F2-F1)^2-1 = ", (F2 - F1).dot(F2 - F1) - 1)
-            # print_debug(f"F0,F3 :\n{F0}\n{F3}")
-            # print_debug(f"F1(0),F1(t) :\n{F1}\n{FF[0]}")
-            # print_debug(f"F2(0),F2(t) :\n{F2}\n{FF[1]}")
-        #restore the imnprove function here
-        F1, F2 = ImproveF1F2(F0, FF[0], FF[1], F3)
-        self.Frun[(zero_index + 1) % M][:] = F1
-        self.Frun[(zero_index + 2) % M][:] = F2
+        F1F2F3R = result[-1]
+        F1F2F3C = ZC.copy()
+        RealToComplexVec(F1F2F3R, F1F2F3C)  # (6)
+        FF = F1F2F3C.reshape(NF, Dim)
+        try:
+            FF = ImproveF1F2F3(F0, FF[0], FF[1], FF[2], F4)
+        except Exception as ex:
+            print("failed to improve F1F2F3 ",ex)
+
+        self.Frun[(zero_index + 1) % M][:] = FF[0]
+        self.Frun[(zero_index + 2) % M][:] = FF[1]
+        self.Frun[(zero_index + 3) % M][:] = FF[2]
         pass
 
     def SaveCurve(self, cycle, node_num):
@@ -349,13 +268,13 @@ def runIterMoves(num_vertices=100, num_cycles=10, T=0.1, num_steps=1000,
     M = num_vertices
     mover = IterMoves(M)
     mp.set_start_method('fork')
-    def MoveTwo(zero_index):
+    def MoveThree(zero_index):
         try:
-            mover.MoveTwoVertices(zero_index, T, num_steps)
+            mover.MoveThreeVertices(zero_index, T, num_steps)
         except Exception as ex:
-            print_debug("Exception ", ex)
+          print_debug("Exception ", ex)
 
-    MoveTwo(0)
+    MoveThree(0)
     C0 = randomLoop(M, 5)
     if NewRandomWalk:
         MakeNewDir(mover.GetSaveDirname())
@@ -364,8 +283,8 @@ def runIterMoves(num_vertices=100, num_cycles=10, T=0.1, num_steps=1000,
         print_debug("starting " + mess)
         with Timer(mess):
             for cycle in range(num_cycles):
-                for zero_index in range(3):
-                    parallel_map(MoveTwo, range(zero_index, M + zero_index, 3), mp.cpu_count())
+                for zero_index in range(4):
+                    parallel_map(MoveThree, range(zero_index, M + zero_index, 4), mp.cpu_count())
                     print_debug("after cycle " + str(cycle) + " zero index " + str(zero_index))
                 pass
                 mover.SaveCurve(cycle, node)
@@ -379,7 +298,7 @@ def runIterMoves(num_vertices=100, num_cycles=10, T=0.1, num_steps=1000,
 
 
 def test_IterMoves():
-    runIterMoves(num_vertices=300, num_cycles=100, T=1, num_steps=100,
+    runIterMoves(num_vertices=300, num_cycles=100, T=1, num_steps=10000,
                  t0=1, t1=1, time_steps=100,
                  node=0, NewRandomWalk=True)
 
