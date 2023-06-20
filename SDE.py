@@ -10,6 +10,7 @@ from numpy import cos, sin, pi
 from scipy.linalg import pinvh
 
 from scipy.stats import ortho_group
+import mpmath
 from mpmath import hyp0f1, hyp1f2
 import sdeint
 import multiprocessing as mp
@@ -140,12 +141,14 @@ def testNullSpace():
     # NS = NullSpace3(ff(0, 10), ff(1, 10), ff(2, 10))
     NS = NullSpace4(ff(0, 10), ff(1, 10), ff(2, 10), ff(3, 10))
     pass
+
 def ImproveF1F2(F0, F1, F2, F3):
     #(F{k+1} - Fk)^2 =1
     # (F{k+1}^2 - Fk^2 -I)^2 = (F{k+1} + Fk)^2 -1
 
     def Eq(fi,fj):
-        return [Sqr(fi-fj) -1 , (Sqr(fj) - Sqr(fi) -1j)**2 + 1 - Sqr(fi+fj)]
+        return [Sqr(fi-fj) - 1,
+                (Sqr(fj) - Sqr(fi) -1j)**2 + 1 - Sqr(fi+fj)]
 
 
     def pack(X):
@@ -154,16 +157,23 @@ def ImproveF1F2(F0, F1, F2, F3):
 
     def unpack(f1, f2):
         x= np.vstack([f1,f2]).reshape(6)
-        return np.vstack([x.real,x.imag]).reshape(12).astype(float)
+        retval = np.vstack([x.real,x.imag]).reshape(12).astype(float)
+        return retval
 
     def Eqs(*args):
-         P = pack(args)
-         f1 = P[0]
-         f2 = P[1]
-         return  np.array([Eq(F0, f1),Eq(f1, f2),Eq(f2, F3)]).reshape(-1)
+        P = pack(args)
+        f1 = P[0]
+        f2 = P[1]
+        return np.array([Eq(F0, f1), Eq(f1, f2), Eq(f2, F3)]).reshape(-1)
+
     def f(*args):
         eqs = Eqs(*args)
         return np.conjugate(eqs).dot(eqs).real
+
+    def g(*args):
+        eqs = Eqs(args)
+        return [mpmath.mpc(z) for z in eqs]
+
     pass
     ee = Eqs(unpack(F1,F2))
     err0 = MaxAbsComplexArray(ee)
@@ -173,7 +183,9 @@ def ImproveF1F2(F0, F1, F2, F3):
     # if(err0 > 1e-6):
     #     print("error reduced from ", err0, " to ", err1 )
     # P = pack(res.x)
-    x = mpm.findroot(Eqs, unpack(F1,F2), solver='bisect')
+
+    initial_value = [mpmath.mpf(x) for x in unpack(F1, F2)]
+    x = mpm.findroot(g, initial_value, solver='bisect')
     err1 = MaxAbsComplexArray(Eqs(x))
     if(err0 > 1e-6):
        print("error reduced from ", err0, " to ", err1 )
