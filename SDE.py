@@ -87,11 +87,19 @@ def ImproveF1F2F3(F0, F1, F2, F3, F4):
         extra1 = f2.T.dot(F0) - F2.T.dot(F0)
         # extra2 = f2.T.dot(F3) - F2.T.dot(F3)
         eqs = np.append(eqs,extra1)
-        return np.array(eqs).reshape(-1)
+        return eqs
+
+    def Reqs(R):
+        C = np.zeros(int(len(R)/2), dtype=complex)
+        RealToComplexVec(R,C)
+        eqs = Eqs(C)
+        R = np.zeros(len(eqs)*2,dtype=float)
+        ComplexToRealVec(eqs,R)
+        return R
 
     def f(*args):
         eqs = Eqs(*args)
-        return np.conjugate(eqs).dot(eqs).real
+        return SumSqrAbsComplexArray(eqs)
 
     def g(*args):
         return [z for z in Eqs(args)]
@@ -100,11 +108,13 @@ def ImproveF1F2F3(F0, F1, F2, F3, F4):
     ee = Eqs(unpack(F1,F2,F3))
     err0 = SumSqrAbsComplexArray(ee)
     mpm.dps = 40
-    X = unpack(F1, F2,F3)
-    initial_value = [mpm.mpc(x) for x in X]
-    test = g(initial_value)
-    X = mpm.findroot(g, initial_value, solver='bisect',tol=1e-7)
-    x = np.array(X,dtype=complex)
+    X0 = unpack(F1, F2,F3)
+    R0 = np.zeros(len(X0) * 2, dtype=float)
+    ComplexToRealVec(X0, R0)
+    test = Reqs(R0)
+    r = scipy.optimize.fsolve(Reqs,R0,xtol=1e-9)
+    x = np.zeros(len(X0),dtype=complex)
+    RealToComplexVec(r,x)
     err1 = SumSqrAbsComplexArray(Eqs(x))
     if(err0 > 1e-6):
        print_debug("error reduced from ", err0, " to ", err1 )
