@@ -351,4 +351,4 @@ if __name__ == '__main__':
         elif idx == 6: DEBUG = arg
         else: print("unknown parameter ", arg)
     print("Debug={} runIterMoves(num_vertices={}, num_cycles={}, num_steps={}, time_steps={}, node={}, NewRandomWalk=True)".format(DEBUG,N,C,S,TS,P))
-    runIterMoves(num_vertices=N, num_cycles=C, num_steps=S,time_steps=TS, node=P, NewRandomWalk=False)
+    runIterMoves(num_vertices=N, num_cycles=C, num_steps=S,time_steps=TS, node=P, NewRandomWalk=True)
