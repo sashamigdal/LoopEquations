@@ -290,7 +290,7 @@ def runIterMoves(num_vertices=100, num_cycles=10, T=1.0, num_steps=1000,
         with Timer(mess):
             for cycle in range(num_cycles):
                 for zero_index in range(4):
-                    parallel_map(MoveThree, range(zero_index, M + zero_index, 4), mp.cpu_count())
+                    parallel_map(MoveThree, range(zero_index, M + zero_index, 4),0 )#mp.cpu_count())
                     print_debug("after cycle " + str(cycle) + " zero index " + str(zero_index))
                 pass
                 mover.SaveCurve(cycle, node)
