@@ -3,7 +3,7 @@ from os.path import split
 
 import scipy
 
-DEBUG = True
+
 import numpy as np
 import os, sys
 from numpy import cos, sin, pi
@@ -340,7 +340,7 @@ if __name__ == '__main__':
     S = 10000
     TS =1000
     P = 0
-    DEBUG = False
+    DEBUG = "D"
     for idx, arg in enumerate(sys.argv):
         if   idx == 0: print("running ",arg)
         elif idx == 1: N = int(arg)
@@ -348,7 +348,7 @@ if __name__ == '__main__':
         elif idx == 3: S = int(arg)
         elif idx == 4: T = int(arg)
         elif idx == 5: P = int(arg)
-        elif idx == 6: DEBUG = (arg == "D")
+        elif idx == 6: DEBUG = arg
         else: print("unknown parameter ", arg)
     print("Debug={} runIterMoves(num_vertices={}, num_cycles={}, num_steps={}, time_steps={}, node={}, NewRandomWalk=True)".format(DEBUG,N,C,S,TS,P))
     runIterMoves(num_vertices=N, num_cycles=C, num_steps=S,time_steps=TS, node=P, NewRandomWalk=True)
