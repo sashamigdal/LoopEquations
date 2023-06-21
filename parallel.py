@@ -4,7 +4,7 @@ from queue import Empty
 import multiprocessing as mp
 from multiprocessing.shared_memory import SharedMemory
 import numpy as np
-DEBUG = False
+DEBUG = True
 
 def print_debug(*msg):
     if DEBUG:

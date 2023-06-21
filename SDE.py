@@ -335,10 +335,20 @@ def testDual():
 
 
 if __name__ == '__main__':
-    if len(sys.argv) == 3:
-        N = int(sys.argv[1])
-        P = int(sys.argv[2])
-        runIterMoves(num_vertices=N, num_cycles=100, num_steps=1000, T=1, node=P, NewRandomWalk=True)
-    else:
-        print_debug("test iter moves")
-        test_IterMoves()
+    N = 1000
+    C = 100
+    S = 10000
+    TS =1000
+    P = 0
+    DEBUG = False
+    for idx, arg in enumerate(sys.argv):
+        if   idx == 0: print("running ",arg)
+        elif idx == 1: N = int(arg)
+        elif idx == 2: C = int(arg)
+        elif idx == 3: S = int(arg)
+        elif idx == 4: T = int(arg)
+        elif idx == 5: P = int(arg)
+        elif idx == 6: DEBUG = (arg == "D")
+        else: print("unknown parameter ", arg)
+    print("Debug={} runIterMoves(num_vertices={}, num_cycles={}, num_steps={}, time_steps={}, node={}, NewRandomWalk=True)".format(DEBUG,N,C,S,TS,P))
+    runIterMoves(num_vertices=N, num_cycles=C, num_steps=S,time_steps=TS, node=P, NewRandomWalk=True)
