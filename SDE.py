@@ -258,7 +258,7 @@ class IterMoves():
 
 def runIterMoves(num_vertices=100, num_cycles=10, T=0.1, num_steps=1000,
                  t0=1, t1=10, time_steps=100,
-                 node=0, NewRandomWalk=False):
+                 node=0, NewRandomWalk=False, plot = True):
     M = num_vertices
     mover = IterMoves(M)
     mp.set_start_method('fork')
@@ -288,13 +288,13 @@ def runIterMoves(num_vertices=100, num_cycles=10, T=0.1, num_steps=1000,
         pass
     pass
     mover.CollectStatistics(C0, t0, t1, time_steps)
-    mover.PlotWilsonLoop(t0, t1, time_steps)
+    if plot: mover.PlotWilsonLoop(t0, t1, time_steps)
 
 
 def test_IterMoves():
     runIterMoves(num_vertices=100, num_cycles=100, T=1, num_steps=100,
                  t0=1, t1=1, time_steps=100,
-                 node=0, NewRandomWalk=False)
+                 node=0, NewRandomWalk=False, plot=True)
 
 
 def testFF():
@@ -341,6 +341,7 @@ if __name__ == '__main__':
     TS =1000
     P = 0
     DEBUG = "D"
+    DoPlot = True
     for idx, arg in enumerate(sys.argv):
         if   idx == 0: print("running ",arg)
         elif idx == 1: N = int(arg)
@@ -349,6 +350,7 @@ if __name__ == '__main__':
         elif idx == 4: TS = int(arg)
         elif idx == 5: P = int(arg)
         elif idx == 6: DEBUG = arg
+        elif idx == 7: DoPlot = (arg == "plot")
         else: print("unknown parameter ", arg)
-    print("Debug={} runIterMoves(num_vertices={}, num_cycles={}, num_steps={}, time_steps={}, node={}, NewRandomWalk=True)".format(DEBUG,N,C,S,TS,P))
-    runIterMoves(num_vertices=N, num_cycles=C, num_steps=S,time_steps=TS, node=P, NewRandomWalk=True)
+    print("Debug={} runIterMoves(num_vertices={}, num_cycles={}, num_steps={}, time_steps={}, node={}, NewRandomWalk=True, plot={})".format(DEBUG,N,C,S,TS,P,DoPlot))
+    runIterMoves(num_vertices=N, num_cycles=C, num_steps=S,time_steps=TS, node=P, NewRandomWalk=True, plot = DoPlot)
