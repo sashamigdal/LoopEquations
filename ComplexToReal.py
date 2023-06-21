@@ -78,3 +78,7 @@ def test_ComplexToRealVec():
 def MaxAbsComplexArray(errs):
     mm = [errs.min().real, errs.min().imag, errs.max().real, errs.max().imag]
     return np.max(np.abs(mm))
+
+def SumSqrAbsComplexArray(errs):
+    EE = np.conjugate(errs).T.dot(errs).real
+    return np.trace(EE) if EE.ndim ==2 else EE

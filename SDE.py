@@ -15,7 +15,8 @@ from mpmath import hyp0f1, hyp1f2
 import sdeint
 import multiprocessing as mp
 
-from ComplexToReal import ComplexToRealVec, RealToComplexVec, ComplextoRealMat, ReformatRealMatrix, MaxAbsComplexArray
+from ComplexToReal import ComplexToRealVec, RealToComplexVec, ComplextoRealMat, ReformatRealMatrix, MaxAbsComplexArray, \
+    SumSqrAbsComplexArray
 from VectorOperations import NullSpace5, HodgeDual, E3, randomLoop
 from parallel import parallel_map, ConstSharedArray, WritableSharedArray, print_debug
 from plot import Plot, PlotTimed, MakeDir, XYPlot, MakeNewDir
@@ -83,10 +84,10 @@ def ImproveF1F2F3(F0, F1, F2, F3, F4):
         f2 = P[1]
         f3 = P[2]
         eqs = np.array([Eq(F0, f1), Eq(f1, f2), Eq(f2, f3), Eq(f3, F4)]).reshape(8)
-        extra1 = f1.T.dot(F0) - F1.T.dot(F0)
+        extra1 = f2.T.dot(F0) - F2.T.dot(F0)
         # extra2 = f2.T.dot(F3) - F2.T.dot(F3)
-        retval = np.append(eqs,extra1)
-        return np.array(retval).reshape(-1)
+        eqs = np.append(eqs,extra1)
+        return np.array(eqs).reshape(-1)
 
     def f(*args):
         eqs = Eqs(*args)
@@ -97,14 +98,14 @@ def ImproveF1F2F3(F0, F1, F2, F3, F4):
 
     pass
     ee = Eqs(unpack(F1,F2,F3))
-    err0 = MaxAbsComplexArray(ee)
-    mpm.dps = 8
+    err0 = SumSqrAbsComplexArray(ee)
+    mpm.dps = 40
     X = unpack(F1, F2,F3)
     initial_value = [mpm.mpc(x) for x in X]
     test = g(initial_value)
-    X = mpm.findroot(g, initial_value, solver='bisect')
+    X = mpm.findroot(g, initial_value, solver='bisect',tol=1e-7)
     x = np.array(X,dtype=complex)
-    err1 = MaxAbsComplexArray(Eqs(x))
+    err1 = SumSqrAbsComplexArray(Eqs(x))
     if(err0 > 1e-6):
        print_debug("error reduced from ", err0, " to ", err1 )
     P = pack([x])
@@ -179,6 +180,7 @@ class IterMoves():
         FF = F1F2F3C.reshape(NF, Dim)
         try:
             FF = ImproveF1F2F3(F0, FF[0], FF[1], FF[2], F4)
+            # FF = ImproveF1F2F3(F0, F1, F2, F3, F4)
         except Exception as ex:
             print("failed to improve F1F2F3 ",ex)
 
@@ -292,7 +294,7 @@ def runIterMoves(num_vertices=100, num_cycles=10, T=1.0, num_steps=1000,
 
 
 def test_IterMoves():
-    runIterMoves(num_vertices=100, num_cycles=100, T=1., num_steps=100,
+    runIterMoves(num_vertices=100, num_cycles=100, T=1., num_steps=10000,
                  t0=1., t1=10., time_steps=100,
                  node=0, NewRandomWalk=True, plot=True)
 
