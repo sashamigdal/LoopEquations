@@ -98,12 +98,6 @@ def ImproveF1F2F3(F0, F1, F2, F3, F4):
     pass
     ee = Eqs(unpack(F1,F2,F3))
     err0 = MaxAbsComplexArray(ee)
-    # res = scipy.optimize.minimize(f,unpack(F1,F2),tol=1e-16)
-    # ee1 = Eqs(res.x)
-    # err1 = MaxAbsComplexArray(np.array(ee1,dtype=complex))complex
-    # if(err0 > 1e-6):
-    #     print("error reduced from ", err0, " to ", err1 )
-    # P = pack(res.x)
     mpm.dps = 8
     X = unpack(F1, F2,F3)
     initial_value = [mpm.mpc(x) for x in X]
@@ -112,7 +106,7 @@ def ImproveF1F2F3(F0, F1, F2, F3, F4):
     x = np.array(X,dtype=complex)
     err1 = MaxAbsComplexArray(Eqs(x))
     if(err0 > 1e-6):
-       print("error reduced from ", err0, " to ", err1 )
+       print_debug("error reduced from ", err0, " to ", err1 )
     P = pack([x])
     return  P
 
