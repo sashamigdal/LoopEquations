@@ -292,9 +292,9 @@ def runIterMoves(num_vertices=100, num_cycles=10, T=0.1, num_steps=1000,
 
 
 def test_IterMoves():
-    runIterMoves(num_vertices=300, num_cycles=100, T=1, num_steps=10000,
+    runIterMoves(num_vertices=100, num_cycles=100, T=1, num_steps=100,
                  t0=1, t1=1, time_steps=100,
-                 node=0, NewRandomWalk=True)
+                 node=0, NewRandomWalk=False)
 
 
 def testFF():
@@ -346,9 +346,9 @@ if __name__ == '__main__':
         elif idx == 1: N = int(arg)
         elif idx == 2: C = int(arg)
         elif idx == 3: S = int(arg)
-        elif idx == 4: T = int(arg)
+        elif idx == 4: TS = int(arg)
         elif idx == 5: P = int(arg)
         elif idx == 6: DEBUG = arg
         else: print("unknown parameter ", arg)
     print("Debug={} runIterMoves(num_vertices={}, num_cycles={}, num_steps={}, time_steps={}, node={}, NewRandomWalk=True)".format(DEBUG,N,C,S,TS,P))
-    runIterMoves(num_vertices=N, num_cycles=C, num_steps=S,time_steps=TS, node=P, NewRandomWalk=True)
+    runIterMoves(num_vertices=N, num_cycles=C, num_steps=S,time_steps=TS, node=P, NewRandomWalk=False)
