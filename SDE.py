@@ -341,7 +341,7 @@ if __name__ == '__main__':
     TS =1000
     P = 0
     DEBUG = "D"
-    DoPlot = True
+    DoPlot = False
     for idx, arg in enumerate(sys.argv):
         if   idx == 0: print("running ",arg)
         elif idx == 1: N = int(arg)
