@@ -256,8 +256,8 @@ class IterMoves():
                title='Wilson Loop')
 
 
-def runIterMoves(num_vertices=100, num_cycles=10, T=0.1, num_steps=1000,
-                 t0=1, t1=10, time_steps=100,
+def runIterMoves(num_vertices=100, num_cycles=10, T=1.0, num_steps=1000,
+                 t0=1., t1=10., time_steps=100,
                  node=0, NewRandomWalk=False, plot = True):
     M = num_vertices
     mover = IterMoves(M)
