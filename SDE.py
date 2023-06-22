@@ -23,6 +23,9 @@ from plot import Plot, PlotTimed, MakeDir, XYPlot, MakeNewDir
 from Timer import MTimer as Timer
 
 from mpmath import mp as mpm
+
+import warnings
+warnings.filterwarnings('ignore', 'The iteration is not making good progress')
 #
 
 
@@ -109,12 +112,12 @@ def ImproveF1F2F3(F0, F1, F2, F3, F4):
     R0 = np.zeros(len(X0) * 2, dtype=float)
     ComplexToRealVec(X0, R0)
     test = Reqs(R0)
-    r = scipy.optimize.fsolve(Reqs,R0,xtol=1e-9)
+    r = scipy.optimize.fsolve(Reqs,R0,xtol=1e-9,)
     x = np.zeros(len(X0),dtype=complex)
     RealToComplexVec(r,x)
     err1 = SumSqrAbsComplexArray(Eqs(x))
-    if(err0 > 1e-6):
-       print_debug("error reduced from ", err0, " to ", err1 )
+    if(err1 > 1e-18):
+       print_debug("sum sqr error in equations reduced from ", err0, " to ", err1 )
     P = pack([x])
     return  P
 
