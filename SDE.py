@@ -116,8 +116,13 @@ def ImproveF1F2F3(F0, F1, F2, F3, F4):
     x = np.zeros(len(X0),dtype=complex)
     RealToComplexVec(r,x)
     err1 = SumSqrAbsComplexArray(Eqs(x))
-    if(err1 > 1e-18):
+    if(err1 > 1e-20):
        print("sum sqr error in equations reduced from ", err0, " to ", err1 )
+       r = scipy.optimize.fsolve(Reqs, r, xtol=1e-14)
+       x = np.zeros(len(X0), dtype=complex)
+       RealToComplexVec(r, x)
+       err2 = SumSqrAbsComplexArray(Eqs(x))
+       print("sum sqr error in equations further reduced from ", err1, " to ", err2)
     P = pack([x])
     return  P
 
@@ -206,9 +211,10 @@ class IterMoves():
         CDir = 0.5 * (C0 + np.roll(C0, 1, axis=0))
         CRev = CDir[::-1]
         M = self.M
+        mpm.dps =12
         pathnames = []
         for filename in os.listdir(self.GetSaveDirname()):
-            if filename.endswith(".np"):
+            if filename.endswith(".np") and not ('psidata' in filename):
                 try:
                     splits = filename.split(".")
                     cycle = int(splits[-3])
@@ -219,11 +225,12 @@ class IterMoves():
                 pass
             pass
         pass
-
+        # time_steps = int(time_steps/100)
         def Psi(pathname):
             ans = []
             try:
-                F = np.fromfile(pathname, dtype=complex).reshape((-1, 3))
+                F = np.fromfile(pathname, dtype=complex)
+                F = F.reshape((-1, 3))
                 assert F.shape == (M, 3)  # (M by 3 complex tensor)
                 Q = np.roll(F, 1, axis=0) - F  # (M by 3 complex tensor)
                 X = np.dot(CDir.T, Q)  # (3 by 3 complex tensor for direct curve)
@@ -242,7 +249,7 @@ class IterMoves():
                         pass
                     pass
                     ans.append([t, psi])
-                    return ans
+                return ans
             except Exception as ex:
                 print_debug(ex)
                 return None
@@ -253,11 +260,12 @@ class IterMoves():
             os.path.join(self.GetSaveDirname(), "psidata." + str(t0) + "." + str(t1) + "." + str(time_steps) + ".np"))
 
     def PlotWilsonLoop(self, t0, t1, time_steps):
+        # time_steps = int(time_steps/100)
         psidata = np.fromfile(
             os.path.join(self.GetSaveDirname(), "psidata." + str(t0) + "." + str(t1) + "." + str(time_steps) + ".np"),
-            dtype=complex).reshape((-1, time_steps, 2))
-
-        psidata = psidata.transpose((2, 1, 0))  # (2,time_steps, N)
+            dtype=complex)
+        psidata = psidata.reshape((-1, time_steps, 2))
+        psidata = psidata.transpose((2,1, 0))
         times = np.mean(psidata[0], axis=1)  # (time_steps,N)->time_steps
         psiR = np.mean(psidata[1].real, axis=1)  # (time_steps,N)->time_steps
         psiI = np.mean(psidata[1].imag, axis=1)  # (time_steps,N)->time_steps
@@ -299,13 +307,14 @@ def runIterMoves(num_vertices=100, num_cycles=10, T=1.0, num_steps=1000,
         pass
     pass
     mover.CollectStatistics(C0, t0, t1, time_steps)
-    if plot: mover.PlotWilsonLoop(t0, t1, time_steps)
+    if plot:
+        mover.PlotWilsonLoop(t0, t1, time_steps)
 
 
 def test_IterMoves():
     runIterMoves(num_vertices=500, num_cycles=100, T=1., num_steps=10000,
-                 t0=1., t1=10., time_steps=100,
-                 node=0, NewRandomWalk=True, plot=True)
+                 t0=1, t1=10, time_steps=100,
+                 node=0, NewRandomWalk=True, plot=False)
 
 
 def testFF():
