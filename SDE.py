@@ -112,12 +112,12 @@ def ImproveF1F2F3(F0, F1, F2, F3, F4):
     R0 = np.zeros(len(X0) * 2, dtype=float)
     ComplexToRealVec(X0, R0)
     test = Reqs(R0)
-    r = scipy.optimize.fsolve(Reqs,R0,xtol=1e-9,)
+    r = scipy.optimize.fsolve(Reqs,R0,xtol=1e-9)
     x = np.zeros(len(X0),dtype=complex)
     RealToComplexVec(r,x)
     err1 = SumSqrAbsComplexArray(Eqs(x))
     if(err1 > 1e-18):
-       print_debug("sum sqr error in equations reduced from ", err0, " to ", err1 )
+       print("sum sqr error in equations reduced from ", err0, " to ", err1 )
     P = pack([x])
     return  P
 
@@ -293,9 +293,9 @@ def runIterMoves(num_vertices=100, num_cycles=10, T=1.0, num_steps=1000,
                     print_debug("after cycle " + str(cycle) + " zero index " + str(zero_index))
                 pass
                 mover.SaveCurve(cycle, node)
-                print_debug("after saving curve at cycle " + str(cycle))
+                print("after saving curve at cycle " + str(cycle))
             pass
-            print_debug("all cycles done " + str(cycle))
+            print("all cycles done " + str(cycle))
         pass
     pass
     mover.CollectStatistics(C0, t0, t1, time_steps)
