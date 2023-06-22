@@ -47,7 +47,7 @@ def ReformatRealMatrix(A, K):
         R[:, :] = A[:, :K]
 
     return R
-#test
+
 
 def test_ComplexToRealVec():
     A = np.arange(24, dtype=float)
