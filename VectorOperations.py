@@ -2,16 +2,14 @@ import functools
 
 import numpy as np
 from numpy import cos, sin, pi
-#import numpy.linalg.multi_dot as mdot
+
 import multiprocessing as mp
 
 from ComplexToReal import MaxAbsComplexArray
 from parallel import parallel_map, print_debug
 from scipy.linalg import null_space
 
-
-def mdot(arrays): return functools.reduce(np.dot, arrays)
-
+mdot = np.linalg.multi_dot
 
 def circle(k, M):
     delta = pi / M
@@ -20,8 +18,8 @@ def circle(k, M):
 
 def randomLoop(N, L):
     coeffs = np.random.normal(size=L * 3) + 1j * np.random.normal(size=L * 3)
-    FF = coeffs.reshape(3, L)
-    a2 = np.kron(np.arange(L), np.arange(N)).reshape(L, N)
+    FF = coeffs.reshape((3, L))
+    a2 = np.kron(np.arange(L), np.arange(N)).reshape((L, N))
     exps = np.exp(a2 * (2.j * pi / N))
     return FF.dot(exps).real.T
 
@@ -33,7 +31,7 @@ def test_RandomLoop():
 
 def test_multi_dot():
     a = np.arange(6)
-    b = np.arange(30).reshape(6, 5)
+    b = np.arange(30).reshape((6, 5))
     c = np.arange(5)
     y = a.dot(b.dot(c))
     pass
@@ -90,7 +88,7 @@ def parKron22(A, B, C):
     assert C.shape == (N, d, d)
 
     def func(i):
-        C[i] = np.kron(A[i, :], B[i, :]).reshape(d, d)
+        C[i] = np.kron(A[i, :], B[i, :]).reshape((d, d))
 
     parallel_map(func, range(N))
 
@@ -128,14 +126,14 @@ def ZeroBelowEqDiag(X):
 
 
 def testVecOps():
-    a = np.arange(12).reshape(4, 3)
-    b = np.arange(10, 22).reshape(4, 3)
+    a = np.arange(12).reshape((4, 3))
+    b = np.arange(10, 22).reshape((4, 3))
     c = np.zeros((4, 3, 3))
     parKron22(a, b, c)
     d = VecDot(a, b)
     assert d.ndim == 1
     assert d.shape[0] == 4
-    X1 = np.arange(36).reshape(3, 3, 2, 2)
+    X1 = np.arange(36).reshape((3, 3, 2, 2))
     ZeroBelowEqDiag(X1)
 
 
@@ -150,17 +148,17 @@ def NullSpace3(F0, F1, F2):
     Z = np.zeros((3), dtype=complex)
     Z2 = np.zeros((3, 3), dtype=complex)
     lst = [[q0.dot(E3.dot(F0)), Z], [Z, q1.dot(E3.dot(F2))]]
-    A = np.array(lst).reshape(2, 6)
-    B = np.array([E3.dot(q0), E3.dot(q1)]).transpose(1, 0, 2).reshape(3, 6)
+    A = np.array(lst).reshape((2, 6))
+    B = np.array([E3.dot(q0), E3.dot(q1)]).transpose((1, 0, 2)).reshape((3, 6))
     X = np.vstack([A, B])  # 5 X6
     # X.dot(np.array([dt0,dt1]).reshape(6))  =0
     NS = null_space(X)
     test0 = X.dot(NS)
-    Q1 = np.array([E3.dot(q0), Z2]).transpose(1, 0, 2).reshape(3, 6)
+    Q1 = np.array([E3.dot(q0), Z2]).transpose((1, 0, 2)).reshape((3, 6))
     test1 = Q1.dot(NS)
-    Q2 = np.array([Z2, E3.dot(q1)]).transpose(1, 0, 2).reshape(3, 6)
+    Q2 = np.array([Z2, E3.dot(q1)]).transpose((1, 0, 2)).reshape((3, 6))
     test = Q2.dot(NS)
-    return NS.T.reshape(-1, 2, 3)
+    return NS.T.reshape((-1, 2, 3))
 
 
 def NullSpace4(F0, F1, F2, F3):
@@ -176,11 +174,11 @@ def NullSpace4(F0, F1, F2, F3):
     pass
     # (3 projections of ti,3 vectors t0,t1,t2, 6 equations)
     # Eq_i = Mat.transpose().dot(T), T ={\vec t0, \vec t1, \vec t2} = (3,3), Mat = {res(0),res(1), res(2)} (6,3,3)
-    X = np.array([res(0), res(1), res(2)], dtype=complex).transpose((2, 1, 0)).reshape(6, 9)
+    X = np.array([res(0), res(1), res(2)], dtype=complex).transpose((2, 1, 0)).reshape((6, 9))
     # test = np.array([q0,q1,q2]).reshape(9)
     NS = null_space(X)
     assert MaxAbsComplexArray(X.dot(NS)) < 1e-10
-    NS = NS.reshape(3, 3, -1)
+    NS = NS.reshape((3, 3, -1))
     qd0 = E3.dot(q0)
     qd2 = E3.dot(q2)
     dF1 = mdot([qd0, NS[0]])
@@ -204,8 +202,8 @@ def RI(X):
 
 
 def testDot3():
-    a = np.random.random(4).reshape(2, 2)
-    b = np.random.random(4).reshape(2, 2)
+    a = np.random.random(4).reshape((2, 2))
+    b = np.random.random(4).reshape((2, 2))
     c = np.zeros((2, 2), dtype=a.dtype)
     np.dot(a, b, c)
     np.dot(a, b, a)

@@ -4,14 +4,14 @@ from parallel import print_debug
 def RealToComplexVec(a, b):
     N = len(b)
     assert len(a) == 2 * N
-    a = a.reshape(2, N)
+    a = a.reshape((2, N))
     b[:] = a[0] + 1j * a[1]
 
 
 def ComplexToRealVec(b, a):
     N = len(b)
     assert len(a) == 2 * N
-    a = a.reshape(2, N)
+    a = a.reshape((2, N))
     a[0, :] = b.real
     a[1, :] = b.imag
 
@@ -19,7 +19,7 @@ def ComplexToRealVec(b, a):
 def RealToComplexMat(A, B):
     N, M = B.shape
     assert A.shape == (2 * N, 2 * M)
-    a = A.reshape(2, N, 2, M).transpose((0, 2, 1, 3))
+    a = A.reshape((2, N, 2, M)).transpose((0, 2, 1, 3))
     B[:] = a[0, 0] + 1j * a[1, 0]
 
 # A = [[Re[b], -Im[b]],[Im[b], Re[b]]
@@ -29,7 +29,7 @@ def RealToComplexMat(A, B):
 def ComplextoRealMat(B, A):
     N, M = B.shape
     assert A.shape == (2 * N, 2 * M)
-    a = A.reshape(2, N, 2, M).transpose((0, 2, 1, 3))
+    a = A.reshape((2, N, 2, M)).transpose((0, 2, 1, 3))
     a[0, 0] = B.real
     a[0, 1] = -B.imag
     a[1, 0] = B.imag
@@ -56,8 +56,8 @@ def test_ComplexToRealVec():
     C = np.zeros_like(B)
     RealToComplexVec(A, C)
     ComplexToRealVec(B, R)
-    AA = np.arange(24, dtype=float).reshape(6, 4)
-    BB = np.arange(6, dtype=complex).reshape(3, 2)
+    AA = np.arange(24, dtype=float).reshape((6, 4))
+    BB = np.arange(6, dtype=complex).reshape((3, 2))
     RR = np.zeros_like(AA)
     CC = np.zeros_like(BB)
     ComplextoRealMat(BB, RR)

@@ -21,13 +21,10 @@ from VectorOperations import NullSpace5, HodgeDual, E3, randomLoop
 from parallel import parallel_map, ConstSharedArray, WritableSharedArray, print_debug
 from plot import Plot, PlotTimed, MakeDir, XYPlot, MakeNewDir
 from Timer import MTimer as Timer
-import logging
-from sympy import MatrixSymbol, Matrix, I, series, trace, diff
 
 from mpmath import mp as mpm
 #
 
-logger = logging.Logger("debug")
 
 MakeDir("plots")
 
@@ -48,7 +45,7 @@ def ff(k, M):
 def gamma_formula(u):
     assert u.ndim == 1
     d = u.shape[0]
-    V = np.vstack([u.real, u.imag]).reshape(2, d)
+    V = np.vstack([u.real, u.imag]).reshape((2, d))
     Q = pinvh(V.T.dot(V))
     V1 = np.dot(Q, V.T)  # (d,2)
     return V1[:, 1] + V1[:, 0] * 1j
@@ -73,7 +70,7 @@ def ImproveF1F2F3(F0, F1, F2, F3, F4):
 
 
     def pack(X): # NF*Dim -> (NF,Dim)
-        return np.array(X[0]).reshape(NF,Dim)
+        return np.array(X[0]).reshape((NF,Dim))
 
     def unpack(f1, f2, f3):# (NF,Dim) ->NF*Dim
         return np.vstack([f1,f2,f3]).reshape(NF*Dim)
@@ -156,7 +153,7 @@ class IterMoves():
         def g0(F1F2F3R):  # (NR,)
             F1F2F3C = ZC.copy()
             RealToComplexVec(F1F2F3R, F1F2F3C)  # (NC)
-            Q = F1F2F3C.reshape(NF, Dim)
+            Q = F1F2F3C.reshape((NF, Dim))
             f1 = Q[0]
             f2 = Q[1]
             f3 = Q[2]
@@ -187,16 +184,16 @@ class IterMoves():
         F1F2F3R = result[-1]
         F1F2F3C = ZC.copy()
         RealToComplexVec(F1F2F3R, F1F2F3C)  # (6)
-        FF = F1F2F3C.reshape(NF, Dim)
+        FF = F1F2F3C.reshape((NF, Dim))
         try:
             FF = ImproveF1F2F3(F0, FF[0], FF[1], FF[2], F4)
             # FF = ImproveF1F2F3(F0, F1, F2, F3, F4)
         except Exception as ex:
             print("failed to improve F1F2F3 ",ex)
 
-        self.Frun[(zero_index + 1) % M][:] = FF[0]
-        self.Frun[(zero_index + 2) % M][:] = FF[1]
-        self.Frun[(zero_index + 3) % M][:] = FF[2]
+        self.Frun[(zero_index + 1) % M,:] = FF[0]
+        self.Frun[(zero_index + 2) % M,:] = FF[1]
+        self.Frun[(zero_index + 3) % M,:] = FF[2]
         pass
 
     def SaveCurve(self, cycle, node_num):
@@ -223,7 +220,7 @@ class IterMoves():
         def Psi(pathname):
             ans = []
             try:
-                F = np.fromfile(pathname, dtype=complex).reshape(-1, 3)
+                F = np.fromfile(pathname, dtype=complex).reshape((-1, 3))
                 assert F.shape == (M, 3)  # (M by 3 complex tensor)
                 Q = np.roll(F, 1, axis=0) - F  # (M by 3 complex tensor)
                 X = np.dot(CDir.T, Q)  # (3 by 3 complex tensor for direct curve)
@@ -236,8 +233,7 @@ class IterMoves():
                         if z.imag != 0:
                             z *= np.sign(z.imag)
                             # \frac{1}{2} \, _0F_1\left(;2;-\frac{z^2}{4}\right)+\frac{2 i z \, _1F_2\left(1;\frac{3}{2},\frac{5}{2};-\frac{z^2}{4}\right)}{3 \pi }
-                            psi += 1. / 4. * hyp0f1(2, -z * z / 4) + 2j * z / (3 * pi) * hyp1f2(1, 3. / 2, 5. / 2,
-                                                                                                -z * z / 4)
+                            psi += 1. / 4. * hyp0f1(2, -z * z / 4) + 2j * z / (3 * pi) * hyp1f2(1, 3. / 2, 5. / 2, -z * z / 4)
                         else:
                             psi += 1. / 4. * hyp0f1(2, -z * z / 4)
                         pass
@@ -256,7 +252,7 @@ class IterMoves():
     def PlotWilsonLoop(self, t0, t1, time_steps):
         psidata = np.fromfile(
             os.path.join(self.GetSaveDirname(), "psidata." + str(t0) + "." + str(t1) + "." + str(time_steps) + ".np"),
-            dtype=complex).reshape(-1, time_steps, 2)
+            dtype=complex).reshape((-1, time_steps, 2))
 
         psidata = psidata.transpose((2, 1, 0))  # (2,time_steps, N)
         times = np.mean(psidata[0], axis=1)  # (time_steps,N)->time_steps
@@ -290,7 +286,7 @@ def runIterMoves(num_vertices=100, num_cycles=10, T=1.0, num_steps=1000,
         with Timer(mess):
             for cycle in range(num_cycles):
                 for zero_index in range(4):
-                    parallel_map(MoveThree, range(zero_index, M + zero_index, 4),0 )#mp.cpu_count())
+                    parallel_map(MoveThree, range(zero_index, M + zero_index, 4), mp.cpu_count())
                     print_debug("after cycle " + str(cycle) + " zero index " + str(zero_index))
                 pass
                 mover.SaveCurve(cycle, node)
@@ -304,7 +300,7 @@ def runIterMoves(num_vertices=100, num_cycles=10, T=1.0, num_steps=1000,
 
 
 def test_IterMoves():
-    runIterMoves(num_vertices=100, num_cycles=100, T=1., num_steps=10000,
+    runIterMoves(num_vertices=500, num_cycles=100, T=1., num_steps=10000,
                  t0=1., t1=10., time_steps=100,
                  node=0, NewRandomWalk=True, plot=True)
 
@@ -325,9 +321,9 @@ def testtensorDot():
     a = np.array([[[1, 2, 3], [4, 5, 6]], [[1, 2, 3], [4, 5, 6]]])
     b = 10 * a
     c = np.tensordot(a, b, axes=([2], [2]))
-    a1 = a.reshape(4, 3)
-    b1 = b.reshape(4, 3)
-    c1 = a1.dot(b1.T).reshape(2, 2, 2, 2)
+    a1 = a.reshape((4, 3))
+    b1 = b.reshape((4, 3))
+    c1 = a1.dot(b1.T).reshape((2, 2, 2, 2))
     pass
 
 
@@ -335,9 +331,9 @@ def testPairs():
     K = 2
     M = 3
     S = [2]
-    pairs = np.array(np.meshgrid(np.arange(K), np.arange(M))).T.reshape(-1, 2)
+    pairs = np.array(np.meshgrid(np.arange(K), np.arange(M))).T.reshape((-1, 2))
     T = np.concatenate(([K, M], S))
-    test = pairs.reshape(*T)
+    test = pairs.reshape(T)
     test
 
 
@@ -347,22 +343,20 @@ def testDual():
 
 
 if __name__ == '__main__':
-    N = 1000
-    C = 100
-    S = 10000
-    TS =1000
-    P = 0
-    DEBUG = "D"
-    DoPlot = False
-    for idx, arg in enumerate(sys.argv):
-        if   idx == 0: print("running ",arg)
-        elif idx == 1: N = int(arg)
-        elif idx == 2: C = int(arg)
-        elif idx == 3: S = int(arg)
-        elif idx == 4: TS = int(arg)
-        elif idx == 5: P = int(arg)
-        elif idx == 6: DEBUG = arg
-        elif idx == 7: DoPlot = (arg == "plot")
-        else: print("unknown parameter ", arg)
-    print("Debug={} runIterMoves(num_vertices={}, num_cycles={}, num_steps={}, time_steps={}, node={}, NewRandomWalk=True, plot={})".format(DEBUG,N,C,S,TS,P,DoPlot))
-    runIterMoves(num_vertices=N, num_cycles=C, num_steps=S,time_steps=TS, node=P, NewRandomWalk=True, plot = DoPlot)
+    import argparse
+    import logging
+    logger = logging.getLogger()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-N', type=int,default=1000)
+    parser.add_argument('-C', type=int,default=100)
+    parser.add_argument('-S', type=int,default=10000)
+    parser.add_argument('-TS', type=int,default=1000)
+    parser.add_argument('-P', type=int,default=0)
+    parser.add_argument('-debug', action = argparse.BooleanOptionalAction,default=False)
+    parser.add_argument('-plot', action=argparse.BooleanOptionalAction,default=False)
+    parser.add_argument('-new-random-walk', action=argparse.BooleanOptionalAction, default=False)
+    A = parser.parse_args()
+    if A.debug: logging.basicConfig(level=logging.DEBUG)
+    # print(A)
+    runIterMoves(num_vertices=A.N, num_cycles=A.C, num_steps=A.S,time_steps=A.TS, node=A.P,
+                 NewRandomWalk=A.new_random_walk, plot=A.plot)

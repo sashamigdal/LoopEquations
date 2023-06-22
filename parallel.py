@@ -4,9 +4,10 @@ from queue import Empty
 import multiprocessing as mp
 from multiprocessing.shared_memory import SharedMemory
 import numpy as np
+import logging
+logger = logging.getLogger()
 def print_debug(*msg):
-    if '-D' in sys.argv:
-        print(*msg)
+    logger.debug(*msg)
 
 #mp.set_start_method('fork')
 
