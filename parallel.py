@@ -4,10 +4,22 @@ from queue import Empty
 import multiprocessing as mp
 from multiprocessing.shared_memory import SharedMemory
 import numpy as np
+
 import logging
+#logging.basicConfig(level=logging.DEBUG, filename='SDE.log')
 logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+file_handler = logging.FileHandler('SDE.log')
+file_handler.setLevel(logging.DEBUG)
+
+logger.addHandler(file_handler)
+
 def print_debug(*msg):
-    logger.debug(*msg)
+    if 'debug' in sys.argv:
+        str = ','.join([repr(x) for x in msg])
+        logger.debug(str)
+    #logger.handlers[0].flush()
+    #sys.stdout.flush()
 
 #mp.set_start_method('fork')
 

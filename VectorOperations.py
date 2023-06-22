@@ -187,12 +187,15 @@ def NullSpace4(F0, F1, F2, F3):
     return dF1dF2
 
 
-def NullSpace5(F):
+def GradEqFromMathematica(F):
     E = np.eye(3).astype(complex)
-    Z = np.zeros((3,3),dtype=complex)
+    Z = np.zeros((3, 3), dtype=complex)
     E9 = np.eye(9).astype(complex)
-    dF= [None,E9[0:3], E9[3:6], E9[6:9],None]
-    X =np.array([(((-2)*mdot([F[0],dF[1]]))+(2*mdot([F[1],dF[1]]))),((-2)*((mdot([F[0],dF[1]])+(mdot([F[1],dF[1]])*((((1+(2*1j)))+(2*mdot([F[0],F[0]]))-(2*mdot([F[1],F[1]])))))))),(2*((mdot([F[1],dF[1]])-mdot([F[1],dF[2]])-mdot([F[2],dF[1]])+mdot([F[2],dF[2]])))),(((-2)*((mdot([F[1],dF[2]])+mdot([F[2],dF[1]])+(mdot([F[2],dF[2]])*((((1+(2*1j)))+(2*mdot([F[1],F[1]]))-(2*mdot([F[2],F[2]]))))))))+(mdot([F[1],dF[1]])*(((((-2)+(4*1j)))+(4*mdot([F[1],F[1]]))-(4*mdot([F[2],F[2]])))))),(2*((mdot([F[2],dF[2]])-mdot([F[2],dF[3]])-mdot([F[3],dF[2]])+mdot([F[3],dF[3]])))),(((-2)*((mdot([F[2],dF[3]])+mdot([F[3],dF[2]])+(mdot([F[3],dF[3]])*((((1+(2*1j)))+(2*mdot([F[2],F[2]]))-(2*mdot([F[3],F[3]]))))))))+(mdot([F[2],dF[2]])*(((((-2)+(4*1j)))+(4*mdot([F[2],F[2]]))-(4*mdot([F[3],F[3]])))))),(2*((mdot([F[3],dF[3]])-mdot([F[4],dF[3]])))),(((-2)*mdot([F[4],dF[3]]))+(mdot([F[3],dF[3]])*(((((-2)+(4*1j)))+(4*mdot([F[3],F[3]]))-(4*mdot([F[4],F[4]]))))))])
+    dF = [None, E9[0:3], E9[3:6], E9[6:9], None]
+    return np.array([(((-2)*mdot([F[0],dF[1]]))+(2*mdot([F[1],dF[1]]))),((-2)*((mdot([F[0],dF[1]])+(mdot([F[1],dF[1]])*((((1+(2*1j)))+(2*mdot([F[0],F[0]]))-(2*mdot([F[1],F[1]])))))))),(2*((mdot([F[1],dF[1]])-mdot([F[1],dF[2]])-mdot([F[2],dF[1]])+mdot([F[2],dF[2]])))),(((-2)*((mdot([F[1],dF[2]])+mdot([F[2],dF[1]])+(mdot([F[2],dF[2]])*((((1+(2*1j)))+(2*mdot([F[1],F[1]]))-(2*mdot([F[2],F[2]]))))))))+(mdot([F[1],dF[1]])*(((((-2)+(4*1j)))+(4*mdot([F[1],F[1]]))-(4*mdot([F[2],F[2]])))))),(2*((mdot([F[2],dF[2]])-mdot([F[2],dF[3]])-mdot([F[3],dF[2]])+mdot([F[3],dF[3]])))),(((-2)*((mdot([F[2],dF[3]])+mdot([F[3],dF[2]])+(mdot([F[3],dF[3]])*((((1+(2*1j)))+(2*mdot([F[2],F[2]]))-(2*mdot([F[3],F[3]]))))))))+(mdot([F[2],dF[2]])*(((((-2)+(4*1j)))+(4*mdot([F[2],F[2]]))-(4*mdot([F[3],F[3]])))))),(2*((mdot([F[3],dF[3]])-mdot([F[4],dF[3]])))),(((-2)*mdot([F[4],dF[3]]))+(mdot([F[3],dF[3]])*(((((-2)+(4*1j)))+(4*mdot([F[3],F[3]]))-(4*mdot([F[4],F[4]]))))))])
+
+def NullSpace5(F):
+    X = GradEqFromMathematica(F)
     dF1dF2dF3 =null_space(X)
     assert(MaxAbsComplexArray(X.dot(dF1dF2dF3)) < 1e-10)
     return dF1dF2dF3

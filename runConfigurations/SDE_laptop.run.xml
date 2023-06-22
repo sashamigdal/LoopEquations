@@ -14,7 +14,7 @@
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
     <option name="SCRIPT_NAME" value="$PROJECT_DIR$/../LoopEquations/SDE.py" />
-    <option name="PARAMETERS" value="-N 200 -C 200 -S 10000 -TS 1000 -P 0 -plot" />
+    <option name="PARAMETERS" value="-N 1000 -C 200 -S 10000 -TS 1000 -P 0 -plot -new-random-walk" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />
     <option name="MODULE_MODE" value="false" />
