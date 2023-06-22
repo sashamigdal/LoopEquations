@@ -15,7 +15,7 @@ file_handler.setLevel(logging.DEBUG)
 logger.addHandler(file_handler)
 
 def print_debug(*msg):
-    if 'debug' in sys.argv:
+    if '-debug' in sys.argv:
         str = ','.join([repr(x) for x in msg])
         logger.debug(str)
     #logger.handlers[0].flush()
