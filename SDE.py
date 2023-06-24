@@ -274,7 +274,7 @@ class GroupFourierIntegral:
             for be in range(4)]
         )
         return (R + R.T) *0.5
-# symmegtrized as needed
+# symmegtrized as needed,  by symmetry
     def W(self, X):
         R = self.GetRMatrix(X) #symmetric 4 by 4 matricx out of general 3 by 3 matrix
         rr = scipy.linalg.eigvals(R)
