@@ -169,6 +169,133 @@ def ImproveF1F2F3(F0, F1, F2, F3, F4):
     P = pack([x])
     return P
 
+def stable_sum_real(a):
+    if len(a) < 5:
+        return math.fsum(a)
+    absa = np.abs(a)
+    ord = np.argsort(absa)[::-1]
+    b = a[ord]
+    c = b/b[0]
+    if len(c)%2 >0:
+        c = np.append(c,0)
+    c = c.reshape(-1,2)
+    c1 = np.apply_along_axis(np.sum,1,c)
+    return b[0] * stable_sum_real(c1)
+
+def stable_sum(A):
+    if A.dtype == complex:
+        rr = A.real
+        ii = A.imag
+        return stable_sum_real(rr) + 1j * stable_sum_real(ii)
+    else:
+        return stable_sum_real(A)
+def test_stable_sum():
+    inputList = [1.23e+18, 1, -1.23e+18]
+    # adding the sum of elements of the list using the fsum() function
+    test = math.fsum(inputList)
+    x = 5.
+    test1 = math.exp(x)* stable_sum(np.array([(-x)**n /math.factorial(n)for n in range(128)],dtype=float))
+    y = 8. + 1j
+    A = np.array([(-y)**n /math.factorial(n)for n in range(128)],dtype=complex)
+    test2 =  np.exp(y)* stable_sum(A)
+    pass
+
+
+def numpy_combinations(x):
+    idx = np.stack(np.triu_indices(len(x), k=1), axis=-1)
+    return x[idx]
+
+# & & W(\hat
+    # R) = \sum_
+    # {n_1
+    # n_2
+    # n_3
+    # n_4}  \frac
+    # {\prod_
+    # {k = 1} ^ 4(\I
+    # R_k) ^ {n_k} \binom
+    # {-\frac
+    # {1}
+    # {2}}{n_k}}{\Gamma(2 + \sum_1 ^ 4
+    # n_k)}
+
+class GroupFourierIntegral:
+    def getFourIds(self, pair):
+        N = self.N
+        N1, N2 = pair
+        n1, n2 = (int(N1 / N), N1 % N)
+        n3, n4 = (int(N2 / N), N2 % N)
+        return [n1, n2, n3, n4]
+    def MakePairs(self):
+        N = self.N
+        NN = np.arange(N * N, dtype=int)
+        all_comb = numpy_combinations(NN)
+        def degree(pair):
+            return np.sum(self.getFourIds(pair))
+
+        degrees = np.apply_along_axis(degree, 1, all_comb)
+        ord = np.argsort(degrees)
+        sorted_pairs = all_comb[ord]
+        good = degrees[ord] < N
+        self.good_pairs = sorted_pairs[good]
+        self.good_pairs.tofile(os.path.join("plots", "group_integral_pairs." + str(self.N) + ".np"))
+
+    def GetPairs(self):
+        try:
+            self.good_pairs = np.fromfile(os.path.join("plots", "group_integral_pairs." + str(self.N) + ".np"),dtype=int).reshape(-1,2)
+        except:
+            self.MakePairs()
+    def __init__(self, N):
+        self.N = N
+        self.bin = scipy.special.binom(-0.5, np.arange(N, dtype=int))
+        self.GetPairs()
+        s0 = np.matrix([[1, 0], [0, 1]])
+        s1 = np.matrix([[0, 1], [1, 0]])
+        s2 = np.matrix([[0, -1j], [1j, 0]])
+        s3 = np.matrix([[1, 0], [0, -1]])
+        self.Sigma = [s1, s2, s3]# Pauli matrices
+        self.Tau = [s0, 1j*s1, 1j*s2, 1j*s3] #quaternions
+
+    def TT(self,i,j,al,be):
+        # O(3)_{i j} = q_a q_b tr_2 (s_i.Tau_a.s_j.Tau^H_b) = q_a q_b TT(i,j,a,b)
+        return np.trace(mdot([self.Sigma[i],self.Tau[al],self.Sigma[j],self.Tau[be].H]))
+
+    def GetRMatrix(self, X):
+        # using quaternionic representation for tr_3 (O(3).X)
+        # O(3)_{i j} = q_a q_b tr_2 (s_i.Tau_a.s_j.Tau^H_b)
+        # Q = q_a Tau_a = q.Tau
+        # O(3)_{i j} = tr_2 (s_i.Q.s_j.Q.H)
+        #  V1.O(3).V2 =  tr_3( O(3).kron(V2,V1)) = O(3)_{i j} V2_j V1_i = tr_2 (HV1.Q.Hv2.Q.H)
+        R = np.array(
+            [
+                [
+                    np.sum([self.TT(i,j,al,be) * X[j,i] for i in range(3) for j in range(3)])
+              for al in range(4)]
+            for be in range(4)]
+        )
+        return (R + R.T) *0.5
+
+    def W(self, X):
+        R = self.GetRMatrix(X) #symmetric 4 by 4 matricx out of general 3 by 3 matrix
+        rr = scipy.linalg.eigvals(R)
+        rrn = np.array([(1j*r)**(np.arange(self.N)) for r in rr], dtype = complex)
+        cc = rrn * self.bin
+        # test = np.product([cc[0,7],cc[1,4], cc[2,3]])
+        def getTerm(pair):
+            nn = self.getFourIds(pair)
+            return np.product([cc[k,nn[k]] for k in range(4)])/scipy.special.factorial(1 + np.sum(nn))
+        A = np.apply_along_axis(getTerm,1,self.good_pairs)
+        return stable_sum(A)
+        pass
+
+def test_GroupFourierIntegral():
+    N = 40
+    gfi = GroupFourierIntegral(N)
+    r = np.random.normal(scale =0.1,size = 30) + 1j *np.random.normal(scale =0.1,size = 30)
+    r = r.reshape((3,10))
+    X = r.dot(r.T)
+    test = gfi.W(X)
+    pass
 
 class IterMoves():
     def __init__(self, M):
@@ -257,6 +384,7 @@ class IterMoves():
         M = self.M
         mpm.dps = 12
         pathnames = []
+        GFI = GroupFourierIntegral(40)
         for filename in os.listdir(self.GetSaveDirname()):
             if filename.endswith(".np") and not ('psidata' in filename):
                 try:
@@ -270,7 +398,7 @@ class IterMoves():
             pass
         pass
 
-        # time_steps = int(time_steps/100)
+        factor = 1e6
         def Psi(pathname):
             ans = []
             try:
@@ -278,21 +406,13 @@ class IterMoves():
                 F = F.reshape((-1, 3))
                 assert F.shape == (M, 3)  # (M by 3 complex tensor)
                 Q = np.roll(F, 1, axis=0) - F  # (M by 3 complex tensor)
-                X = np.dot(CDir.T, Q)  # (3 by 3 complex tensor for direct curve)
-                z0 = np.sqrt(np.trace(X.dot(X.T)))
-                X = np.dot(CRev.T, np.conjugate(Q))  # (3 by 3 complex tensor for reflected curve)
-                z1 = np.sqrt(np.trace(X.dot(X.T)))
-                for t in np.linspace(t0, t1, time_steps):
+                X1 = np.dot(CDir.T, Q)  # (3 by 3 complex tensor for direct curve)
+                X2 = np.dot(CRev.T, np.conjugate(Q))  # (3 by 3 complex tensor for reflected curve)
+                for tt in np.linspace(t0, t1, time_steps):
+                    t = tt*factor
                     psi = 0. + 0.j
-                    for z in (z0 / np.sqrt(t), z1 / np.sqrt(t)):
-                        if z.imag != 0:
-                            z *= np.sign(z.imag)
-                            # \frac{1}{2} \, _0F_1\left(;2;-\frac{z^2}{4}\right)+\frac{2 i z \, _1F_2\left(1;\frac{3}{2},\frac{5}{2};-\frac{z^2}{4}\right)}{3 \pi }
-                            psi += 1. / 4. * hyp0f1(2, -z * z / 4) + 2j * z / (3 * pi) * hyp1f2(1, 3. / 2, 5. / 2,
-                                                                                                -z * z / 4)
-                        else:
-                            psi += 1. / 4. * hyp0f1(2, -z * z / 4)
-                        pass
+                    for X in (X1 / np.sqrt(t), X2 / np.sqrt(t)):
+                        psi += GFI.W(X)
                     pass
                     ans.append([t, psi])
                 return ans
@@ -360,7 +480,6 @@ def runIterMoves(num_vertices=100, num_cycles=10, T=1.0, num_steps=1000,
 
 
 def test_IterMoves():
-    print_debug("hi Max")
     runIterMoves(num_vertices=500, num_cycles=100, T=1., num_steps=10000,
                  t0=1, t1=10, time_steps=100,
                  node=0, NewRandomWalk=True, plot=False)
