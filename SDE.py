@@ -234,39 +234,45 @@ def test_LogExpansion():
     lst = [x == mpm.mpc(0) for x in g[2:]]
     print(lst)
 
-def ContinuedFraction(f0):
-    # f = a0 + x| a1 + x| a2 + ...
-    # f1 = a1 + x| a2 + .. = x/(f0(x) - a0)
-    # f1(x) (f0(x) - a) = x
-    depth = len(f0)
-    a = f0[0]
+def ContinuedFractionCeffs(f):
+    depth = len(f)
+    a = f[0]
     if depth ==1:
         return [a]
-    # def f1(x):
-    #     return x/(f0(x)- a)
-    #f1(x) (f0(x) - f0(0)) = x
-    #sum f1_k x^k f0_l x^l = x
-    #f1_0 f01 =1
-    #sum_k f1_k f0_{l-k} =0
-    # f1_{l-1} f0_1 =- sum_{k=1}^{l-2} f1_k f0_{l-k}
-    f1 = [1/f0[1]]
+    g = [1/f[1]]
     for l in range(2,depth):
-        lst = [f1[k]* f0[l-k] for k in range(0, l-1)]
-        f1.append(-sum(lst)/f0[1])
-
-    ans =  ContinuedFraction(f1)
+        lst = [g[k]* f[l-k] for k in range(0, l-1)]
+        test = mpm.fsum(lst)
+        g.append(-test/f[1])
+        pass
+    ans =  ContinuedFractionCeffs(g)
     ans.append(a)
     return ans
+
+
+def ValueOfContinuedFraction(coeffs, x):
+    L = len(coeffs)
+    ans = coeffs[0]
+    for k in range(1,L):
+        ans = coeffs[k] + x/ans
+    pass
+    return ans
+
 def test_ContinuedFraction():
     import fractions  # Available in Py2.6 and Py3.0
     def approx2(c, maxd):
         'Fast way using continued fractions'
         return fractions.Fraction.from_float(c).limit_denominator(maxd)
-
-    f0 = np.array([1.,1./3, 2./15, 17./315, 62./2835], dtype=float)
-    frac = ContinuedFraction(f0)
-    nicefrac = [ approx2(x,10) for x in frac]
+    #1 - x/3 - x^2/45 - (2 x^3)/945 - x^4/4725 - (2 x^5)/93555
+    mpm.dps = 30
+    f0 = [mpm.mpf(x) for x in [1.,-1./3, -1./45, -2./945, -1./4725, - 2./93555]]
+    coeffs = ContinuedFractionCeffs(f0)
+    nicefrac = [ approx2(float(x),20) for x in coeffs]
     print(nicefrac)
+    # [-11, 9,-7, 5,-3,1]
+    value = ValueOfContinuedFraction(coeffs,mpm.mpf(1))
+    test = 1/mpm.tan(mpm.mpf(1))
+    pass
 
 
 # & & W(\hat
@@ -282,7 +288,7 @@ def test_ContinuedFraction():
 # {1}
 # {2}}{n_k}}{\Gamma(2 + \sum_1 ^ 4
 # n_k)}
-
+# a + x/b + x/c +x/d
 class GroupFourierIntegral:
     def getFourIds(self, pair):
         N = self.N
@@ -370,28 +376,15 @@ class GroupFourierIntegral:
             return stable_sum(np.apply_along_axis(getTerm, 1, self.good_pairs[beg:end]))
 
         A = np.apply_along_axis(SumRangeTerms, 1, self.degree_ranges)
-        mpm.dps = 30
-        # B = [ mpm.mpc(term) for term in A/A[0]]
-        # def F(x):
-        #     sum = mpm.mpc(0)
-        #     factor = mpm.mpc(1)
-        #     for k, b in enumerate(B):
-        #         sum += factor * b
-        #         factor *= x
-        #     return mpm.log(sum)
-        # test = F(mpm.mpc(TR))
+        mpm.dps = 50
         factor = A[0]
         A /= factor
-        a = LogExpansion(A)
-        p, q = mpm.pade(a[:12], 6, 5)
-        ans = mpm.polyval(p[::-1], mpm.mpc(TR)) / mpm.polyval(q[::-1], mpm.mpc(TR))
-        p, q = mpm.pade(a[:14], 7, 6)
-        ans1 = mpm.polyval(p[::-1], mpm.mpc(TR)) / mpm.polyval(q[::-1], mpm.mpc(TR))
-        p, q = mpm.pade(a, int(len(a)/2), int(len(a)/2) -1)
-        ans2 = mpm.polyval(p[::-1], mpm.mpc(TR)) / mpm.polyval(q[::-1], mpm.mpc(TR))
-        B = np.array([complex(a[k])*TR**k for k in range(len(a))],dtype = complex)
-        ans3 = stable_sum(B)
-        return factor * mpm.exp(ans)
+        Lim = len(A) - len(A)%2
+        a = LogExpansion(A[:Lim])
+        coeffs = ContinuedFractionCeffs(a)
+        ans0 = ValueOfContinuedFraction(coeffs,mpm.mpc(TR))
+        ans2 = ValueOfContinuedFraction(coeffs[2:], mpm.mpc(TR))
+        return factor * complex(mpm.exp(ans0))
         pass
 
 
@@ -506,7 +499,7 @@ class IterMoves():
             pass
         pass
 
-        factor = 1e5
+        factor = 1e8
 
         def Psi(pathname):
             ans = []
