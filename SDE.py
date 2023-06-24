@@ -9,13 +9,14 @@ from numpy import cos, sin, pi
 from scipy.linalg import pinvh
 
 from scipy.stats import ortho_group
-import mpmath
+import mpmath as mpm
 from mpmath import hyp0f1, hyp1f2
 import sdeint
 import multiprocessing as mp
 
 from ComplexToReal import ComplexToRealVec, RealToComplexVec, ComplextoRealMat, ReformatRealMatrix, MaxAbsComplexArray, \
     SumSqrAbsComplexArray
+from SortedArrayIter import SortedArrayIter
 from VectorOperations import NullSpace5, HodgeDual, E3, randomLoop, GradEqFromMathematica, mdot
 from parallel import parallel_map, ConstSharedArray, WritableSharedArray, print_debug
 from plot import Plot, PlotTimed, MakeDir, XYPlot, MakeNewDir
@@ -27,7 +28,6 @@ import warnings
 
 warnings.filterwarnings('ignore', 'The iteration is not making good progress')
 #
-
 
 
 MakeDir("plots")
@@ -169,18 +169,20 @@ def ImproveF1F2F3(F0, F1, F2, F3, F4):
     P = pack([x])
     return P
 
+
 def stable_sum_real(a):
     if len(a) < 5:
         return math.fsum(a)
     absa = np.abs(a)
     ord = np.argsort(absa)[::-1]
     b = a[ord]
-    c = b/b[0]
-    if len(c)%2 >0:
-        c = np.append(c,0)
-    c = c.reshape(-1,2)
-    c1 = np.apply_along_axis(np.sum,1,c)
+    c = b / b[0]
+    if len(c) % 2 > 0:
+        c = np.append(c, 0)
+    c = c.reshape(-1, 2)
+    c1 = np.apply_along_axis(np.sum, 1, c)
     return b[0] * stable_sum_real(c1)
+
 
 def stable_sum(A):
     if A.dtype == complex:
@@ -189,15 +191,17 @@ def stable_sum(A):
         return stable_sum_real(rr) + 1j * stable_sum_real(ii)
     else:
         return stable_sum_real(A)
+
+
 def test_stable_sum():
     inputList = [1.23e+18, 1, -1.23e+18]
     # adding the sum of elements of the list using the fsum() function
     test = math.fsum(inputList)
     x = 5.
-    test1 = math.exp(x)* stable_sum(np.array([(-x)**n /math.factorial(n)for n in range(128)],dtype=float))
-    y = 8. + 1j
-    A = np.array([(-y)**n /math.factorial(n)for n in range(128)],dtype=complex)
-    test2 =  np.exp(y)* stable_sum(A)
+    test1 = math.exp(x) * stable_sum(np.array([(-x) ** n / math.factorial(n) for n in range(128)], dtype=float))
+    y = 10. + 1j
+    A = np.array([(-y) ** n / math.factorial(n) for n in range(40)], dtype=complex)
+    test2 = np.exp(y) * stable_sum(A)
     pass
 
 
@@ -205,19 +209,79 @@ def numpy_combinations(x):
     idx = np.stack(np.triu_indices(len(x), k=1), axis=-1)
     return x[idx]
 
+
+def LogExpansion(f0):
+    # f(x) =  sum_0^M  f_k x^k + \dots
+    # f_0 =1
+    # g(x) = log(f(x)) = sum_1^{M} g_k x^k + \dots
+    # f(x) g'(x) = f'(x)
+    # \sum_{l=0}^{k} f_l (k-l) g_{k-l} = k f_k
+    # k g_{k} = k f_{k} -\sum_{l=1}^{k} f_l (k-l) g_{k-l}
+    M = len(f0)
+    f = [mpm.mpc(x) for x in f0]
+    g = [mpm.mpc(0) for i in range(M)]
+    g[1] = f[1]
+    for k in range(2, M):
+        lst = [(k - l) * g[k - l] * f[l] for l in range(1, k)]
+        g[k] = f[k] - mpm.fsum(lst) / k
+    return g
+
+
+def test_LogExpansion():
+    f0 = np.array([1. / math.factorial(n) for n in range(10)], dtype=float)
+    g = LogExpansion(f0)
+    assert (g[1] == mpm.mpc(1))
+    lst = [x == mpm.mpc(0) for x in g[2:]]
+    print(lst)
+
+def ContinuedFraction(f0):
+    # f = a0 + x| a1 + x| a2 + ...
+    # f1 = a1 + x| a2 + .. = x/(f0(x) - a0)
+    # f1(x) (f0(x) - a) = x
+    depth = len(f0)
+    a = f0[0]
+    if depth ==1:
+        return [a]
+    # def f1(x):
+    #     return x/(f0(x)- a)
+    #f1(x) (f0(x) - f0(0)) = x
+    #sum f1_k x^k f0_l x^l = x
+    #f1_0 f01 =1
+    #sum_k f1_k f0_{l-k} =0
+    # f1_{l-1} f0_1 =- sum_{k=1}^{l-2} f1_k f0_{l-k}
+    f1 = [1/f0[1]]
+    for l in range(2,depth):
+        lst = [f1[k]* f0[l-k] for k in range(0, l-1)]
+        f1.append(-sum(lst)/f0[1])
+
+    ans =  ContinuedFraction(f1)
+    ans.append(a)
+    return ans
+def test_ContinuedFraction():
+    import fractions  # Available in Py2.6 and Py3.0
+    def approx2(c, maxd):
+        'Fast way using continued fractions'
+        return fractions.Fraction.from_float(c).limit_denominator(maxd)
+
+    f0 = np.array([1.,1./3, 2./15, 17./315, 62./2835], dtype=float)
+    frac = ContinuedFraction(f0)
+    nicefrac = [ approx2(x,10) for x in frac]
+    print(nicefrac)
+
+
 # & & W(\hat
-    # R) = \sum_
-    # {n_1
-    # n_2
-    # n_3
-    # n_4}  \frac
-    # {\prod_
-    # {k = 1} ^ 4(\I
-    # R_k) ^ {n_k} \binom
-    # {-\frac
-    # {1}
-    # {2}}{n_k}}{\Gamma(2 + \sum_1 ^ 4
-    # n_k)}
+# R) = \sum_
+# {n_1
+# n_2
+# n_3
+# n_4}  \frac
+# {\prod_
+# {k = 1} ^ 4(\I
+# R_k) ^ {n_k} \binom
+# {-\frac
+# {1}
+# {2}}{n_k}}{\Gamma(2 + \sum_1 ^ 4
+# n_k)}
 
 class GroupFourierIntegral:
     def getFourIds(self, pair):
@@ -226,25 +290,36 @@ class GroupFourierIntegral:
         n1, n2 = (int(N1 / N), N1 % N)
         n3, n4 = (int(N2 / N), N2 % N)
         return [n1, n2, n3, n4]
+
     def MakePairs(self):
         N = self.N
         NN = np.arange(N * N, dtype=int)
         all_comb = numpy_combinations(NN)
+
         def degree(pair):
             return np.sum(self.getFourIds(pair))
 
         degrees = np.apply_along_axis(degree, 1, all_comb)
         ord = np.argsort(degrees)
         sorted_pairs = all_comb[ord]
-        good = degrees[ord] < N
+        degrees = degrees[ord]
+        good = degrees < N
+        degrees = degrees[good]
+        ranges = list(SortedArrayIter(degrees))
+        self.degree_ranges = np.array(ranges, dtype=int)
         self.good_pairs = sorted_pairs[good]
+        self.degree_ranges.tofile(os.path.join("plots", "pairs_degree_ranges." + str(self.N) + ".np"))
         self.good_pairs.tofile(os.path.join("plots", "group_integral_pairs." + str(self.N) + ".np"))
 
     def GetPairs(self):
         try:
-            self.good_pairs = np.fromfile(os.path.join("plots", "group_integral_pairs." + str(self.N) + ".np"),dtype=int).reshape(-1,2)
+            self.degree_ranges = np.fromfile(os.path.join("plots", "pairs_degree_ranges." + str(self.N) + ".np"),
+                                             dtype=int).reshape(-1, 2)
+            self.good_pairs = np.fromfile(os.path.join("plots", "group_integral_pairs." + str(self.N) + ".np"),
+                                          dtype=int).reshape(-1, 2)
         except:
             self.MakePairs()
+
     def __init__(self, N):
         self.N = N
         self.bin = scipy.special.binom(-0.5, np.arange(N, dtype=int))
@@ -253,12 +328,12 @@ class GroupFourierIntegral:
         s1 = np.matrix([[0, 1], [1, 0]])
         s2 = np.matrix([[0, -1j], [1j, 0]])
         s3 = np.matrix([[1, 0], [0, -1]])
-        self.Sigma = [s1, s2, s3]# Pauli matrices
-        self.Tau = [s0, 1j*s1, 1j*s2, 1j*s3] #quaternions
+        self.Sigma = [s1, s2, s3]  # Pauli matrices
+        self.Tau = [s0, 1j * s1, 1j * s2, 1j * s3]  # quaternions
 
-    def TT(self,i,j,al,be):
+    def TT(self, i, j, al, be):
         # O(3)_{i j} = q_a q_b tr_2 (s_i.Tau_a.s_j.Tau^H_b) = q_a q_b TT(i,j,a,b)
-        return np.trace(mdot([self.Sigma[i],self.Tau[al],self.Sigma[j],self.Tau[be].H]))
+        return np.trace(mdot([self.Sigma[i], self.Tau[al], self.Sigma[j], self.Tau[be].H]))
 
     def GetRMatrix(self, X):
         # using quaternionic representation for tr_3 (O(3).X)
@@ -269,33 +344,66 @@ class GroupFourierIntegral:
         R = np.array(
             [
                 [
-                    np.sum([self.TT(i,j,al,be) * X[j,i] for i in range(3) for j in range(3)])
-              for al in range(4)]
-            for be in range(4)]
+                    np.sum([self.TT(i, j, al, be) * X[j, i] for i in range(3) for j in range(3)])
+                    for al in range(4)]
+                for be in range(4)]
         )
-        return (R + R.T) *0.5
-# symmegtrized as needed,  by symmetry
+        return (R + R.T) * 0.5
+
+    # symmegtrized as needed,  by symmetry
     def W(self, X):
-        R = self.GetRMatrix(X) #symmetric 4 by 4 matricx out of general 3 by 3 matrix
+        R = self.GetRMatrix(X)  # symmetric 4 by 4 matricx out of general 3 by 3 matrix
+
         rr = scipy.linalg.eigvals(R)
-        rrn = np.array([(1j*r)**(np.arange(self.N)) for r in rr], dtype = complex)
+        TR = np.sqrt(SumSqrAbsComplexArray(rr) / 4.)
+
+        rrn = np.array([(1j * r / TR) ** (np.arange(self.N)) for r in rr], dtype=complex)
         cc = rrn * self.bin
+
         # test = np.product([cc[0,7],cc[1,4], cc[2,3]])
         def getTerm(pair):
             nn = self.getFourIds(pair)
-            return np.product([cc[k,nn[k]] for k in range(4)])/scipy.special.factorial(1 + np.sum(nn))
-        A = np.apply_along_axis(getTerm,1,self.good_pairs)
-        return stable_sum(A)
+            return np.product([cc[k, nn[k]] for k in range(4)]) / scipy.special.factorial(1 + np.sum(nn))
+
+        def SumRangeTerms(range):
+            beg, end = range
+            return stable_sum(np.apply_along_axis(getTerm, 1, self.good_pairs[beg:end]))
+
+        A = np.apply_along_axis(SumRangeTerms, 1, self.degree_ranges)
+        mpm.dps = 30
+        # B = [ mpm.mpc(term) for term in A/A[0]]
+        # def F(x):
+        #     sum = mpm.mpc(0)
+        #     factor = mpm.mpc(1)
+        #     for k, b in enumerate(B):
+        #         sum += factor * b
+        #         factor *= x
+        #     return mpm.log(sum)
+        # test = F(mpm.mpc(TR))
+        factor = A[0]
+        A /= factor
+        a = LogExpansion(A)
+        p, q = mpm.pade(a[:12], 6, 5)
+        ans = mpm.polyval(p[::-1], mpm.mpc(TR)) / mpm.polyval(q[::-1], mpm.mpc(TR))
+        p, q = mpm.pade(a[:14], 7, 6)
+        ans1 = mpm.polyval(p[::-1], mpm.mpc(TR)) / mpm.polyval(q[::-1], mpm.mpc(TR))
+        p, q = mpm.pade(a, int(len(a)/2), int(len(a)/2) -1)
+        ans2 = mpm.polyval(p[::-1], mpm.mpc(TR)) / mpm.polyval(q[::-1], mpm.mpc(TR))
+        B = np.array([complex(a[k])*TR**k for k in range(len(a))],dtype = complex)
+        ans3 = stable_sum(B)
+        return factor * mpm.exp(ans)
         pass
+
 
 def test_GroupFourierIntegral():
     N = 40
     gfi = GroupFourierIntegral(N)
-    r = np.random.normal(scale =0.1,size = 30) + 1j *np.random.normal(scale =0.1,size = 30)
-    r = r.reshape((3,10))
+    r = np.random.normal(scale=0.1, size=30) + 1j * np.random.normal(scale=0.1, size=30)
+    r = r.reshape((3, 10))
     X = r.dot(r.T)
     test = gfi.W(X)
     pass
+
 
 class IterMoves():
     def __init__(self, M):
@@ -398,7 +506,8 @@ class IterMoves():
             pass
         pass
 
-        factor = 1e6
+        factor = 1e5
+
         def Psi(pathname):
             ans = []
             try:
@@ -409,7 +518,7 @@ class IterMoves():
                 X1 = np.dot(CDir.T, Q)  # (3 by 3 complex tensor for direct curve)
                 X2 = np.dot(CRev.T, np.conjugate(Q))  # (3 by 3 complex tensor for reflected curve)
                 for tt in np.linspace(t0, t1, time_steps):
-                    t = tt*factor
+                    t = tt * factor
                     psi = 0. + 0.j
                     for X in (X1 / np.sqrt(t), X2 / np.sqrt(t)):
                         psi += GFI.W(X)
@@ -446,7 +555,7 @@ def runIterMoves(num_vertices=100, num_cycles=10, T=1.0, num_steps=1000,
                  node=0, NewRandomWalk=False, plot=True):
     M = num_vertices
     mover = IterMoves(M)
-    #print_debug("created mover(",M,")")
+    # print_debug("created mover(",M,")")
     mp.set_start_method('fork')
 
     def MoveThree(zero_index):
