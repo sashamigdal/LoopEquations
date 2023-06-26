@@ -183,7 +183,6 @@ def stable_sum_real(a):
     c1 = np.apply_along_axis(np.sum, 1, c)
     return b[0] * stable_sum_real(c1)
 
-
 def stable_sum(A):
     if A.dtype == complex:
         rr = A.real
@@ -205,20 +204,25 @@ def test_stable_sum():
     pass
 
 
-def numpy_combinations(x):
+def numpy_combinations(x):# only different ones
     idx = np.stack(np.triu_indices(len(x), k=1), axis=-1)
     return x[idx]
 
+def test_all_combinations():
+    N = 3
+    test = numpy_combinations(np.arange(N))
+    #np.array(np.meshgrid(array_1, array_2)).T.reshape(-1, 2)
+    NN = np.array(np.meshgrid(np.arange(N),np.arange(N))).T.reshape(-1, 2)
+    pass
 
-def LogExpansion(f0):
+def LogExpansion(f):
     # f(x) =  sum_0^M  f_k x^k + \dots
     # f_0 =1
     # g(x) = log(f(x)) = sum_1^{M} g_k x^k + \dots
     # f(x) g'(x) = f'(x)
     # \sum_{l=0}^{k} f_l (k-l) g_{k-l} = k f_k
     # k g_{k} = k f_{k} -\sum_{l=1}^{k} f_l (k-l) g_{k-l}
-    M = len(f0)
-    f = [mpm.mpc(x) for x in f0]
+    M = len(f)
     g = [mpm.mpc(0) for i in range(M)]
     g[1] = f[1]
     for k in range(2, M):
@@ -228,7 +232,7 @@ def LogExpansion(f0):
 
 
 def test_LogExpansion():
-    f0 = np.array([1. / math.factorial(n) for n in range(10)], dtype=float)
+    f0 = [1. / mpm.factorial(n) for n in range(10)]
     g = LogExpansion(f0)
     assert (g[1] == mpm.mpc(1))
     lst = [x == mpm.mpc(0) for x in g[2:]]
@@ -298,9 +302,9 @@ class GroupFourierIntegral:
         return [n1, n2, n3, n4]
 
     def MakePairs(self):
-        N = self.N
+        N =  self.N
         NN = np.arange(N * N, dtype=int)
-        all_comb = numpy_combinations(NN)
+        all_comb = np.array(np.meshgrid(NN,NN)).T.reshape(-1, 2)
 
         def degree(pair):
             return np.sum(self.getFourIds(pair))
@@ -328,7 +332,6 @@ class GroupFourierIntegral:
 
     def __init__(self, N):
         self.N = N
-        self.bin = scipy.special.binom(-0.5, np.arange(N, dtype=int))
         self.GetPairs()
         s0 = np.matrix([[1, 0], [0, 1]])
         s1 = np.matrix([[0, 1], [1, 0]])
@@ -358,32 +361,41 @@ class GroupFourierIntegral:
 
     # symmegtrized as needed,  by symmetry
     def W(self, X):
-        R = self.GetRMatrix(X)  # symmetric 4 by 4 matricx out of general 3 by 3 matrix
+        mpm.dps = 50
+        R0 = self.GetRMatrix(X)
+        R = mpm.matrix([[R0[i,j] for i in range(4)] for j in range(4)]) # symmetric 4 by 4 matricx out of general 3 by 3 matrix
 
-        rr = scipy.linalg.eigvals(R)
-        TR = np.sqrt(SumSqrAbsComplexArray(rr) / 4.)
+        rr = mpm.eig(R)[0]
+        TR = (mpm.fabs(rr[0]) + mpm.fabs(rr[1]) +mpm.fabs(rr[2]) +mpm.fabs(rr[3]))/4
 
-        rrn = np.array([(1j * r / TR) ** (np.arange(self.N)) for r in rr], dtype=complex)
-        cc = rrn * self.bin
+        rrn = [[mpm.mpc( r / TR) ** k for k in range(self.N)] for r in rr]
+        cc = [ [x[k] * mpm.binomial(mpm.mpf(-1./2),k) for k in range(self.N) ] for x in rrn]
 
         # test = np.product([cc[0,7],cc[1,4], cc[2,3]])
         def getTerm(pair):
             nn = self.getFourIds(pair)
-            return np.product([cc[k, nn[k]] for k in range(4)]) / scipy.special.factorial(1 + np.sum(nn))
+            return mpm.mpc(cc[0] [nn[0]]) *mpm.mpc(cc[1][nn[1]]) *mpm.mpc(cc[2][nn[2]]) *mpm.mpc(cc[3][nn[3]])
 
-        def SumRangeTerms(range):
+        def SumRangeTerms(degree):
+            range = self.degree_ranges[degree]
             beg, end = range
-            return stable_sum(np.apply_along_axis(getTerm, 1, self.good_pairs[beg:end]))
+            return mpm.fsum(
+                           [x for x in np.apply_along_axis(getTerm, 1, self.good_pairs[beg:end])]
+                           )/ mpm.factorial(1 + degree)
 
-        A = np.apply_along_axis(SumRangeTerms, 1, self.degree_ranges)
-        mpm.dps = 50
+        test = np.apply_along_axis(getTerm, 1, self.good_pairs[1:5])
+        A = parallel_map(SumRangeTerms,range(len(self.degree_ranges)),0)
+
         factor = A[0]
-        A /= factor
+        A = [x/factor for x in A]
         Lim = len(A) - len(A)%2
         a = LogExpansion(A[:Lim])
         coeffs = ContinuedFractionCeffs(a)
-        ans0 = ValueOfContinuedFraction(coeffs,mpm.mpc(TR))
-        ans2 = ValueOfContinuedFraction(coeffs[2:], mpm.mpc(TR))
+        ans0 = ValueOfContinuedFraction(coeffs,     mpm.mpc(-1j *TR))
+        ans2 = ValueOfContinuedFraction(coeffs[2:], mpm.mpc(-1j *TR))
+        assert mpm.fabs(ans0 - ans2) < 1e-2
+        # test = np.log(stable_sum(A)) -complex(ValueOfContinuedFraction(coeffs,     mpm.mpc(1)))
+        # test1 = ValueOfContinuedFraction(coeffs,     mpm.mpc(1))-ValueOfContinuedFraction(coeffs[2:], mpm.mpc(1))
         return factor * complex(mpm.exp(ans0))
         pass
 
@@ -483,7 +495,7 @@ class IterMoves():
         CDir = 0.5 * (C0 + np.roll(C0, 1, axis=0))
         CRev = CDir[::-1]
         M = self.M
-        mpm.dps = 12
+        mpm.dps = 40
         pathnames = []
         GFI = GroupFourierIntegral(40)
         for filename in os.listdir(self.GetSaveDirname()):
@@ -499,7 +511,7 @@ class IterMoves():
             pass
         pass
 
-        factor = 1e8
+        factor = 1e6
 
         def Psi(pathname):
             ans = []
@@ -519,7 +531,7 @@ class IterMoves():
                     ans.append([t, psi])
                 return ans
             except Exception as ex:
-                print_debug(ex)
+                print(ex)
                 return None
 
         result = parallel_map(Psi, pathnames, mp.cpu_count())
