@@ -11,10 +11,15 @@ def test_GroupIntegral():
     session.evaluate('Get["Notebooks/RestrictedO3GroupIntegral.m"]')
     x =session.evaluate('W[{' + R_string + '}]')
     session.terminate()
+    session = WolframLanguageSession()
+    session.evaluate('Get["Notebooks/RestrictedO3GroupIntegral.m"]')
+    x = session.evaluate('W[{' + R_string + '}]')
+    session.terminate()
 def test_Lineq():
     session = WolframLanguageSession()
     session.evaluate('Get["Notebooks/MovingFourVertices.m"]')
     Lineq = session.evaluate('Lineq[0]')
+    F, dF = var('F dF')
     x =mathematica(repr(Lineq))
     pass
 

@@ -14,6 +14,8 @@ from mpmath import hyp0f1, hyp1f2
 import sdeint
 import multiprocessing as mp
 
+from wolframclient.evaluation import WolframLanguageSession
+
 from ComplexToReal import ComplexToRealVec, RealToComplexVec, ComplextoRealMat, ReformatRealMatrix, MaxAbsComplexArray, \
     SumSqrAbsComplexArray
 from SortedArrayIter import SortedArrayIter
@@ -359,8 +361,8 @@ class GroupFourierIntegral:
         )
         return (R + R.T) * 0.5
 
-    # symmegtrized as needed,  by symmetry
-    def W(self, X):
+    # symmetrized as needed,  by matrix symmetry
+    def Wunrestricted(self, X):
         mpm.dps = 50
         R0 = self.GetRMatrix(X)
         R = mpm.matrix([[R0[i,j] for i in range(4)] for j in range(4)]) # symmetric 4 by 4 matricx out of general 3 by 3 matrix
@@ -400,13 +402,29 @@ class GroupFourierIntegral:
         pass
 
 
+    def Wrestricted(self, X, session):
+        mpm.dps = 50
+        R0 = self.GetRMatrix(X)
+        R = mpm.matrix([[R0[i,j] for i in range(4)] for j in range(4)]) # symmetric 4 by 4 matricx out of general 3 by 3 matrix
+        rr = [complex(r) for r in mpm.eig(R)[0]]
+        R_string = ','.join([f"({r.real}) + ({r.imag}) I" for r in rr])
+        x = session.evaluate('W[{' + R_string + '}]')
+        return x.args[0] + 1j* x.args[1]
+    def __del__(self):
+        pass
 def test_GroupFourierIntegral():
     N = 40
     gfi = GroupFourierIntegral(N)
     r = np.random.normal(scale=0.1, size=30) + 1j * np.random.normal(scale=0.1, size=30)
     r = r.reshape((3, 10))
     X = r.dot(r.T)
-    test = gfi.W(X)
+    session = WolframLanguageSession()
+    session.evaluate('Get["Notebooks/RestrictedO3GroupIntegral.m"]')
+    test1 = gfi.Wrestricted(X,session)
+    test2 = gfi.Wrestricted(X*0.5, session)
+    test3= gfi.Wrestricted(X * 2, session)
+    session.terminate()
+    print(test1,test2,test3)
     pass
 
 
@@ -511,8 +529,9 @@ class IterMoves():
             pass
         pass
 
-        factor = 1e6
-
+        factor = 1e4
+        session = WolframLanguageSession()
+        session.evaluate('Get["Notebooks/RestrictedO3GroupIntegral.m"]')
         def Psi(pathname):
             ans = []
             try:
@@ -526,7 +545,7 @@ class IterMoves():
                     t = tt * factor
                     psi = 0. + 0.j
                     for X in (X1 / np.sqrt(t), X2 / np.sqrt(t)):
-                        psi += GFI.W(X)
+                        psi += GFI.Wrestricted(X,session)
                     pass
                     ans.append([t, psi])
                 return ans
@@ -534,7 +553,8 @@ class IterMoves():
                 print(ex)
                 return None
 
-        result = parallel_map(Psi, pathnames, mp.cpu_count())
+        result = parallel_map(Psi, pathnames, 0);#mp.cpu_count())
+        session.terminate()
         psidata = np.array([x for x in result if x is not None], complex)
         psidata.tofile(
             os.path.join(self.GetSaveDirname(), "psidata." + str(t0) + "." + str(t1) + "." + str(time_steps) + ".np"))

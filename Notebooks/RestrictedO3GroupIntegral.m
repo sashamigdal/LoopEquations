@@ -1,7 +1,7 @@
 (* ::Package:: *)
 
 (* ::Input::Initialization:: *)
-Get["Notebooks/PadeBorel.m"];
+Get["/Users/am10485/Documents/Wolfram Mathematica/PadeBorel.m"];
 
 
 (* ::Input:: *)
@@ -25,11 +25,21 @@ Dif[s1_,s2_, tol_]:= N[Norm[({x,y}/.s1) - ({x,y}/.s2) ]] < tol;
 
 
 (* ::Input::Initialization:: *)
-Dupl[rules_, tol_] :=Transpose[Position[Table[Dif[rules[[k]], rules[[k-1]],tol],{k,2,Length[rules]}],True]][[1]]
+Dupl[rules_, tol_] :=If[Length[rules] <2,{},
+With[{checks= Table[Dif[rules[[k]], rules[[k-1]],tol],{k,2,Length[rules]}],pos={}},
+pos = Position[checks,True];
+(*Print["pos=", pos];*)
+If[pos =={}, {},Transpose[pos][[1]]]
+]
+];
 
 
 (* ::Input::Initialization:: *)
-RemElems2[A_, pos_] := A[[#]]& /@ DeleteElements[Range[Length[A]],pos];
+RemElems2[A_, pos_] :=
+If[A=={} || pos == {},
+ A,
+A[[#]]& /@ DeleteElements[Range[Length[A]],pos]
+];
 
 
 (* ::Input::Initialization:: *)
@@ -40,9 +50,15 @@ RemoveRepeated[rules_, tol_] := RemElems2[rules,Dupl[rules, tol] ] ;
 SaddlePointExpansion[F_, L_]:=
 Block[{saddlePoint,ref,best,sol, \[Tau], r0,x,y,u,v,f0, Q, F3, singular, expansion,
 GenFun,SymRule, WickRule, res, E2},
-saddlePoint = RemoveRepeated[NSolve[Grad[F[{x,y}],{x,y}]== {0,0},{x,y}],10^(-9)];
-If[Length[saddlePoint] ==0, Return[0]];
-saddlePoint = Select[saddlePoint, Re[F[{x,y}/.# ]] >=0&];
+saddlePoint = NSolve[Grad[F[{x,y}],{x,y}]== {0,0},{x,y}];
+(*Print["saddlePoint=", saddlePoint];*)
+saddlePoint = RemoveRepeated[saddlePoint,10^(-9)];
+(*Print["saddlePoint=", saddlePoint];*)
+(*Return[saddlePoint];*)
+If[Length[saddlePoint] ==0, Return[0. + 0. I]];
+saddlePoint = Select[saddlePoint, Re[x/.# ] <0&];
+(*Print["saddlePoint=", saddlePoint];*)
+If[Length[saddlePoint] ==0, Return[0. + 0. I]];
 ref =Re[F[{x,y}]]/.saddlePoint;
 best = Position[ref,Min[ref]][[1,1]];
 sol = saddlePoint[[best]];
@@ -136,26 +152,19 @@ E2 = (((ExpandAll[expansion]/.WickRule)/.{u->0,v->0}))/.\[Tau]->x;
 
 
 (* ::Input:: *)
-(*F0[{\[Tau]_,\[Lambda]_}] :=*)
-(*With[ {RR = {-0.1 + 2 I, -0.2 -0.01 I, -0.3 + 0.05 I, -0.1 - 0.07 I}},*)
-(* 2 Log[2 Pi I]-\[Tau] -Log[\[Lambda]] +1/2 Sum[Log[\[Tau] -\[Lambda] Im[RR[[i]]] - RR[[i]]],{i,4}]]*)
-
-
-(* ::Input:: *)
-(*F0[{x,y}]*)
-
-
-(* ::Input:: *)
 (**)
-
-
-(* ::Input:: *)
-(*sp=SaddlePointExpansion[F0, 18]*)
 
 
 (* ::Input::Initialization:: *)
 W[R_]:=
 Block[{F0},
-F0[{\[Tau]_,\[Lambda]_}] :=2 Log[2 Pi I]-\[Tau] -Log[\[Lambda]] +1/2 Sum[Log[\[Tau] -\[Lambda] Im[R[[i]]] - R[[i]]],{i,4}];
-SaddlePointExpansion[F0, 18]
+F0[{\[Tau]_,\[Lambda]_}] :=2 Log[2 Pi I]-\[Tau] +Log[\[Lambda]] +1/2 Sum[Log[\[Tau] -\[Lambda] Im[R[[i]]] -I R[[i]]],{i,4}];
+SaddlePointExpansion[F0, 16]
 ]
+
+
+(* ::Input:: *)
+(*W[{(3.594172920651893)+(0.4625303529186944) I,(-1.672699702928613)+(-0.05204061727660522) I,(3.9154888071277063)+(-0.9910789719578169) I,(11.3513838164527998)+(5.5805892363157278) I}]*)
+
+
+
