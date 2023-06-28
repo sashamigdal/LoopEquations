@@ -1,6 +1,3 @@
-import math
-from os.path import split
-
 import scipy
 
 import numpy as np
@@ -8,9 +5,8 @@ import os, sys
 from numpy import cos, sin, pi
 from scipy.linalg import pinvh
 
-from scipy.stats import ortho_group
 import mpmath as mpm
-from mpmath import hyp0f1, hyp1f2
+
 import sdeint
 import multiprocessing as mp
 
@@ -18,7 +14,6 @@ from wolframclient.evaluation import WolframLanguageSession
 
 from ComplexToReal import ComplexToRealVec, RealToComplexVec, ComplextoRealMat, ReformatRealMatrix, MaxAbsComplexArray, \
     SumSqrAbsComplexArray
-from SortedArrayIter import SortedArrayIter
 from VectorOperations import NullSpace5, HodgeDual, E3, randomLoop, GradEqFromMathematica, mdot
 from parallel import parallel_map, ConstSharedArray, WritableSharedArray, print_debug
 from plot import Plot, PlotTimed, MakeDir, XYPlot, MakeNewDir
@@ -47,19 +42,6 @@ def test_list():
 def ff(k, M):
     delta = pi / M
     return np.array([cos(2 * k * delta), sin(2 * k * delta), cos(delta) * 1j]) / (2 * sin(delta))
-
-
-def gamma_formula(u):
-    assert u.ndim == 1
-    d = u.shape[0]
-    V = np.vstack([u.real, u.imag]).reshape((2, d))
-    Q = pinvh(V.T.dot(V))
-    V1 = np.dot(Q, V.T)  # (d,2)
-    return V1[:, 1] + V1[:, 0] * 1j
-
-
-def VecGamma(U, Ans):
-    Ans[:] = np.vstack([gamma_formula(u) for u in U])
 
 
 def testNullSpace():
@@ -163,178 +145,12 @@ def ImproveF1F2F3(F0, F1, F2, F3, F4):
     err1 = SumSqrAbsComplexArray(Eqs(x))
     if (err1 > 1e-23):
         print_debug("sum sqr error in equations reduced from ", err0, " to ", err1)
-        # r = scipy.optimize.fsolve(reqs2, r, xtol=1e-14)
-        # x = np.zeros(len(X0), dtype=complex)
-        # RealToComplexVec(r, x)
-        # err2 = SumSqrAbsComplexArray(Eqs2(x))
-        # print("sum sqr error in equations further reduced from ", err1, " to ", err2)
     P = pack([x])
     return P
 
-
-def stable_sum_real(a):
-    if len(a) < 5:
-        return math.fsum(a)
-    absa = np.abs(a)
-    ord = np.argsort(absa)[::-1]
-    b = a[ord]
-    c = b / b[0]
-    if len(c) % 2 > 0:
-        c = np.append(c, 0)
-    c = c.reshape(-1, 2)
-    c1 = np.apply_along_axis(np.sum, 1, c)
-    return b[0] * stable_sum_real(c1)
-
-def stable_sum(A):
-    if A.dtype == complex:
-        rr = A.real
-        ii = A.imag
-        return stable_sum_real(rr) + 1j * stable_sum_real(ii)
-    else:
-        return stable_sum_real(A)
-
-
-def test_stable_sum():
-    inputList = [1.23e+18, 1, -1.23e+18]
-    # adding the sum of elements of the list using the fsum() function
-    test = math.fsum(inputList)
-    x = 5.
-    test1 = math.exp(x) * stable_sum(np.array([(-x) ** n / math.factorial(n) for n in range(128)], dtype=float))
-    y = 10. + 1j
-    A = np.array([(-y) ** n / math.factorial(n) for n in range(40)], dtype=complex)
-    test2 = np.exp(y) * stable_sum(A)
-    pass
-
-
-def numpy_combinations(x):# only different ones
-    idx = np.stack(np.triu_indices(len(x), k=1), axis=-1)
-    return x[idx]
-
-def test_all_combinations():
-    N = 3
-    test = numpy_combinations(np.arange(N))
-    #np.array(np.meshgrid(array_1, array_2)).T.reshape(-1, 2)
-    NN = np.array(np.meshgrid(np.arange(N),np.arange(N))).T.reshape(-1, 2)
-    pass
-
-def LogExpansion(f):
-    # f(x) =  sum_0^M  f_k x^k + \dots
-    # f_0 =1
-    # g(x) = log(f(x)) = sum_1^{M} g_k x^k + \dots
-    # f(x) g'(x) = f'(x)
-    # \sum_{l=0}^{k} f_l (k-l) g_{k-l} = k f_k
-    # k g_{k} = k f_{k} -\sum_{l=1}^{k} f_l (k-l) g_{k-l}
-    M = len(f)
-    g = [mpm.mpc(0) for i in range(M)]
-    g[1] = f[1]
-    for k in range(2, M):
-        lst = [(k - l) * g[k - l] * f[l] for l in range(1, k)]
-        g[k] = f[k] - mpm.fsum(lst) / k
-    return g
-
-
-def test_LogExpansion():
-    f0 = [1. / mpm.factorial(n) for n in range(10)]
-    g = LogExpansion(f0)
-    assert (g[1] == mpm.mpc(1))
-    lst = [x == mpm.mpc(0) for x in g[2:]]
-    print(lst)
-
-def ContinuedFractionCeffs(f):
-    depth = len(f)
-    a = f[0]
-    if depth ==1:
-        return [a]
-    g = [1/f[1]]
-    for l in range(2,depth):
-        lst = [g[k]* f[l-k] for k in range(0, l-1)]
-        test = mpm.fsum(lst)
-        g.append(-test/f[1])
-        pass
-    ans =  ContinuedFractionCeffs(g)
-    ans.append(a)
-    return ans
-
-
-def ValueOfContinuedFraction(coeffs, x):
-    L = len(coeffs)
-    ans = coeffs[0]
-    for k in range(1,L):
-        ans = coeffs[k] + x/ans
-    pass
-    return ans
-
-def test_ContinuedFraction():
-    import fractions  # Available in Py2.6 and Py3.0
-    def approx2(c, maxd):
-        'Fast way using continued fractions'
-        return fractions.Fraction.from_float(c).limit_denominator(maxd)
-    #1 - x/3 - x^2/45 - (2 x^3)/945 - x^4/4725 - (2 x^5)/93555
-    mpm.dps = 30
-    f0 = [mpm.mpf(x) for x in [1.,-1./3, -1./45, -2./945, -1./4725, - 2./93555]]
-    coeffs = ContinuedFractionCeffs(f0)
-    nicefrac = [ approx2(float(x),20) for x in coeffs]
-    print(nicefrac)
-    # [-11, 9,-7, 5,-3,1]
-    value = ValueOfContinuedFraction(coeffs,mpm.mpf(1))
-    test = 1/mpm.tan(mpm.mpf(1))
-    pass
-
-
-# & & W(\hat
-# R) = \sum_
-# {n_1
-# n_2
-# n_3
-# n_4}  \frac
-# {\prod_
-# {k = 1} ^ 4(\I
-# R_k) ^ {n_k} \binom
-# {-\frac
-# {1}
-# {2}}{n_k}}{\Gamma(2 + \sum_1 ^ 4
-# n_k)}
-# a + x/b + x/c +x/d
 class GroupFourierIntegral:
-    def getFourIds(self, pair):
-        N = self.N
-        N1, N2 = pair
-        n1, n2 = (int(N1 / N), N1 % N)
-        n3, n4 = (int(N2 / N), N2 % N)
-        return [n1, n2, n3, n4]
-
-    def MakePairs(self):
-        N =  self.N
-        NN = np.arange(N * N, dtype=int)
-        all_comb = np.array(np.meshgrid(NN,NN)).T.reshape(-1, 2)
-
-        def degree(pair):
-            return np.sum(self.getFourIds(pair))
-
-        degrees = np.apply_along_axis(degree, 1, all_comb)
-        ord = np.argsort(degrees)
-        sorted_pairs = all_comb[ord]
-        degrees = degrees[ord]
-        good = degrees < N
-        degrees = degrees[good]
-        ranges = list(SortedArrayIter(degrees))
-        self.degree_ranges = np.array(ranges, dtype=int)
-        self.good_pairs = sorted_pairs[good]
-        self.degree_ranges.tofile(os.path.join("plots", "pairs_degree_ranges." + str(self.N) + ".np"))
-        self.good_pairs.tofile(os.path.join("plots", "group_integral_pairs." + str(self.N) + ".np"))
-
-    def GetPairs(self):
-        try:
-            self.degree_ranges = np.fromfile(os.path.join("plots", "pairs_degree_ranges." + str(self.N) + ".np"),
-                                             dtype=int).reshape(-1, 2)
-            self.good_pairs = np.fromfile(os.path.join("plots", "group_integral_pairs." + str(self.N) + ".np"),
-                                          dtype=int).reshape(-1, 2)
-        except:
-            self.MakePairs()
-
     def __init__(self, N):
         self.N = N
-        self.GetPairs()
         s0 = np.matrix([[1, 0], [0, 1]])
         s1 = np.matrix([[0, 1], [1, 0]])
         s2 = np.matrix([[0, -1j], [1j, 0]])
@@ -361,55 +177,16 @@ class GroupFourierIntegral:
         )
         return (R + R.T) * 0.5
 
-    # symmetrized as needed,  by matrix symmetry
-    def Wunrestricted(self, X):
-        mpm.dps = 50
-        R0 = self.GetRMatrix(X)
-        R = mpm.matrix([[R0[i,j] for i in range(4)] for j in range(4)]) # symmetric 4 by 4 matricx out of general 3 by 3 matrix
 
-        rr = mpm.eig(R)[0]
-        TR = (mpm.fabs(rr[0]) + mpm.fabs(rr[1]) +mpm.fabs(rr[2]) +mpm.fabs(rr[3]))/4
-
-        rrn = [[mpm.mpc( r / TR) ** k for k in range(self.N)] for r in rr]
-        cc = [ [x[k] * mpm.binomial(mpm.mpf(-1./2),k) for k in range(self.N) ] for x in rrn]
-
-        # test = np.product([cc[0,7],cc[1,4], cc[2,3]])
-        def getTerm(pair):
-            nn = self.getFourIds(pair)
-            return mpm.mpc(cc[0] [nn[0]]) *mpm.mpc(cc[1][nn[1]]) *mpm.mpc(cc[2][nn[2]]) *mpm.mpc(cc[3][nn[3]])
-
-        def SumRangeTerms(degree):
-            range = self.degree_ranges[degree]
-            beg, end = range
-            return mpm.fsum(
-                           [x for x in np.apply_along_axis(getTerm, 1, self.good_pairs[beg:end])]
-                           )/ mpm.factorial(1 + degree)
-
-        test = np.apply_along_axis(getTerm, 1, self.good_pairs[1:5])
-        A = parallel_map(SumRangeTerms,range(len(self.degree_ranges)),0)
-
-        factor = A[0]
-        A = [x/factor for x in A]
-        Lim = len(A) - len(A)%2
-        a = LogExpansion(A[:Lim])
-        coeffs = ContinuedFractionCeffs(a)
-        ans0 = ValueOfContinuedFraction(coeffs,     mpm.mpc(-1j *TR))
-        ans2 = ValueOfContinuedFraction(coeffs[2:], mpm.mpc(-1j *TR))
-        assert mpm.fabs(ans0 - ans2) < 1e-2
-        # test = np.log(stable_sum(A)) -complex(ValueOfContinuedFraction(coeffs,     mpm.mpc(1)))
-        # test1 = ValueOfContinuedFraction(coeffs,     mpm.mpc(1))-ValueOfContinuedFraction(coeffs[2:], mpm.mpc(1))
-        return factor * complex(mpm.exp(ans0))
-        pass
-
-
-    def Wrestricted(self, X, session):
+    def ThetaIntegral(self, X, session):
         mpm.dps = 50
         R0 = self.GetRMatrix(X)
         R = mpm.matrix([[R0[i,j] for i in range(4)] for j in range(4)]) # symmetric 4 by 4 matricx out of general 3 by 3 matrix
         rr = [complex(r) for r in mpm.eig(R)[0]]
         R_string = ','.join([f"({r.real}) + ({r.imag}) I" for r in rr])
         x = session.evaluate('W[{' + R_string + '}]')
-        return x.args[0] + 1j* x.args[1]
+        ans= float(x.args[0]) + float(x.args[1])*1j
+        return ans
     def __del__(self):
         pass
 def test_GroupFourierIntegral():
@@ -419,10 +196,10 @@ def test_GroupFourierIntegral():
     r = r.reshape((3, 10))
     X = r.dot(r.T)
     session = WolframLanguageSession()
-    session.evaluate('Get["Notebooks/RestrictedO3GroupIntegral.m"]')
-    test1 = gfi.Wrestricted(X,session)
-    test2 = gfi.Wrestricted(X*0.5, session)
-    test3= gfi.Wrestricted(X * 2, session)
+    session.evaluate('Get["Notebooks/ThetaIntegral.m"]')
+    test1 = gfi.ThetaIntegral(X, session)
+    test2 = gfi.ThetaIntegral(X * 0.5, session)
+    test3= gfi.ThetaIntegral(X * 2, session)
     session.terminate()
     print(test1,test2,test3)
     pass
@@ -529,9 +306,9 @@ class IterMoves():
             pass
         pass
 
-        factor = 1e4
+        factor = 1
         session = WolframLanguageSession()
-        session.evaluate('Get["Notebooks/RestrictedO3GroupIntegral.m"]')
+        session.evaluate('Get["Notebooks/ThetaIntegral.m"]')
         def Psi(pathname):
             ans = []
             try:
@@ -545,7 +322,8 @@ class IterMoves():
                     t = tt * factor
                     psi = 0. + 0.j
                     for X in (X1 / np.sqrt(t), X2 / np.sqrt(t)):
-                        psi += GFI.Wrestricted(X,session)
+                        psi += 0.5*GFI.ThetaIntegral(X, session)
+                        assert( np.abs(psi) <= 1)
                     pass
                     ans.append([t, psi])
                 return ans
@@ -623,37 +401,6 @@ def testFF():
     print_debug(ff(3, 10))
 
 
-def test_gamma_formula():
-    u = np.array(
-        [[1 + 1j, 2 + 2j, 3 + 3j], [1 - 1j, 2 - 2j, 3 - 3j], [5 - 6j, 7 - 8j, 9 - 10j], [-5 - 6j, -7 - 8j, -9 - 10j]])
-    gamma = np.zeros_like(u)
-    gamma = np.vstack([gamma_formula(x) for x in u])
-    gamma
-
-
-def testtensorDot():
-    a = np.array([[[1, 2, 3], [4, 5, 6]], [[1, 2, 3], [4, 5, 6]]])
-    b = 10 * a
-    c = np.tensordot(a, b, axes=([2], [2]))
-    a1 = a.reshape((4, 3))
-    b1 = b.reshape((4, 3))
-    c1 = a1.dot(b1.T).reshape((2, 2, 2, 2))
-    pass
-
-
-def testPairs():
-    K = 2
-    M = 3
-    S = [2]
-    pairs = np.array(np.meshgrid(np.arange(K), np.arange(M))).T.reshape((-1, 2))
-    T = np.concatenate(([K, M], S))
-    test = pairs.reshape(T)
-    test
-
-
-def testDual():
-    E = HodgeDual(np.array([1 + 1j, 1 + 1j, 1 + 1j]))
-    E
 
 
 if __name__ == '__main__':

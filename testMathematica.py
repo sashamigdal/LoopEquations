@@ -11,7 +11,7 @@ def test_GroupIntegral():
     x =session.evaluate('W[{' + R_string + '}]')
     session.terminate()
     session = WolframLanguageSession()
-    session.evaluate('Get["Notebooks/RestrictedO3GroupIntegral.m"]')
+    session.evaluate('Get["Notebooks/ThetaIntegral.m"]')
     x = session.evaluate('W[{' + R_string + '}]')
     session.terminate()
 def test_Lineq():
