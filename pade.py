@@ -9,9 +9,9 @@ def test_Pade():
     p, q = mpm.pade(a, 3, 3)
     x = 10
     mpm.polyval(p[::-1], x)/mpm.polyval(q[::-1], x)
-    1.38169105566806
+    #1.38169105566806
     f(x)
-    1.38169855941551
+    #1.38169855941551
 
     A = mpm.taylor(f, 0, 13)
     p,q = mpm.pade(A, 6, 6)

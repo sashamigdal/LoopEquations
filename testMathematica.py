@@ -1,6 +1,5 @@
-import numpy as np
+
 from wolframclient.evaluation import WolframLanguageSession
-from wolframclient.language import wl, wlexpr
 from sympy.parsing.mathematica import mathematica
 from sympy import var
 

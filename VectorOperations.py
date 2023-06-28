@@ -1,15 +1,69 @@
-import functools
-
+import math
 import numpy as np
 from numpy import cos, sin, pi
 
-import multiprocessing as mp
-
 from ComplexToReal import MaxAbsComplexArray
-from parallel import parallel_map, print_debug
+from parallel import parallel_map
 from scipy.linalg import null_space
 
 mdot = np.linalg.multi_dot
+def numpy_combinations(x):
+    idx = np.stack(np.triu_indices(len(x), k=1), axis=-1)
+    return x[idx]
+
+def test_all_combinations():
+    N = 3
+    test = numpy_combinations(np.arange(N))
+    #np.array(np.meshgrid(array_1, array_2)).T.reshape(-1, 2)
+    NN = np.array(np.meshgrid(np.arange(N),np.arange(N))).T.reshape(-1, 2)
+    pass
+
+
+def testtensorDot():
+    a = np.array([[[1, 2, 3], [4, 5, 6]], [[1, 2, 3], [4, 5, 6]]])
+    b = 10 * a
+    c = np.tensordot(a, b, axes=([2], [2]))
+    a1 = a.reshape((4, 3))
+    b1 = b.reshape((4, 3))
+    c1 = a1.dot(b1.T).reshape((2, 2, 2, 2))
+    pass
+
+def testDual():
+    E = HodgeDual(np.array([1 + 1j, 1 + 1j, 1 + 1j]))
+    pass
+def stable_sum_real(a):
+    if len(a) < 5:
+        return math.fsum(a)
+    absa = np.abs(a)
+    ord = np.argsort(absa)[::-1]
+    b = a[ord]
+    c = b / b[0]
+    if len(c) % 2 > 0:
+        c = np.append(c, 0)
+    c = c.reshape(-1, 2)
+    c1 = np.apply_along_axis(np.sum, 1, c)
+    return b[0] * stable_sum_real(c1)
+
+def stable_sum(A):
+    if A.dtype == complex:
+        rr = A.real
+        ii = A.imag
+        return stable_sum_real(rr) + 1j * stable_sum_real(ii)
+    else:
+        return stable_sum_real(A)
+
+
+def test_stable_sum():
+    inputList = [1.23e+18, 1, -1.23e+18]
+    # adding the sum of elements of the list using the fsum() function
+    test = math.fsum(inputList)
+    x = 5.
+    test1 = math.exp(x) * stable_sum(np.array([(-x) ** n / math.factorial(n) for n in range(128)], dtype=float))
+    y = 10. + 1j
+    A = np.array([(-y) ** n / math.factorial(n) for n in range(40)], dtype=complex)
+    test2 = np.exp(y) * stable_sum(A)
+    pass
+
 
 def circle(k, M):
     delta = pi / M
