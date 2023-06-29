@@ -10,7 +10,7 @@ import mpmath as mpm
 import sdeint
 import multiprocessing as mp
 
-from wolframclient.evaluation import WolframLanguageSession
+# from wolframclient.evaluation import WolframLanguageSession
 
 from ComplexToReal import ComplexToRealVec, RealToComplexVec, ComplextoRealMat, ReformatRealMatrix, MaxAbsComplexArray, \
     SumSqrAbsComplexArray
@@ -20,6 +20,7 @@ from plot import Plot, PlotTimed, MakeDir, XYPlot, MakeNewDir
 from Timer import MTimer as Timer
 
 from mpmath import mp as mpm
+from TripleIntegral import ThetaIntegral
 
 import warnings
 
@@ -178,15 +179,10 @@ class GroupFourierIntegral:
         return (R + R.T) * 0.5
 
 
-    def ThetaIntegral(self, X, session):
-        mpm.dps = 50
-        R0 = self.GetRMatrix(X)
-        R = mpm.matrix([[R0[i,j] for i in range(4)] for j in range(4)]) # symmetric 4 by 4 matricx out of general 3 by 3 matrix
-        rr = [complex(r) for r in mpm.eig(R)[0]]
-        R_string = ','.join([f"({r.real}) + ({r.imag}) I" for r in rr])
-        x = session.evaluate('W[{' + R_string + '}]')
-        ans= float(x.args[0]) + float(x.args[1])*1j
-        return ans
+    def ThetaIntegral(self, X):
+        R = self.GetRMatrix(X)
+        r = scipy.linalg.eigvals(R)
+        return ThetaIntegral(r)
     def __del__(self):
         pass
 def test_GroupFourierIntegral():
@@ -195,13 +191,13 @@ def test_GroupFourierIntegral():
     r = np.random.normal(scale=0.1, size=30) + 1j * np.random.normal(scale=0.1, size=30)
     r = r.reshape((3, 10))
     X = r.dot(r.T)
-    session = WolframLanguageSession()
-    session.evaluate('Get["Notebooks/ThetaIntegral.m"]')
-    test1 = gfi.ThetaIntegral(X, session)
-    test2 = gfi.ThetaIntegral(X * 0.5, session)
-    test3= gfi.ThetaIntegral(X * 2, session)
-    session.terminate()
-    print(test1,test2,test3)
+    with Timer("three Theta integrals"):
+        test1 = gfi.ThetaIntegral(X)
+        print("X:", test1)
+        test2 = gfi.ThetaIntegral(X * 0.5)
+        print("0.5 *X:", test2)
+        test3= gfi.ThetaIntegral(X * 2)
+        print("2 *X:", test3)
     pass
 
 
