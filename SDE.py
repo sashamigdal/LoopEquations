@@ -10,7 +10,8 @@ import mpmath as mpm
 import sdeint
 import multiprocessing as mp
 
-# from wolframclient.evaluation import WolframLanguageSession
+from wolframclient.evaluation import WolframLanguageSession
+
 
 from ComplexToReal import ComplexToRealVec, RealToComplexVec, ComplextoRealMat, ReformatRealMatrix, MaxAbsComplexArray, \
     SumSqrAbsComplexArray
@@ -19,10 +20,10 @@ from parallel import parallel_map, ConstSharedArray, WritableSharedArray, print_
 from plot import Plot, PlotTimed, MakeDir, XYPlot, MakeNewDir
 from Timer import MTimer as Timer
 
-from mpmath import mp as mpm
-from TripleIntegral import ThetaIntegral
 
 import warnings
+
+from testMathematica import array_to_string
 
 warnings.filterwarnings('ignore', 'The iteration is not making good progress')
 #
@@ -179,24 +180,27 @@ class GroupFourierIntegral:
         return (R + R.T) * 0.5
 
 
-    def ThetaIntegral(self, X):
+    def ThetaIntegral(self, X, session):
         R = self.GetRMatrix(X)
-        r = scipy.linalg.eigvals(R)
-        return ThetaIntegral(r)
+        R_string = array_to_string(R)
+        ans = session.evaluate('W[' + R_string + ']')
+        return float(ans.args[0]) + 1j * float(ans.args[1])
     def __del__(self):
         pass
 def test_GroupFourierIntegral():
     N = 40
     gfi = GroupFourierIntegral(N)
-    r = np.random.normal(scale=0.1, size=30) + 1j * np.random.normal(scale=0.1, size=30)
+    r = np.random.normal(scale=0.01, size=30) + 1j * np.random.normal(scale=0.01, size=30)
     r = r.reshape((3, 10))
     X = r.dot(r.T)
+    session = WolframLanguageSession()
+    session.evaluate('Get["Notebooks/SphericalhetaIntegral.m"]')
     with Timer("three Theta integrals"):
-        test1 = gfi.ThetaIntegral(X)
+        test1 = gfi.ThetaIntegral(X,session)
         print("X:", test1)
-        test2 = gfi.ThetaIntegral(X * 0.5)
+        test2 = gfi.ThetaIntegral(X * 0.5,session)
         print("0.5 *X:", test2)
-        test3= gfi.ThetaIntegral(X * 2)
+        test3= gfi.ThetaIntegral(X * 2, session)
         print("2 *X:", test3)
     pass
 
@@ -304,7 +308,7 @@ class IterMoves():
 
         factor = 1
         session = WolframLanguageSession()
-        session.evaluate('Get["Notebooks/ThetaIntegral.m"]')
+        session.evaluate('Get["Notebooks/SphericalThetaIntegral.m"]')
         def Psi(pathname):
             ans = []
             try:

@@ -51,20 +51,14 @@ def convert(string):
     return ToPython().transform(Disambiguate().transform(parser.parse(string)))
 print(
 convert('''
-{-2 F[0] . dF[1] + 
-  2 F[1] . dF[1], -2 (F[0] . dF[1] + 
-    F[1] . dF[1] ((1 + 2 I) + 2 F[0] . F[0] - 2 F[1] . F[1])), 
- 2 (F[1] . dF[1] - F[1] . dF[2] - F[2] . dF[1] + 
-    F[2] . dF[2]), -2 (F[1] . dF[2] + F[2] . dF[1] + 
-     F[2] . dF[2] ((1 + 2 I) + 2 F[1] . F[1] - 2 F[2] . F[2])) + 
-  F[1] . dF[1] ((-2 + 4 I) + 4 F[1] . F[1] - 4 F[2] . F[2]), 
- 2 (F[2] . dF[2] - F[2] . dF[3] - F[3] . dF[2] + 
-    F[3] . dF[3]), -2 (F[2] . dF[3] + F[3] . dF[2] + 
-     F[3] . dF[3] ((1 + 2 I) + 2 F[2] . F[2] - 2 F[3] . F[3])) + 
-  F[2] . dF[2] ((-2 + 4 I) + 4 F[2] . F[2] - 4 F[3] . F[3]), 
- 2 (F[3] . dF[3] - F[4] . dF[3]), -2 F[4] . dF[3] + 
-  F[3] . dF[3] ((-2 + 4 I) + 4 F[3] . F[3] - 4 F[4] . F[4])}
+{{z^2 -> (-2 I3 + I4 - I4 x^2 - I4 y^2 - 
+    2 Sqrt[I3^2 - I3 I4 - I1 I4 x^2 + I3 I4 x^2 - I2 I4 y^2 + 
+      I3 I4 y^2])/
+   I4}, {z^2 -> (-2 I3 + I4 - I4 x^2 - I4 y^2 + 
+    2 Sqrt[I3^2 - I3 I4 - I1 I4 x^2 + I3 I4 x^2 - I2 I4 y^2 + 
+      I3 I4 y^2])/I4}}
  ''')
 )
+
 # math2py.py
 # Displaying math2py.py.
