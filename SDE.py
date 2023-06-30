@@ -23,7 +23,7 @@ from Timer import MTimer as Timer
 
 import warnings
 
-from testMathematica import array_to_string
+from testMathematica import toMathematica
 
 warnings.filterwarnings('ignore', 'The iteration is not making good progress')
 #
@@ -151,14 +151,15 @@ def ImproveF1F2F3(F0, F1, F2, F3, F4):
     return P
 
 class GroupFourierIntegral:
-    def __init__(self, N):
-        self.N = N
+    def __init__(self):
         s0 = np.matrix([[1, 0], [0, 1]])
         s1 = np.matrix([[0, 1], [1, 0]])
         s2 = np.matrix([[0, -1j], [1j, 0]])
         s3 = np.matrix([[1, 0], [0, -1]])
         self.Sigma = [s1, s2, s3]  # Pauli matrices
         self.Tau = [s0, 1j * s1, 1j * s2, 1j * s3]  # quaternions
+        self.session = WolframLanguageSession()
+        self.session.evaluate('Get["Notebooks/SphericalThetaIntegral.m"]')
 
     def TT(self, i, j, al, be):
         # O(3)_{i j} = q_a q_b tr_2 (s_i.Tau_a.s_j.Tau^H_b) = q_a q_b TT(i,j,a,b)
@@ -179,29 +180,23 @@ class GroupFourierIntegral:
         )
         return (R + R.T) * 0.5
 
-
-    def ThetaIntegral(self, X, session):
-        R = self.GetRMatrix(X)
-        R_string = array_to_string(R)
-        ans = session.evaluate('W[' + R_string + ']')
-        return float(ans.args[0]) + 1j * float(ans.args[1])
+    def ThetaIntegrals(self, X1, X2, t0, t1, time_steps):
+        R_string = toMathematica([self.GetRMatrix(X1),self.GetRMatrix(X2),[t0, t1, time_steps]] )
+        ans  = self.session.evaluate('WW[' + R_string + ']')
+        return [float(a.args[0]) + 1j * float(a.args[1]) for a in ans]
     def __del__(self):
-        pass
+        self.session.terminate()
 def test_GroupFourierIntegral():
-    N = 40
-    gfi = GroupFourierIntegral(N)
-    r = np.random.normal(scale=0.01, size=30) + 1j * np.random.normal(scale=0.01, size=30)
+    gfi = GroupFourierIntegral()
+    r = np.random.normal(scale=0.1, size=30) + 1j * np.random.normal(scale=0.1, size=30)
     r = r.reshape((3, 10))
-    X = r.dot(r.T)
-    session = WolframLanguageSession()
-    session.evaluate('Get["Notebooks/SphericalhetaIntegral.m"]')
-    with Timer("three Theta integrals"):
-        test1 = gfi.ThetaIntegral(X,session)
-        print("X:", test1)
-        test2 = gfi.ThetaIntegral(X * 0.5,session)
-        print("0.5 *X:", test2)
-        test3= gfi.ThetaIntegral(X * 2, session)
-        print("2 *X:", test3)
+    X1 = r.dot(r.T)
+    r = np.random.normal(scale=0.1, size=30) + 1j * np.random.normal(scale=0.1, size=30)
+    r = r.reshape((3, 10))
+    X2 = r.dot(r.T)
+    with Timer("multi integrals in Mathematica"):
+        test1 = gfi.ThetaIntegrals(X1,X2,1,2,10)
+
     pass
 
 
@@ -292,7 +287,7 @@ class IterMoves():
         M = self.M
         mpm.dps = 40
         pathnames = []
-        GFI = GroupFourierIntegral(40)
+        GFI = GroupFourierIntegral()
         for filename in os.listdir(self.GetSaveDirname()):
             if filename.endswith(".np") and not ('psidata' in filename):
                 try:
@@ -306,11 +301,7 @@ class IterMoves():
             pass
         pass
 
-        factor = 1
-        session = WolframLanguageSession()
-        session.evaluate('Get["Notebooks/SphericalThetaIntegral.m"]')
         def Psi(pathname):
-            ans = []
             try:
                 F = np.fromfile(pathname, dtype=complex)
                 F = F.reshape((-1, 3))
@@ -318,21 +309,12 @@ class IterMoves():
                 Q = np.roll(F, 1, axis=0) - F  # (M by 3 complex tensor)
                 X1 = np.dot(CDir.T, Q)  # (3 by 3 complex tensor for direct curve)
                 X2 = np.dot(CRev.T, np.conjugate(Q))  # (3 by 3 complex tensor for reflected curve)
-                for tt in np.linspace(t0, t1, time_steps):
-                    t = tt * factor
-                    psi = 0. + 0.j
-                    for X in (X1 / np.sqrt(t), X2 / np.sqrt(t)):
-                        psi += 0.5*GFI.ThetaIntegral(X, session)
-                        assert( np.abs(psi) <= 1)
-                    pass
-                    ans.append([t, psi])
-                return ans
+                return GFI.ThetaIntegrals(X1,X2, t0,t1,time_steps)
             except Exception as ex:
                 print(ex)
                 return None
 
-        result = parallel_map(Psi, pathnames, 0);#mp.cpu_count())
-        session.terminate()
+        result = parallel_map(Psi, pathnames, 0);
         psidata = np.array([x for x in result if x is not None], complex)
         psidata.tofile(
             os.path.join(self.GetSaveDirname(), "psidata." + str(t0) + "." + str(t1) + "." + str(time_steps) + ".np"))

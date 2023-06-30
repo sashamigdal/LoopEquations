@@ -1,4 +1,4 @@
-
+import numpy as np
 from wolframclient.evaluation import WolframLanguageSession
 from sympy.parsing.mathematica import mathematica
 from sympy import var
@@ -18,28 +18,22 @@ def test_Lineq():
     x =mathematica(repr(Lineq))
     pass
 
-def array_to_string(array):
-    rows = len(array)
-    cols = len(array[0])
 
-    matrix_string = '{'
-    for i in range(rows):
-        matrix_string += '{'
-        for j in range(cols):
-            r = array[i][j]
-            matrix_string += f"({r.real}) + ({r.imag}) I".replace("e", "*^")
-            if j < cols - 1:
-                matrix_string += ','
-        matrix_string += '}'
-        if i < rows - 1:
-            matrix_string += ','
-    matrix_string += '}'
+def toMathematicaRaw(val):# a numpy array
+    if isinstance(val, np.ndarray) or isinstance(val, list):
+        return '{' + ','.join([toMathematicaRaw(x) for x in val]) + '}'
+    elif isinstance(val, complex):
+        return f"({val.real}) + ({val.imag}) I"
+    else:
+        return f"({val})"
 
-    return matrix_string
+
+def toMathematica(array):
+    return toMathematicaRaw(array).replace('e', "*^")
 
 # Example 2D array
 def test_mathematicaArray():
-    array = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+    array = np.array([[1, 2, 3j], [1e-11 + 4j, 5, 6], [7, 8j, 0]])
     # Convert array to Mathematica string
-    mathematica_string = array_to_string(array)
+    mathematica_string = toMathematica(array)
     print(mathematica_string)
