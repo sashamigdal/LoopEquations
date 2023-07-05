@@ -1,7 +1,7 @@
 (* ::Package:: *)
 
 (* ::Input::Initialization:: *)
-Get["/Users/am10485/Documents/Wolfram Mathematica/PadeBorel.m"];
+Get[StringJoin[NotebookDirectory[],"PadeBorel.m"]];
 
 
 (* ::Input:: *)
@@ -9,11 +9,11 @@ Get["/Users/am10485/Documents/Wolfram Mathematica/PadeBorel.m"];
 
 
 (* ::Input:: *)
-(*PadeBorel[t , 1+Sum[x^n n!,{n,1,12}],x , 5]*)
+(*PadeBorel[t , 1+Sum[x^n n!,{n,1,12}],x , 5];*)
 
 
 (* ::Input:: *)
-(*PadeBorel[1. , 1+Sum[x^n n!,{n,1,12}],x , 5]*)
+(*PadeBorel[1. , 1+Sum[x^n n!,{n,1,12}],x , 5];*)
 
 
 (* ::Input::Initialization:: *)

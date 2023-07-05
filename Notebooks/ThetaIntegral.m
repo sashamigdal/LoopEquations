@@ -71,28 +71,45 @@ NMinimize[Min[Im[roots]],y][[1]]
 
 
 (* ::Input:: *)
-(*MinXShift[R1]*)
+(*LowestSingularity[R1]*)
 
 
 (* ::Input::Initialization:: *)
-WR[R_, eps_, factor_]:=
+WR[R_,  factor_]:=
 Block[{Gc, shift},
 shift = factor LowestSingularity[R];
-Gc=Compile[{{x,_Complex},{y, _Complex}},-Exp[I x]/(x^2Sqrt[ Det[ IdentityMatrix[4]- (R  +y Im[R])/x]])/y/( (2Pi)(2 Pi I))];NIntegrate[Gc[x+ I shift,y- I eps],{y,-Infinity,Infinity}, {x, -Infinity, Infinity},
+Gc=Compile[{{x,_Complex},{y, _Complex}},-Exp[I x]/(x^2Sqrt[ Det[ IdentityMatrix[4]- (R  +y Im[R])/x]])/y/( (2Pi)(2 Pi I))];NIntegrate[Gc[x+ I shift,y],{y,-Infinity,Infinity}, {x, -Infinity, Infinity},
 PrecisionGoal->10,WorkingPrecision->16,AccuracyGoal->10, Method->"GaussKronrodRule", MaxRecursion->30]
 ]
 
 
 (* ::Input:: *)
-(*WR[10*R1,0.1,2.5]*)
+(*WR[R1,2.5]*)
 
 
 (* ::Input:: *)
-(*WR[10*R1,0.1,3.5]*)
+(*WR[2*R1,3.5]*)
 
 
 (* ::Input:: *)
-(*WR[10*R1,0.1,1.5]*)
+(*WR[10*R1,1.5]*)
 
 
+(* ::Input:: *)
+(* Get[StringJoin[NotebookDirectory[],"SaddlePointFourierIntegral.m"]]*)
 
+
+(* ::Input:: *)
+(*Max[Abs[R1]]*)
+
+
+(* ::Input:: *)
+(*WR[R_]:=If[Max[Abs[R]] >1, W[R], WR[R,1.5]]*)
+
+
+(* ::Input:: *)
+(*WR[R1/Max[Abs[R1]]]*)
+
+
+(* ::Input:: *)
+(*W[R1/Max[Abs[R1]]]*)

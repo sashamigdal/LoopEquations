@@ -31,7 +31,7 @@ MyResidue[R_,{x_,x0_,n_}]:=n!/D[1/R,{x,n}]/.x->x0;
 (* ::Input::Initialization:: *)
 PadeBorel[t_, F_,x_, M_]/; PolynomialQ[F,x] :=
 Block[{G,res, M2 = Evaluate[2 M]},
-G =Evaluate[N[PadeApproximant[Evaluate[F/.{x^n_ :> x^n/n!}],{x,0,{M,M}}],20]];
+G =Evaluate[N[PadeApproximant[Evaluate[F/.{x^n_ :> x^n/n!}],{x,0,{M-1,M}}],20]];
 (*Print["G=",G];*)
 If[t == 0, Return[G/.x->0]];
 fp =FunctionPoles[G,x];
