@@ -9,10 +9,8 @@ RR=W . RR . Transpose[W];
 V={x,y,z};
 Q=Append[2 V,(1-V . V)]/(1+V . V);
 QI=Simplify[(Q^2) . tt];
-4/Pi^2 NIntegrate[Tr[MM . MM]/(1+V . V)^3,
+4/Pi^2 NIntegrate[Exp[I Q . RR . Q-QI] Boole[Numerator[QI]>0]/(1+V . V)^3,
 {x,-Infinity,Infinity},{y,-Infinity,Infinity},{z,-Infinity,Infinity}]
-(*4/Pi^2 NIntegrate[Exp[I Q.RR.Q-QI] Boole[Numerator[QI]>0]/(1+V.V)^3,
-{x,-Infinity,Infinity},{y,-Infinity,Infinity},{z,-Infinity,Infinity}]*)
 ]//Quiet;
 
 
@@ -29,7 +27,7 @@ QI=Simplify[(Q^2) . tt];
 
 
 (* ::Input:: *)
-(* W[R1]//Timing*)
+(* W[R1]*)
 
 
 (* ::Input::Initialization:: *)

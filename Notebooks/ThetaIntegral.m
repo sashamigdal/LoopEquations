@@ -1,63 +1,98 @@
 (* ::Package:: *)
 
 (* ::Input::Initialization:: *)
-ClearAll[H,W, F];
+ClearAll[W0];
 
 
 (* ::Input:: *)
-(*(* The basic function *)*)
-
-
-(* ::Input::Initialization:: *)
-F[RR_, x_, y_]:=
-	1/Sqrt[Det[x -RR - y Im[RR]]];
-
-
-(* ::Input:: *)
-(*(* Ihe inner integral, coming froom the theta function, formula A155 from the Appendix of *)*)
-
-
-(* ::Input::Initialization:: *)
-H[RR_, x_]:=
-Block[{S,Q, y,II},
-S =F[RR,x,y];
-Q = (S -(S/.y->-y))/y;
-(S/.y->0)I/2 +1/(2Pi) NIntegrate[ Q,{y,0,Infinity},Exclusions->y==0,
-PrecisionGoal->12,WorkingPrecision->16,AccuracyGoal->12, Method->"GaussKronrodRule", MaxRecursion->30]
-]//Quiet;
-
-
-(* ::Input:: *)
-(*(* testing on random numbers*)*)
-
-
-(* ::Input:: *)
-(*R1 = ArrayReshape[Table[Random[Complex],{16}],{4,4}];*)
-(*R1 = R1 + Transpose[R1];*)
-
-
-(* ::Input:: *)
-(*H[R1,1.]*)
-
-
-(* ::Input:: *)
-(*(*The restricted group integral, formula A 148 fropm the Appendix*)*)
-
-
-(* ::Input::Initialization:: *)
-W[RR_]:=
-Block[{ x},
-NIntegrate[Exp[I x]/(2 Pi) H[RR,x],{x,-Infinity,Infinity},
-PrecisionGoal->16,WorkingPrecision->20,AccuracyGoal->12, Method->"DoubleExponentialOscillatory", MaxRecursion->30]
-]//Quiet;
+(*(*The unrestricted Fourier  integral*)*)
 
 
 (* ::Input:: *)
 (**)
-(*(* testing on random number *)*)
-(*W[ R1]*)
+
+
+(* ::Input::Initialization:: *)
+W0[R_, factor_]:=
+Block[{shift,roots,x, P,ims, L, Gc},
+P = Det[ x IdentityMatrix[4]- R ];
+(*Print[P];*)
+roots =x/.NSolve[ P==0,x];
+(*Print[roots];*)
+shift = Min[0,factor Min[Im[roots]]];
+(* 
+we are shifting the integration contour below the lowest singularity.
+This is the analytic continuation of the above integral .
+We take care of correct branch of the square root, making the phase the same as at R=0.
+The result does not depend upon the shift factor, as the complex analysis tells it should not
+*)
+(*Print[shift];*)
+Gc=Compile[{{y,_Complex}},-Exp[I y]/(y^2Sqrt[ Det[ IdentityMatrix[4]- R /y]])/(2 Pi)];
+(*Return[G];*)
+NIntegrate[Gc[x+ I shift],{x,-Infinity,Infinity},
+PrecisionGoal->10,WorkingPrecision->16,AccuracyGoal->10, Method->"GaussKronrodRule", 
+MaxRecursion->30]/(2 Pi)
+]//Quiet;
 
 
 (* ::Input:: *)
-(**)
-(*(* testing on random numbers which proiduces |W| > 1 with an old buggy version *)*)
+(*           *)
+
+
+(* ::Input:: *)
+(*R1 = ArrayReshape[Table[Random[Complex],16],{4,4}];*)
+(*R1 += Transpose[R1];*)
+
+
+(* ::Input:: *)
+(*Table[W0[R1,f],{f,3,5,0.5}]//MatrixForm*)
+
+
+(* ::Input:: *)
+(*(**)
+(*The restricted Fourier  integral as analytic continuation.*)
+(*The nomerical precision is very low, leading to spurious results,     strongly dependent upon the shift of the path below the lowest singulatity.*)
+(*According to complex analysis, there should be no such dependence. *)
+(*In case of unrestricted fourier integral, there is a very wek dependence, *)
+(*   in higher digits.*)
+(* .*)*)
+
+
+(* ::Input::Initialization:: *)
+LowestSingularity[R_]:=
+Min[0.,
+Block[{P,x,y, roots},
+P = Det[ x IdentityMatrix[4]- R - y Im[R] ];
+roots =x/.NSolve[ P==0,x];
+NMinimize[Min[Im[roots]],y][[1]]
+]
+];
+
+
+
+(* ::Input:: *)
+(*MinXShift[R1]*)
+
+
+(* ::Input::Initialization:: *)
+WR[R_, eps_, factor_]:=
+Block[{Gc, shift},
+shift = factor LowestSingularity[R];
+Gc=Compile[{{x,_Complex},{y, _Complex}},-Exp[I x]/(x^2Sqrt[ Det[ IdentityMatrix[4]- (R  +y Im[R])/x]])/y/( (2Pi)(2 Pi I))];NIntegrate[Gc[x+ I shift,y- I eps],{y,-Infinity,Infinity}, {x, -Infinity, Infinity},
+PrecisionGoal->10,WorkingPrecision->16,AccuracyGoal->10, Method->"GaussKronrodRule", MaxRecursion->30]
+]
+
+
+(* ::Input:: *)
+(*WR[10*R1,0.1,2.5]*)
+
+
+(* ::Input:: *)
+(*WR[10*R1,0.1,3.5]*)
+
+
+(* ::Input:: *)
+(*WR[10*R1,0.1,1.5]*)
+
+
+
