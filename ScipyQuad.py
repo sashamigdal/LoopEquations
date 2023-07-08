@@ -1,4 +1,5 @@
 from scipy import integrate
+from scipy.linalg import eigvalsh
 import numpy as np
 from numpy import sin, cos, pi, arcsin, exp, sqrt, prod as fprod, inf, dot
 from Timer import MTimer as Timer
@@ -106,49 +107,66 @@ def DoubleThetaIntegral(R):
 
 
 '''
-WW[R_] :=
-  Block[{Q, x, y, z},
-   V = {x, y, z}; 
-   Q = Append[4 V**2, (1 - V . V)**2]/(1 + V . V)**2;
-   4/Pi**2 NIntegrate[
-     Exp[I Q . R] Boole[Q . Im[R] > 0] 1/(1 + V . V)^3, {x, -Infinity,
-       Infinity}, {y, -Infinity, Infinity}, {z, -Infinity, Infinity}]
+W[MM_] /; Dimensions[MM] == {4, 4} :=
+  Block[{Q, RR, TT, tt, W, V, QI, u, v, w, Jac, Vol, G, Gc, pc},
+   TT = Im[MM];
+   {tt, W} = Eigensystem[TT];
+   RR = W . Re[MM] . Transpose[W];
+   Q = {Sqrt[w] Cos[u], Sqrt[w] Sin[u], Sqrt[1 - w] Cos[v], 
+     Sqrt[1 - w] Sin[v]};
+   QI = Evaluate[(Q^2) . tt];
+   Jac = 1;
+   Vol = Integrate[Jac, {w, 0, 1}] (2 Pi)^2;
+   pc = PosCond[CoefficientList[QI, w]][[1]];
+   (*Print[pc];*)
+   G =  Exp[I Q . RR . Q - QI] Boole[pc[[1]] <= w <= pc[[2]]] Jac/Vol;
+   Gc = Compile[{{w, _Real}, {u, _Real}, {v, _Real}}, Evaluate[G]];
+   (*Print[Gc];*)
+   NIntegrate[Gc[w, u, v], {w, 0, 1}, {u, 0, 2 Pi}, {v, 0, 2 Pi}, 
+    Method -> "LocalAdaptive", MaxRecursion -> 10, 
+    WorkingPrecision -> 10, AccuracyGoal -> 10]
    ];
-   
-   
-   {{z**2 -> (-2 I3 + I4 - I4 x**2 - I4 y**2 - 
-    2 Sqrt[I3**2 - I3 I4 - I1 I4 x**2 + I3 I4 x**2 - I2 I4 y**2 + 
-      I3 I4 y**2])/
-   I4}, {z**2 -> (-2 I3 + I4 - I4 x**2 - I4 y**2 + 
-    2 Sqrt[I3**2 - I3 I4 - I1 I4 x**2 + I3 I4 x**2 - I2 I4 y**2 + 
-      I3 I4 y**2])/I4}}
-      -((2 I3 + I4 (-1 + x**2 + y**2) + 
-  2 Sqrt[I3**2 + I3 I4 (-1 + x**2 + y**2) - I4 (I1 x**2 + I2 y**2)])/I4)
    '''
+'''
 
+ PosCond[{a_ , b_} ] :=
+ Module[{x0, region},
+  If[b == 0, Return[If[a > 0, {0, 1}, {0, 0}]]];
+  x0 = -a/b;
+  If[b > 0, region = {Max[0, x0], 1}, region = {0, Min[1, x0]}];
+  region]
+'''
 
-def StereoIntegral(R):
-    [I1, I2, I3, I4] = [r.imag for r in R]
-    R = np.array(R, dtype =complex)
+def PosCond(a, b):
+    '''
+    a + b z >0 && 0 < z < 1
+    '''
+    if b == 0: [0, 1] if a > 0 else [0, 0 ];
+    z0 = -a/b
+    return [max(0, z0), 1] if b >0 else [0, min(1, z0)]
+
+def SphericalRestrictedIntegral(R):
+    tt = eigvalsh(R.imag)
+    rr = np.array(R.real, dtype =float)
     def funcC(z, y, x):
-        V = np.array([x, y, z], dtype=float)
-        VV = dot(V, V)
-        Q = np.array([4 * v * v for v in V] + [(1 - VV) ** 2], dtype=float) / (1 + VV) ** 2
-        return exp(1j * dot(Q, R)) * 4 / pi ** 2  / (1 + VV) ** 3
+        Q = np.array([sqrt(z)*cos(x), sqrt(z)*sin(x), sqrt(1-z)*cos(y), sqrt(1-z)*sin(y)], dtype=float) 
+        return exp(1j * Q.dot(rr.dot(Q)) - tt.dot(Q**2)) * 4 / pi ** 2
 
+    def Zreg(x, y):
+        '''
+        a + b z = tt[0] z cos^2 x + tt[1] z sin^2 x + tt[2] (1 -z) cos^2 y + tt[3] (1 -z) sin^2 y
+        '''
+        f0 = tt[2] * cos(y)**2 + tt[3]*sin(y)**2
+        f1 = tt[0] * cos(x)**2 + tt[1]*sin(x)**2
+        return PosCond(f1,f0-f1)
     def rfun(x, y):
-        dd = I3 ** 2 + I3 * I4 * (-1 + x ** 2 + y ** 2) - I4 * (I1 * x ** 2 + I2 * y ** 2)
-        if dd > 0:
-            a = -2 * I3 - I4 * (-1 + x ** 2 + y ** 2)
-            Z1 = (a + 2 * sqrt(dd)) / I4
-            Z2 = (a - 2 * sqrt(dd)) / I4
-            zz = min(Z1, Z2)
-            return sqrt(zz) if zz > 0 else inf
-        return inf
+         reg = Zreg(x,y)
+         return reg[1]
 
     def qfun(x, y):
-        f = rfun(x, y)
-        return -f
+        reg = Zreg(x, y)
+        return reg[0]
+
     def funcR(z,y,x):
         f = funcC(z,y,x)
         return f.real
@@ -156,16 +174,13 @@ def StereoIntegral(R):
         f = funcC(z,y,x)
         return f.imag
 
-    return integrate.tplquad(funcR, -inf, inf, -inf, inf, qfun, rfun) + 1j * integrate.tplquad(funcI, -inf, inf, -inf, inf, qfun, rfun)
+    return [integrate.tplquad(funcR, 0, 2* pi, 0, 2*pi, qfun, rfun) , integrate.tplquad(funcI, 0, 2* pi, 0, 2*pi, qfun, rfun)]
 
 
 def test_GroupIntegral():
-    # R = [-0.1 + 2 * 1.j, -0.2 - 0.01 * 1.j, -0.3 + 0.05 * 1.j, -0.1 - 0.07 * 1.j]
-    # res = TripleThetaIntegral(R)
-    r = [-0.28174825 - 0.92838393j, 0.15847767 + 0.68931421j, 0.28372187 + 0.77955587j, -0.1604513 - 0.54048615j]
-
-    with Timer("scipy.quad Theta Integral"):
-        res = StereoIntegral(r)
+    R = np.array([np.random.normal()  + 1j * np.random.normal() for _ in range(16)]).reshape((4,4))
+    with Timer("scipy.quad Theta Restricted Integral"):
+        res = SphericalRestrictedIntegral(R)
         # res = SingleThetaIntegral(r) + DoubleThetaIntegral(r)
-        print("StereoIntegral =", res)
+        print("SphericalRestrictedIntegral =", res)
     pass
