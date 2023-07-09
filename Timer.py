@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 class MTimer:
     def __init__(self, message=''):
         if sys.platform == 'win32':
-            self.t1 = time.clock()
+            self.t1 = time.perf_counter()
         else:
             self.t1 = time.time()
 
@@ -23,7 +23,7 @@ class MTimer:
 
     def end(self):
         if sys.platform == 'win32':
-            t = time.clock() - self.t1
+            t = time.perf_counter() - self.t1
         else:
             t = time.time() - self.t1
         if t > 0.1:

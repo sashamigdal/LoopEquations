@@ -1,5 +1,5 @@
 from scipy import integrate
-from scipy.linalg import eigvalsh
+from scipy.linalg import eigh
 import numpy as np
 from numpy import sin, cos, pi, arcsin, exp, sqrt, prod as fprod, inf, dot
 from Timer import MTimer as Timer
@@ -137,50 +137,61 @@ W[MM_] /; Dimensions[MM] == {4, 4} :=
   region]
 '''
 
+
 def PosCond(a, b):
     '''
     a + b z >0 && 0 < z < 1
     '''
-    if b == 0: [0, 1] if a > 0 else [0, 0 ];
-    z0 = -a/b
-    return [max(0, z0), 1] if b >0 else [0, min(1, z0)]
+    if b == 0:
+        return [0, 1] if a > 0 else [0, 0]
+    z0 = -a / b
+    z0 = max(0, min(1, z0))
+    return [z0, 1] if b > 0 else [0, z0]
+
 
 def SphericalRestrictedIntegral(R):
-    tt = eigvalsh(R.imag)
-    rr = np.array(R.real, dtype =float)
-    def funcC(z, y, x):
-        Q = np.array([sqrt(z)*cos(x), sqrt(z)*sin(x), sqrt(1-z)*cos(y), sqrt(1-z)*sin(y)], dtype=float) 
-        return exp(1j * Q.dot(rr.dot(Q)) - tt.dot(Q**2)) * 4 / pi ** 2
+    tt, W = eigh(R.imag)
+    rr = np.array(R.real, dtype=float)
+    RR = W @ rr @ W.T
 
-    def Zreg(x, y):
-        '''
-        a + b z = tt[0] z cos^2 x + tt[1] z sin^2 x + tt[2] (1 -z) cos^2 y + tt[3] (1 -z) sin^2 y
-        '''
-        f0 = tt[2] * cos(y)**2 + tt[3]*sin(y)**2
-        f1 = tt[0] * cos(x)**2 + tt[1]*sin(x)**2
-        return PosCond(f1,f0-f1)
-    def rfun(x, y):
-         reg = Zreg(x,y)
-         return reg[1]
+    def funcC(w, v, u):
+        Q = np.array([sqrt(w)*cos(u), sqrt(w)*sin(u), sqrt(1-w)*cos(v), sqrt(1-w)*sin(v)], dtype=float)
+        return exp(1j * Q.dot(RR.dot(Q)) - tt.dot(Q**2)) / 4 / pi ** 2
 
-    def qfun(x, y):
-        reg = Zreg(x, y)
-        return reg[0]
-
-    def funcR(z,y,x):
-        f = funcC(z,y,x)
+    def funcR(w, v, u):
+        f = funcC(w, v, u)
         return f.real
-    def funcI(z,y,x):
-        f = funcC(z,y,x)
+
+    def funcI(w, v, u):
+        f = funcC(w, v, u)
         return f.imag
 
-    return [integrate.tplquad(funcR, 0, 2* pi, 0, 2*pi, qfun, rfun) , integrate.tplquad(funcI, 0, 2* pi, 0, 2*pi, qfun, rfun)]
+    def Zreg(u, v):
+        """
+        a + b z = tt[0] z cos^2 x + tt[1] z sin^2 x + tt[2] (1 -z) cos^2 y + tt[3] (1 -z) sin^2 y
+        """
+        f0 = tt[2] * cos(v)**2 + tt[3]*sin(v)**2
+        f1 = tt[0] * cos(u)**2 + tt[1]*sin(u)**2
+        return PosCond(f0, f1 - f0)
+
+    def rfun(u, v):
+        reg = Zreg(u, v)
+        return reg[1]
+
+    def qfun(u, v):
+        reg = Zreg(u, v)
+        return reg[0]
+
+    eps = 1e-3
+    return [integrate.tplquad(funcR, 0, 2 * pi, 0, 2 * pi, qfun, rfun, epsabs=eps),
+            integrate.tplquad(funcI, 0, 2 * pi, 0, 2 * pi, qfun, rfun, epsabs=eps)]
 
 
 def test_GroupIntegral():
-    R = np.array([np.random.normal()  + 1j * np.random.normal() for _ in range(16)]).reshape((4,4))
+    R = np.array([np.random.normal() + 1j * np.random.normal() for _ in range(16)]).reshape((4, 4))
+    R += R.T
     with Timer("scipy.quad Theta Restricted Integral"):
         res = SphericalRestrictedIntegral(R)
         # res = SingleThetaIntegral(r) + DoubleThetaIntegral(r)
-        print("SphericalRestrictedIntegral =", res)
+        print("\nSphericalRestrictedIntegral =", res)
     pass
