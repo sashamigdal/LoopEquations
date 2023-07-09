@@ -10,6 +10,7 @@ def test_Four():
     val = scheme.integrate(lambda x: np.ones(73), np.zeros(dim), 1.0)
     print(val)
 
+
 def SphericalRestrictedIntegral(R):
     tt, W = eigh(R.imag)
     rr = np.array(R.real, dtype=float)
