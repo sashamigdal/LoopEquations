@@ -232,6 +232,13 @@ class IterMoves():
     def GetSaveFilename(self, cycle, node_num):
         # os.path.join("plots", "curve_cycle_node." + str(cycle) + "." + str(node_num) + ".np")
         return os.path.join(self.GetSaveDirname(), "curve_cycle_node." + str(cycle) + "." + str(node_num) + ".np")
+    def GetCLoopFilename(self):
+        # os.path.join("plots", "curve_cycle_node." + str(cycle) + "." + str(node_num) + ".np")
+        return os.path.join(self.GetSaveDirname(), "Cloop.np")
+
+
+    def SaveCurve(self, cycle, node_num):
+        self.Frun.tofile(self.GetSaveFilename(cycle, node_num))
 
     def MoveThreeVertices(self, zero_index, T, num_steps):
         M = self.M
@@ -297,12 +304,11 @@ class IterMoves():
         self.Frun[(zero_index + 3) % M, :] = FF[2]
         pass
 
-    def SaveCurve(self, cycle, node_num):
-        self.Frun.tofile(self.GetSaveFilename(cycle, node_num))
 
     def CollectStatistics(self, C0, t0, t1, time_steps):
         CDir = 0.5 * (C0 + np.roll(C0, 1, axis=0))
         CRev = CDir[::-1]
+        CDir.tofile(self.GetCLoopFilename())
         M = self.M
         mpm.dps = 40
         pathnames = []
@@ -350,7 +356,7 @@ class IterMoves():
         psiI = np.mean(psidata[1].imag, axis=1)  # (time_steps,N)->time_steps
 
         XYPlot([psiR, psiI], plotpath=os.path.join(self.GetSaveDirname(), "WilsonLoop.png"),
-               scatter=True,
+               scatter=False,
                title='Wilson Loop')
 
 
@@ -387,10 +393,10 @@ def runIterMoves(num_vertices=100, num_cycles=10, T=1.0, num_steps=1000,
             print("all cycles done " + str(cycle))
         pass
     pass
-    mover.CollectStatistics(C0, t0, t1, time_steps)
     if plot:
         mover.PlotWilsonLoop(t0, t1, time_steps)
-
+    else:
+        mover.CollectStatistics(C0, t0, t1, time_steps)
 
 def test_IterMoves():
     runIterMoves(num_vertices=500, num_cycles=100, T=1., num_steps=10000,
