@@ -2,7 +2,7 @@ import scipy
 
 import numpy as np
 import os, sys
-from numpy import cos, sin, pi
+from numpy import cos, sin, pi, linspace
 from scipy.linalg import pinvh
 
 import mpmath as mpm
@@ -15,8 +15,9 @@ from wolframclient.evaluation import WolframLanguageSession
 
 from ComplexToReal import ComplexToRealVec, RealToComplexVec, ComplextoRealMat, ReformatRealMatrix, MaxAbsComplexArray, \
     SumSqrAbsComplexArray
+from ScipyQuad import SphericalRestrictedIntegral
 from VectorOperations import NullSpace5, HodgeDual, E3, randomLoop, GradEqFromMathematica, mdot
-from parallel import parallel_map, ConstSharedArray, WritableSharedArray, print_debug
+from parallel import parallel_map, ConstSharedArray, WritableSharedArray, print_debug, mp
 from plot import Plot, PlotTimed, MakeDir, XYPlot, MakeNewDir
 from Timer import MTimer as Timer
 
@@ -158,8 +159,8 @@ class GroupFourierIntegral:
         s3 = np.matrix([[1, 0], [0, -1]])
         self.Sigma = [s1, s2, s3]  # Pauli matrices
         self.Tau = [s0, 1j * s1, 1j * s2, 1j * s3]  # quaternions
-        self.session = WolframLanguageSession()
-        self.session.evaluate('Get["Notebooks/SphericalThetaIntegral.m"]')
+        # self.session = WolframLanguageSession()
+        # self.session.evaluate('Get["Notebooks/SphericalThetaIntegral.m"]')
 
     def TT(self, i, j, al, be):
         # O(3)_{i j} = q_a q_b tr_2 (s_i.Tau_a.s_j.Tau^H_b) = q_a q_b TT(i,j,a,b)
@@ -181,11 +182,20 @@ class GroupFourierIntegral:
         return (R + R.T) * 0.5
 
     def ThetaIntegrals(self, X1, X2, t0, t1, time_steps):
+        rr = [self.GetRMatrix(X1),self.GetRMatrix(X2)]
+        def TwoIntegrals(t):
+            (r1, i1) =SphericalRestrictedIntegral(rr[0]/np.sqrt(t))
+            (r2, i2) = SphericalRestrictedIntegral(rr[1]/np.sqrt(t))
+            return (r1[0] + r2[0] + 1j *( i1[0] + i2[0]))/2
+        ans = parallel_map(TwoIntegrals,linspace(t0, t1, time_steps), mp.cpu_count())
+        return ans
+    def ThetaIntegralsMathematica(self, X1, X2, t0, t1, time_steps):
         R_string = toMathematica([self.GetRMatrix(X1),self.GetRMatrix(X2),[t0, t1, time_steps]] )
         ans  = self.session.evaluate('WW[' + R_string + ']')
         return [float(a.args[0]) + 1j * float(a.args[1]) for a in ans]
     def __del__(self):
-        self.session.terminate()
+        pass
+        # self.session.terminate()
 def test_GroupFourierIntegral():
     gfi = GroupFourierIntegral()
     r = np.random.normal(scale=0.1, size=30) + 1j * np.random.normal(scale=0.1, size=30)

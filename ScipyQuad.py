@@ -111,7 +111,7 @@ W[MM_] /; Dimensions[MM] == {4, 4} :=
   Block[{Q, RR, TT, tt, W, V, QI, u, v, w, Jac, Vol, G, Gc, pc},
    TT = Im[MM];
    {tt, W} = Eigensystem[TT];
-   RR = W . Re[MM] . Transpose[W];
+   RR = Transpose[W]. Re[MM] . W;
    Q = {Sqrt[w] Cos[u], Sqrt[w] Sin[u], Sqrt[1 - w] Cos[v], 
      Sqrt[1 - w] Sin[v]};
    QI = Evaluate[(Q^2) . tt];
@@ -152,7 +152,7 @@ def PosCond(a, b):
 def SphericalRestrictedIntegral(R):
     tt, W = eigh(R.imag)
     rr = np.array(R.real, dtype=float)
-    RR = W @ rr @ W.T
+    RR = W.T @ rr @ W
 
     def funcC(w, v, u):
         Q = np.array([sqrt(w)*cos(u), sqrt(w)*sin(u), sqrt(1-w)*cos(v), sqrt(1-w)*sin(v)], dtype=float)
@@ -182,9 +182,9 @@ def SphericalRestrictedIntegral(R):
         reg = Zreg(u, v)
         return reg[0]
 
-    eps = 1e-3
-    return [integrate.tplquad(funcR, 0, 2 * pi, 0, 2 * pi, qfun, rfun, epsabs=eps),
-            integrate.tplquad(funcI, 0, 2 * pi, 0, 2 * pi, qfun, rfun, epsabs=eps)]
+
+    return [integrate.tplquad(funcR, 0, 2 * pi, 0, 2 * pi, qfun, rfun),
+            integrate.tplquad(funcI, 0, 2 * pi, 0, 2 * pi, qfun, rfun)]
 
 
 def test_GroupIntegral():
