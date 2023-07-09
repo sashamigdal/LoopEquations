@@ -11,7 +11,6 @@ import multiprocessing as mp
 
 from wolframclient.evaluation import WolframLanguageSession
 
-
 from ComplexToReal import ComplexToRealVec, RealToComplexVec, ComplextoRealMat, ReformatRealMatrix, MaxAbsComplexArray, \
     SumSqrAbsComplexArray
 from QuadPy import SphericalRestrictedIntegral
@@ -19,7 +18,6 @@ from VectorOperations import NullSpace5, HodgeDual, E3, randomLoop, GradEqFromMa
 from parallel import parallel_map, ConstSharedArray, WritableSharedArray, print_debug, mp
 from plot import Plot, PlotTimed, MakeDir, XYPlot, MakeNewDir
 from Timer import MTimer as Timer
-
 
 import warnings
 
@@ -150,6 +148,7 @@ def ImproveF1F2F3(F0, F1, F2, F3, F4):
     P = pack([x])
     return P
 
+
 class GroupFourierIntegral:
     def __init__(self):
         # mp.set_start_method('fork')
@@ -182,28 +181,37 @@ class GroupFourierIntegral:
         return (R + R.T) * 0.5
 
     def ThetaIntegrals(self, X1, X2, t0, t1, time_steps):
-        rr = [self.GetRMatrix(X1),self.GetRMatrix(X2)]
+        rr = [self.GetRMatrix(X1), self.GetRMatrix(X2)]
+
         def TwoIntegrals(t):
-            c1 = SphericalRestrictedIntegral(rr[0]/np.sqrt(t))
-            c2 = SphericalRestrictedIntegral(rr[1]/np.sqrt(t))
-            return (c1 + c2)/2
-        ans = parallel_map(TwoIntegrals,linspace(t0, t1, time_steps), mp.cpu_count())
+            c1 = SphericalRestrictedIntegral(rr[0] / np.sqrt(t))
+            c2 = SphericalRestrictedIntegral(rr[1] / np.sqrt(t))
+            return (c1 + c2) / 2
+
+        ans = parallel_map(TwoIntegrals, linspace(t0, t1, time_steps), mp.cpu_count())
         return ans
+
     def ThetaIntegralsScipy(self, X1, X2, t0, t1, time_steps):
-        rr = [self.GetRMatrix(X1),self.GetRMatrix(X2)]
+        rr = [self.GetRMatrix(X1), self.GetRMatrix(X2)]
+
         def TwoIntegrals(t):
-            (r1, i1) =SphericalRestrictedIntegral(rr[0]/np.sqrt(t))
-            (r2, i2) = SphericalRestrictedIntegral(rr[1]/np.sqrt(t))
-            return (r1[0] + r2[0] + 1j *( i1[0] + i2[0]))/2
-        ans = parallel_map(TwoIntegrals,linspace(t0, t1, time_steps), mp.cpu_count())
+            (r1, i1) = SphericalRestrictedIntegral(rr[0] / np.sqrt(t))
+            (r2, i2) = SphericalRestrictedIntegral(rr[1] / np.sqrt(t))
+            return (r1[0] + r2[0] + 1j * (i1[0] + i2[0])) / 2
+
+        ans = parallel_map(TwoIntegrals, linspace(t0, t1, time_steps), mp.cpu_count())
         return ans
+
     def ThetaIntegralsMathematica(self, X1, X2, t0, t1, time_steps):
-        R_string = toMathematica([self.GetRMatrix(X1),self.GetRMatrix(X2),[t0, t1, time_steps]] )
-        ans  = self.session.evaluate('WW[' + R_string + ']')
+        R_string = toMathematica([self.GetRMatrix(X1), self.GetRMatrix(X2), [t0, t1, time_steps]])
+        ans = self.session.evaluate('WW[' + R_string + ']')
         return [float(a.args[0]) + 1j * float(a.args[1]) for a in ans]
+
     def __del__(self):
         pass
         # self.session.terminate()
+
+
 def test_GroupFourierIntegral():
     gfi = GroupFourierIntegral()
     r = np.random.normal(scale=0.1, size=30) + 1j * np.random.normal(scale=0.1, size=30)
@@ -232,10 +240,10 @@ class IterMoves():
     def GetSaveFilename(self, cycle, node_num):
         # os.path.join("plots", "curve_cycle_node." + str(cycle) + "." + str(node_num) + ".np")
         return os.path.join(self.GetSaveDirname(), "curve_cycle_node." + str(cycle) + "." + str(node_num) + ".np")
+
     def GetCLoopFilename(self):
         # os.path.join("plots", "curve_cycle_node." + str(cycle) + "." + str(node_num) + ".np")
         return os.path.join(self.GetSaveDirname(), "Cloop.np")
-
 
     def SaveCurve(self, cycle, node_num):
         self.Frun.tofile(self.GetSaveFilename(cycle, node_num))
@@ -304,17 +312,19 @@ class IterMoves():
         self.Frun[(zero_index + 3) % M, :] = FF[2]
         pass
 
-
     def CollectStatistics(self, C0, t0, t1, time_steps):
-        CDir = 0.5 * (C0 + np.roll(C0, 1, axis=0))
-        CRev = CDir[::-1]
-        CDir.tofile(self.GetCLoopFilename())
         M = self.M
-        mpm.dps = 40
+        try:
+            CDir = np.fromfile(self.GetCLoopFilename(), float).reshape((-1, 3))
+        except:
+            C0 = randomLoop(M, 5)
+            CDir = 0.5 * (C0 + np.roll(C0, -1, axis=0))
+            CDir.tofile(self.GetCLoopFilename())
+        CRev = CDir[::-1]
         pathnames = []
         GFI = GroupFourierIntegral()
         for filename in os.listdir(self.GetSaveDirname()):
-            if filename.endswith(".np") and not ('psidata' in filename):
+            if filename.endswith(".np") and not ('psidata' in filename or 'Cloop' in filename):
                 try:
                     splits = filename.split(".")
                     cycle = int(splits[-3])
@@ -334,7 +344,7 @@ class IterMoves():
                 Q = np.roll(F, 1, axis=0) - F  # (M by 3 complex tensor)
                 X1 = np.dot(CDir.T, Q)  # (3 by 3 complex tensor for direct curve)
                 X2 = np.dot(CRev.T, np.conjugate(Q))  # (3 by 3 complex tensor for reflected curve)
-                return GFI.ThetaIntegrals(X1,X2, t0,t1,time_steps)
+                return GFI.ThetaIntegrals(X1, X2, t0, t1, time_steps)
             except Exception as ex:
                 print(ex)
                 return None
@@ -359,12 +369,52 @@ class IterMoves():
                scatter=False,
                title='Wilson Loop')
 
+    def GetDissipationStats(self):
+        pathnames = []
+        for filename in os.listdir(self.GetSaveDirname()):
+            if filename.endswith(".np") and not (('psidata' in filename) or ('Cloop' in filename)):
+                try:
+                    splits = filename.split(".")
+                    cycle = int(splits[-3])
+                    node_num = int(splits[-2])
+                    pathnames.append(os.path.join(self.GetSaveDirname(), filename))
+                except Exception as ex:
+                    print_debug(ex)
+                pass
+            pass
+        pass
 
+        def CDF(pathname):
+            M = self.M
+            try:
+                F = np.fromfile(pathname, dtype=complex)
+                F = F.reshape((-1, 3))
+                assert F.shape == (M, 3)  # (M by 3 complex tensor)
+                Q = np.roll(F, -1, axis=0) - F  # (M by 3 complex tensor)
+                FDF = np.sum(F ** 2, axis=1)
+                FDQ = np.sum(F * Q, axis=1)
+                return (FDQ ** 2 - FDF).real
+            except Exception as ex:
+                print(ex)
+                return None
+
+        result = parallel_map(CDF, pathnames, 0)  # mp.cpu_count())
+        cdfdata = np.array([x for x in result if x is not None], float).reshape(-1)
+        cdfdata.tofile(
+            os.path.join(self.GetSaveDirname(), "cdfdata.np"))
+
+    def PlotEnstropyDistribution(self):
+        cdfdata = np.fromfile(
+            os.path.join(self.GetSaveDirname(), "cdfdata.np"), dtype=float)
+        from plot import RankHist2
+        RankHist2(cdfdata, plotpath=os.path.join(self.GetSaveDirname(), "cdfdata.png"), name="Enstrophy CDF",
+                  var_name="enstrophy", logx=True, logy=True)
 def runIterMoves(num_vertices=100, num_cycles=10, T=1.0, num_steps=1000,
                  t0=1., t1=10., time_steps=100,
                  node=0, NewRandomWalk=False, plot=True):
     M = num_vertices
     mover = IterMoves(M)
+
     # print_debug("created mover(",M,")")
     # mp.set_start_method('fork')
 
@@ -375,7 +425,7 @@ def runIterMoves(num_vertices=100, num_cycles=10, T=1.0, num_steps=1000,
             print_debug("Exception ", ex)
 
     MoveThree(0)
-    C0 = randomLoop(M, 5)
+
     if NewRandomWalk:
         MakeNewDir(mover.GetSaveDirname())
         mess = "ItoProcess with N=" + str(M) + " and " + str(num_cycles) + " cycles each with " + str(
@@ -394,9 +444,12 @@ def runIterMoves(num_vertices=100, num_cycles=10, T=1.0, num_steps=1000,
         pass
     pass
     if plot:
-        mover.PlotWilsonLoop(t0, t1, time_steps)
+        mover.GetDissipationStats()
+        mover.PlotEnstropyDistribution()
+        #mover.PlotWilsonLoop(t0, t1, time_steps)
     else:
-        mover.CollectStatistics(C0, t0, t1, time_steps)
+        mover.CollectStatistics(t0, t1, time_steps)
+
 
 def test_IterMoves():
     runIterMoves(num_vertices=500, num_cycles=100, T=1., num_steps=10000,
@@ -405,9 +458,9 @@ def test_IterMoves():
 
 
 def testFF():
+    F = np.arange(10)
+    test =np.roll(F, -1, axis=0) - F
     print_debug(ff(3, 10))
-
-
 
 
 if __name__ == '__main__':

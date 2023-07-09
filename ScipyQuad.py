@@ -182,9 +182,9 @@ def SphericalRestrictedIntegral(R):
         reg = Zreg(u, v)
         return reg[0]
 
-
-    return [integrate.tplquad(funcR, 0, 2 * pi, 0, 2 * pi, qfun, rfun),
-            integrate.tplquad(funcI, 0, 2 * pi, 0, 2 * pi, qfun, rfun)]
+    err = 1e-3
+    return [integrate.tplquad(funcR, 0, 2 * pi, 0, 2 * pi, qfun, rfun, epsabs=err),
+            integrate.tplquad(funcI, 0, 2 * pi, 0, 2 * pi, qfun, rfun, epsabs=err)]
 
 
 def test_GroupIntegral():
