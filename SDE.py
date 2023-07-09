@@ -3,7 +3,6 @@ import scipy
 import numpy as np
 import os, sys
 from numpy import cos, sin, pi, linspace
-from scipy.linalg import pinvh
 
 import mpmath as mpm
 
@@ -15,7 +14,7 @@ from wolframclient.evaluation import WolframLanguageSession
 
 from ComplexToReal import ComplexToRealVec, RealToComplexVec, ComplextoRealMat, ReformatRealMatrix, MaxAbsComplexArray, \
     SumSqrAbsComplexArray
-from ScipyQuad import SphericalRestrictedIntegral
+from QuadPy import SphericalRestrictedIntegral
 from VectorOperations import NullSpace5, HodgeDual, E3, randomLoop, GradEqFromMathematica, mdot
 from parallel import parallel_map, ConstSharedArray, WritableSharedArray, print_debug, mp
 from plot import Plot, PlotTimed, MakeDir, XYPlot, MakeNewDir
@@ -153,6 +152,7 @@ def ImproveF1F2F3(F0, F1, F2, F3, F4):
 
 class GroupFourierIntegral:
     def __init__(self):
+        # mp.set_start_method('fork')
         s0 = np.matrix([[1, 0], [0, 1]])
         s1 = np.matrix([[0, 1], [1, 0]])
         s2 = np.matrix([[0, -1j], [1j, 0]])
@@ -184,6 +184,14 @@ class GroupFourierIntegral:
     def ThetaIntegrals(self, X1, X2, t0, t1, time_steps):
         rr = [self.GetRMatrix(X1),self.GetRMatrix(X2)]
         def TwoIntegrals(t):
+            c1 = SphericalRestrictedIntegral(rr[0]/np.sqrt(t))
+            c2 = SphericalRestrictedIntegral(rr[1]/np.sqrt(t))
+            return (c1 + c2)/2
+        ans = parallel_map(TwoIntegrals,linspace(t0, t1, time_steps), mp.cpu_count())
+        return ans
+    def ThetaIntegralsScipy(self, X1, X2, t0, t1, time_steps):
+        rr = [self.GetRMatrix(X1),self.GetRMatrix(X2)]
+        def TwoIntegrals(t):
             (r1, i1) =SphericalRestrictedIntegral(rr[0]/np.sqrt(t))
             (r2, i2) = SphericalRestrictedIntegral(rr[1]/np.sqrt(t))
             return (r1[0] + r2[0] + 1j *( i1[0] + i2[0]))/2
@@ -204,9 +212,9 @@ def test_GroupFourierIntegral():
     r = np.random.normal(scale=0.1, size=30) + 1j * np.random.normal(scale=0.1, size=30)
     r = r.reshape((3, 10))
     X2 = r.dot(r.T)
-    with Timer("multi integrals in Mathematica"):
-        test1 = gfi.ThetaIntegrals(X1,X2,1,2,10)
-
+    with Timer("multi integrals in QuadPy"):
+        test1 = gfi.ThetaIntegrals(X1, X2, 1, 2, 100)
+    print(test1)
     pass
 
 
@@ -215,6 +223,7 @@ class IterMoves():
         self.M = M
         self.Fstart = np.array([ff(k, M) for k in range(M)], complex)
         self.Frun = WritableSharedArray(self.Fstart)
+        mp.set_start_method('fork')
 
     def GetSaveDirname(self):
         # os.path.join("plots", "curve_cycle_node." + str(cycle) + "." + str(node_num) + ".np")
@@ -351,7 +360,7 @@ def runIterMoves(num_vertices=100, num_cycles=10, T=1.0, num_steps=1000,
     M = num_vertices
     mover = IterMoves(M)
     # print_debug("created mover(",M,")")
-    mp.set_start_method('fork')
+    # mp.set_start_method('fork')
 
     def MoveThree(zero_index):
         try:
