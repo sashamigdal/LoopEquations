@@ -195,3 +195,5 @@ def test_GroupIntegral():
         # res = SingleThetaIntegral(r) + DoubleThetaIntegral(r)
         print("\nSphericalRestrictedIntegral =", res)
     pass
+if __name__ == '__main__':
+    test_GroupIntegral()

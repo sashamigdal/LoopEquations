@@ -382,7 +382,7 @@ def test_PnlPlot(N=250):
     plot_monthly_return_distrib(times,pnl,plotpath= TMP_PLOT + 'mdist_test.png')
     plot_daily_return_underwater(times, pnl, plotpath=TMP_PLOT + 'mdd_test.png')
 
-def XYPlot(xy, plotpath, logy=False, lims=None, title='XY',scatter=False):
+def XYPlot(xy, plotpath,logx=False, logy=False, lims=None, title='XY',scatter=False, frac_last = 0.1):
     import matplotlib as mpl
     mpl.use('Agg')
     from matplotlib import pylab
@@ -390,24 +390,23 @@ def XYPlot(xy, plotpath, logy=False, lims=None, title='XY',scatter=False):
     from matplotlib.ticker import MaxNLocator
     import matplotlib.pyplot as plt
     import matplotlib.dates as md
-
-    # filename = plotpath.replace('.png','.XYPlot')
-    # with open(filename,'wb') as output:
-    #     params = dict((
-    #         ('xy', xy),
-    #         ('plotpath',plotpath),
-    #         ('logy',logy),
-    #         ('lims',lims),
-    #         ('title',title)
-    #     ))
-    # pickle.dump(params,output,protocol=pickle.HIGHEST_PROTOCOL)
-
+    x,y = (xy[0], xy[1])
+    ord = np.argsort(x)
+    x,y = (x[ord],y[ord])
     if scatter:
-        plt.scatter(np.asarray(xy[0]), np.asarray(xy[1]))
-    elif logy:
-        pylab.semilogy(np.asarray(xy[0]), np.asarray(xy[1]))
+        plt.scatter(np.asarray(x), np.asarray(y))
+    elif logx:
+        N = int(len(x)*frac_last)
+        l = np.log(x[-N:])
+        t = np.log(y[-N:])
+        p = np.polyfit(l,t,  1)
+        lab = '$\mu=%.2f$' % (p[0])
+        pylab.loglog(x[-N:],y[-N:], color="red", linewidth=1., linestyle="-",label=lab)
     else:
-        pylab.plot(np.asarray(xy[0]), np.asarray(xy[1]),linewidth=0.5)
+        if logy:
+            pylab.semilogy(x,y, color="red", linewidth=1., linestyle="-")
+        else:
+            pylab.plot(x,y, color="red", linewidth=1., linestyle="-")
     if not lims is None:
         plt.axis(lims)
     plt.title(r'$%s$'%title)
@@ -476,8 +475,8 @@ def PlotErrBars(y, yerr, plotpath,title='ErrBars'):
     return PlotXYErrBars(np.arange(len(y),dtype=y.dtype),y,yerr,plotpath,title)
 
 def test_ErrorBars():
-    y = np.arange(10,dtype=np.float)
-    err = np.ones(10,dtype=np.float)*0.5
+    y = np.arange(10,dtype=float)
+    err = np.ones(10,dtype=float)*0.5
     PlotErrBars(y,err,TMP_PLOT + 'test_erbar.png')
 
 def ColorPlotMatrix(z,x_label,y_label,z_label,  plotpath):
@@ -634,7 +633,7 @@ def Pade(x, c1,c2,c3,c4):
 def SubSampleOne(X,K):
     N = len(X)
     grid = np.arange(K,dtype=np.int32)*(N/K)
-    x = np.zeros(K,dtype=np.float)
+    x = np.zeros(K,dtype=float)
     for k in range(K):
         beg = grid[k]
         end = grid[k+1] if k +1 < K else N
@@ -645,8 +644,8 @@ def SubSampleOne(X,K):
 def SubSample(X,Y,K):
     N = len(X)
     grid = np.arange(K,dtype=np.int32)*(N/K)
-    x = np.zeros(K,dtype=np.float)
-    y = np.zeros(K,dtype=np.float)
+    x = np.zeros(K,dtype=float)
+    y = np.zeros(K,dtype=float)
     for k in range(K):
         beg = grid[k]
         end = grid[k+1] if k +1 < K else N
@@ -658,9 +657,9 @@ def SubSample(X,Y,K):
 def SubSampleWithErr(X,Y,K):
     N = len(X)
     grid = np.arange(K,dtype=np.int32)*(N/K)
-    x = np.zeros(K,dtype=np.float)
-    y = np.zeros(K,dtype=np.float)
-    s = np.zeros(K,dtype=np.float)
+    x = np.zeros(K,dtype=float)
+    y = np.zeros(K,dtype=float)
+    s = np.zeros(K,dtype=float)
     for k in range(K):
         beg = grid[k]
         end = grid[k+1] if k +1 < K else N
@@ -678,14 +677,14 @@ def ExpGridWithErr(X,Y,K,min_num=100.):
     step = float(N)/K
     min_num = min(min_num,step)
     delta = np.log(min_num/step)/(K-1.)
-    steps = step*np.exp(np.arange(0,K,dtype=np.float)*delta)
+    steps = step*np.exp(np.arange(0,K,dtype=float)*delta)
     grid = np.cumsum(steps)
     grid -= step
     grid *= (N-1)/grid[-1]
     grid = grid.astype(np.int32)
-    x = np.zeros(K,dtype=np.float)
-    y = np.zeros(K,dtype=np.float)
-    s = np.zeros(K,dtype=np.float)
+    x = np.zeros(K,dtype=float)
+    y = np.zeros(K,dtype=float)
+    s = np.zeros(K,dtype=float)
     for k in range(K):
         beg = grid[k]
         end = grid[k+1] if k +1 < K else N
@@ -700,9 +699,9 @@ def ExpGridWithErr(X,Y,K,min_num=100.):
 def UniformGridWithErr(X,Y,K,min_step=2):
     N = len(X)
     grid = np.searchsorted(X,np.linspace(X[0],X[-1],K))
-    x = np.zeros(K,dtype=np.float)
-    y = np.zeros(K,dtype=np.float)
-    s = np.zeros(K,dtype=np.float)
+    x = np.zeros(K,dtype=float)
+    y = np.zeros(K,dtype=float)
+    s = np.zeros(K,dtype=float)
     for k in range(K):
         beg = grid[k]
         end = grid[k+1] if k +1 < K else N
@@ -745,7 +744,7 @@ def Linear(x,a,b):
 #     x = x[x!=0]
 #     x = np.sort(x)
 #     N = len(x)
-#     cdf = np.arange(1,N+1,dtype=np.float)/(N+1)
+#     cdf = np.arange(1,N+1,dtype=float)/(N+1)
 #     logit = np.log(cdf/(1-cdf))
 #     x,y, s = SubSampleWithErr(x,logit,K)
 #     # s = None
@@ -800,7 +799,7 @@ def CDFPlot(data, plotpath, name='CDF',var='x', lims=None, logit=False):
     dir = path.dirname(plotpath)
     MakeDir(dir)
     data = np.sort(data)
-    cdf = np.arange(1,len(data)+1,dtype=np.float)/(1.+len(data))
+    cdf = np.arange(1,len(data)+1,dtype=float)/(1.+len(data))
     if logit:
         cdf = np.log(cdf/(1-cdf))
         lims = None
@@ -867,7 +866,7 @@ def LogitRankHist(data,plotpath, name='LogitRankHist',var='x'):
     data = (data-m)/s
     data = np.sort(data)
     data = np.sign(data)*np.log(1+np.abs(data))
-    cdf = np.arange(1,len(data)+1,dtype=np.float)/(len(data)+1)
+    cdf = np.arange(1,len(data)+1,dtype=float)/(len(data)+1)
     cdf = np.log(cdf/(1-cdf))
     tail = cdf < -1
     mu1 = np.polyfit(data[tail], cdf[tail],1)[0]
@@ -892,33 +891,36 @@ def RankHistPos(data,plotpath,name='RankHist',var_name='\eta',logx=False, logy=T
     import matplotlib.pyplot as plt
     import matplotlib.dates as md
 
-    dir = path.dirname(plotpath)
-    MakeDir(dir)
-    filename = plotpath.replace('.png','.RankHistPos')
-    with open(filename,'wb') as output:
-            params = dict((
-                ('data', data),
-                ('plotpath',plotpath),
-                ('name',name),
-                ('var_name',var_name),
-                ('logx',logx),
-                ('logy',logy)
-                ))
-            pickle.dump(params,output,protocol=pickle.HIGHEST_PROTOCOL)
+    # dir = path.dirname(plotpath)
+    # MakeDir(dir)
+    # filename = plotpath.replace('.png','.RankHistPos')
+    # with open(filename,'wb') as output:
+    #         params = dict((
+    #             ('data', data),
+    #             ('plotpath',plotpath),
+    #             ('name',name),
+    #             ('var_name',var_name),
+    #             ('logx',logx),
+    #             ('logy',logy)
+    #             ))
+    #         pickle.dump(params,output,protocol=pickle.HIGHEST_PROTOCOL)
 
     x = np.sort(data[data>0])
     N = len(x)
-    tail = (1-np.arange(1,N+1,dtype=np.float)/(N+1))
+    tail = (1-np.arange(1,N+1,dtype=float)/(N+1))
     m = x.mean()
     mean,err = data.mean(), data.std()
     gen_lab = '$%s;<%s>=%.4f\pm%.4f$; '%(name,var_name,mean,err)
     if logx:
-        large = tail < 0.01
-        l = np.log(x[large])
-        t = np.log(tail[large])
+        ok = (tail < 0.1) &  (tail > 5./N)
+        l = np.log(x[ok])
+        t = np.log(tail[ok])
         p = np.polyfit(l,t,  1)
         lab = '$\mu=%.2f$' % (p[0])
-        pylab.loglog(x,tail, color="red", linewidth=1., linestyle="-",label=lab)
+        pylab.loglog(x[ok],tail[ok], color="red", linewidth=1., linestyle="-",label="data")
+        l01 = [np.exp(l[0]),np.exp(l[-1])]
+        p01 = [np.exp(p[1] + p[0]*l[0]),np.exp(p[1] + p[0] *l[-1])]
+        pylab.loglog(l01, p01, color="green", linestyle="--", label="fit "+lab)
     else:
         if logy:
             pylab.semilogy(x,tail, color="red", linewidth=1., linestyle="-")
@@ -927,9 +929,9 @@ def RankHistPos(data,plotpath,name='RankHist',var_name='\eta',logx=False, logy=T
 
 
     pass
-    # pylab.legend(loc='upper right')
+    pylab.legend(loc='upper right')
     pylab.title(gen_lab)
-    pylab.savefig(plotpath, dpi=150)
+    pylab.savefig(plotpath, dpi=350)
     pylab.close()
     return plotpath
 
@@ -958,12 +960,12 @@ def RankHist2(data, plotpath, name='RankHist', var_name='\\eta', logx=False, log
     mean,err = data.mean(), data.std()
     gen_lab = '$%s;<%s>=%.4e\pm %.4e$; '%(name,var_name,mean,err)
     if logx:
-        large = tail1 < 0.01
+        large = tail1 < 0.1
         l = np.log(x1[large])
         t = np.log(tail1[large])
         p1 = np.polyfit(l,t,  1)
         lab1 = '$\mu=%.4f$'%(p1[0])
-        large = tail2 < 0.01
+        large = tail2 < 0.1
         l = np.log(x2[large])
         t = np.log(tail2[large])
         p2 = np.polyfit(l,t,  1)
@@ -1074,7 +1076,7 @@ def LogitHist(data,plotpath, fit_power=False):
     dir = path.dirname(plotpath)
     MakeDir(dir)
     data = np.sort(data)
-    l = np.arange(1,len(data)+1,dtype=np.float)/(1.+len(data))
+    l = np.arange(1,len(data)+1,dtype=float)/(1.+len(data))
     l /= 1-l
     l = np.log(l)
     z = data
@@ -1214,11 +1216,11 @@ def test_CDF(N=10000):
     CDFPlot(y, dir + 'base.png',name='CDF',var='x', lims=[0,1,0,1])
     K = 10
     for n in range(1,K+1):
-        q = n/np.float(K)
+        q = n/float(K)
         condition = r<q
         cond_set = x[condition]**r[condition]
         mm = np.searchsorted(base,cond_set)
-        cdf = (mm.astype(np.float) +1)/(N+1)
+        cdf = (mm.astype(float) +1)/(N+1)
         M = len(mm)
         title = 'q=%s'%q
         CDFPlot(cdf, dir + 'frame_%d.png'%n,name=title,var='C0',lims=[0,1,0,1])

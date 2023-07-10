@@ -1,3 +1,5 @@
+from math import gcd
+
 import scipy
 
 import numpy as np
@@ -13,7 +15,8 @@ from wolframclient.evaluation import WolframLanguageSession
 
 from ComplexToReal import ComplexToRealVec, RealToComplexVec, ComplextoRealMat, ReformatRealMatrix, MaxAbsComplexArray, \
     SumSqrAbsComplexArray
-from QuadPy import SphericalRestrictedIntegral
+from ScipyQuad import SphericalRestrictedIntegral
+# from QuadPy import SphericalRestrictedIntegral
 from VectorOperations import NullSpace5, HodgeDual, E3, randomLoop, GradEqFromMathematica, mdot
 from parallel import parallel_map, ConstSharedArray, WritableSharedArray, print_debug, mp
 from plot import Plot, PlotTimed, MakeDir, XYPlot, MakeNewDir
@@ -38,17 +41,20 @@ def test_list():
     test = [1, 2, 3] + [4, 5, 6, 7]
     test
 
+'''
+&&\vec \Phi_k =  \frac{1}{2} \csc \left(\frac{\beta }{2}\right) \left\{\cos (\alpha_k), \sin (\alpha_k) \vec w, i \cos \left(\frac{\beta }{2}\right)\right\};
 
-def ff(k, M):
-    delta = pi / M
-    return np.array([cos(2 * k * delta), sin(2 * k * delta), cos(delta) * 1j]) / (2 * sin(delta))
+ &&\alpha_{k+1} = \alpha_k + \sigma_k \beta;\\
+    && \alpha_N = \alpha_0 =0;\\
+    && \sigma_k^2 =1
+    
+    \beta = \frac {2 \pi p}{q}
+    
+    M = n q
+'''
+def Phi(alpha, beta):
+    return np.array([cos(alpha), sin(alpha), cos(beta/2) * 1j]) / (2 * sin(beta/2))
 
-
-def testNullSpace():
-    # NS = NullSpace3(ff(0, 10), ff(1, 10), ff(2, 10))
-    # NS = NullSpace4(ff(0, 10), ff(1, 10), ff(2, 10), ff(3, 10))
-    NS = NullSpace5(np.array([ff(0, 10), ff(1, 10), ff(2, 10), ff(3, 10), ff(4, 10)], dtype=complex))
-    pass
 
 
 def ImproveF1F2F3(F0, F1, F2, F3, F4):
@@ -227,9 +233,24 @@ def test_GroupFourierIntegral():
 
 
 class IterMoves():
-    def __init__(self, M):
-        self.M = M
-        self.Fstart = np.array([ff(k, M) for k in range(M)], complex)
+    def __init__(self,N0, node_num):
+        np.random.seed(node_num)
+        self.node_num = node_num
+        p = np.random.randint(1, N0)
+        q = p + np.random.randint(1, N0)
+        f = gcd(p, q)
+        p = int(p/f)
+        q = int(q/f)
+        beta = 2 * pi * p / q
+        n = np.random.randint(2,6)
+        m = n + np.random.randint(2, 5)
+        Nn =q * n
+        Np = q*m
+        self.M = Np + Nn
+        sigmas = np.array([1]*Np  + [-1]* Nn,dtype = int)
+        sigmas = np.random.permutation(sigmas)
+        alphas = np.cumsum(sigmas) * beta
+        self.Fstart = np.array([Phi(alphas[k], beta) for k in range(self.M)], complex)
         self.Frun = WritableSharedArray(self.Fstart)
         mp.set_start_method('fork')
 
@@ -237,16 +258,16 @@ class IterMoves():
         # os.path.join("plots", "curve_cycle_node." + str(cycle) + "." + str(node_num) + ".np")
         return os.path.join("plots", str(self.M))
 
-    def GetSaveFilename(self, cycle, node_num):
+    def GetSaveFilename(self, cycle):
         # os.path.join("plots", "curve_cycle_node." + str(cycle) + "." + str(node_num) + ".np")
-        return os.path.join(self.GetSaveDirname(), "curve_cycle_node." + str(cycle) + "." + str(node_num) + ".np")
+        return os.path.join(self.GetSaveDirname(), "curve_cycle_node." + str(cycle) + "." + str(self.node_num) + ".np")
 
     def GetCLoopFilename(self):
         # os.path.join("plots", "curve_cycle_node." + str(cycle) + "." + str(node_num) + ".np")
         return os.path.join(self.GetSaveDirname(), "Cloop.np")
 
-    def SaveCurve(self, cycle, node_num):
-        self.Frun.tofile(self.GetSaveFilename(cycle, node_num))
+    def SaveCurve(self, cycle):
+        self.Frun.tofile(self.GetSaveFilename(cycle))
 
     def MoveThreeVertices(self, zero_index, T, num_steps):
         M = self.M
@@ -369,7 +390,7 @@ class IterMoves():
                scatter=False,
                title='Wilson Loop')
 
-    def GetDissipationStats(self):
+    def GetPathStats(self):
         pathnames = []
         for filename in os.listdir(self.GetSaveDirname()):
             if filename.endswith(".np") and not (('psidata' in filename) or ('Cloop' in filename)):
@@ -384,7 +405,7 @@ class IterMoves():
             pass
         pass
 
-        def CDF(pathname):
+        def EnstrophyCDF(pathname):
             M = self.M
             try:
                 F = np.fromfile(pathname, dtype=complex)
@@ -398,32 +419,51 @@ class IterMoves():
                 print(ex)
                 return None
 
-        result = parallel_map(CDF, pathnames, 0)  # mp.cpu_count())
+        result = parallel_map(EnstrophyCDF, pathnames, 0)#mp.cpu_count())
         cdfdata = np.array([x for x in result if x is not None], float).reshape(-1)
         cdfdata.tofile(
             os.path.join(self.GetSaveDirname(), "cdfdata.np"))
 
+        def FractalDim(pathname):
+            M = self.M
+            try:
+                F = np.fromfile(pathname, dtype=complex)
+                F = F.reshape((-1, 3))
+                assert F.shape == (M, 3)  # (M by 3 complex tensor)
+                Q = np.roll(F, -1, axis=0) - F  # (M by 3 complex tensor)
+                r = np.sqrt(np.sum(Q* np.conjugate(Q),axis=1).real)
+                return r
+            except Exception as ex:
+                print(ex)
+                return None
+
+        result = parallel_map(FractalDim, pathnames,0)# mp.cpu_count())
+        fracdata = np.array([x for x in result if x is not None], float)
+        fracdata.tofile(
+            os.path.join(self.GetSaveDirname(), "fracdata.np"))
     def PlotEnstropyDistribution(self):
         cdfdata = np.fromfile(
             os.path.join(self.GetSaveDirname(), "cdfdata.np"), dtype=float)
-        from plot import RankHist2
-        RankHist2(cdfdata, plotpath=os.path.join(self.GetSaveDirname(), "cdfdata.png"), name="Enstrophy CDF",
-                  var_name="enstrophy", logx=True, logy=True)
-def runIterMoves(num_vertices=100, num_cycles=10, T=1.0, num_steps=1000,
+        from plot import RankHistPos
+        RankHistPos(cdfdata, plotpath=os.path.join(self.GetSaveDirname(), "cdfdata.png"), name="Enstrophy CDF", logx=True, logy=True)
+
+    def PlotFractalDimension(self):
+        fracdata = np.fromfile(
+            os.path.join(self.GetSaveDirname(), "fracdata.np"), dtype=float).reshape(-1)
+        from plot import RankHistPos
+        RankHistPos(fracdata,logx=True, logy=True, plotpath=os.path.join(self.GetSaveDirname(), "fracdata.png"), name="StepSize CFD",var_name='step')
+
+
+def runIterMoves(num_vertices=100,num_cycles=10, T=1.0, num_steps=1000,
                  t0=1., t1=10., time_steps=100,
                  node=0, NewRandomWalk=False, plot=True):
-    M = num_vertices
-    mover = IterMoves(M)
-
-    # print_debug("created mover(",M,")")
-    # mp.set_start_method('fork')
-
+    mover = IterMoves(num_vertices, node_num=node)
     def MoveThree(zero_index):
         try:
             mover.MoveThreeVertices(zero_index, T, num_steps)
         except Exception as ex:
             print_debug("Exception ", ex)
-
+    M = mover.M
     MoveThree(0)
 
     if NewRandomWalk:
@@ -437,30 +477,32 @@ def runIterMoves(num_vertices=100, num_cycles=10, T=1.0, num_steps=1000,
                     parallel_map(MoveThree, range(zero_index, M + zero_index, 4), mp.cpu_count())
                     print_debug("after cycle " + str(cycle) + " zero index " + str(zero_index))
                 pass
-                mover.SaveCurve(cycle, node)
+                mover.SaveCurve(cycle)
                 print("after saving curve at cycle " + str(cycle))
             pass
             print("all cycles done " + str(cycle))
         pass
     pass
     if plot:
-        mover.GetDissipationStats()
+        mover.GetPathStats()
         mover.PlotEnstropyDistribution()
-        #mover.PlotWilsonLoop(t0, t1, time_steps)
+        mover.PlotFractalDimension()
+        # mover.PlotWilsonLoop(t0, t1, time_steps)
     else:
         mover.CollectStatistics(t0, t1, time_steps)
 
 
 def test_IterMoves():
-    runIterMoves(num_vertices=500, num_cycles=100, T=1., num_steps=10000,
+    runIterMoves(num_vertices=100, num_cycles=100, T=1., num_steps=10000,
                  t0=1, t1=10, time_steps=100,
                  node=0, NewRandomWalk=True, plot=False)
 
 
-def testFF():
-    F = np.arange(10)
-    test =np.roll(F, -1, axis=0) - F
-    print_debug(ff(3, 10))
+def testarrays():
+    F = np.arange(10) -0.5* 1j * np.arange(10)
+    test = np.roll(F, -1, axis=0) - F
+    y =np.abs(test)
+
 
 
 if __name__ == '__main__':
