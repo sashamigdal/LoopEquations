@@ -186,17 +186,6 @@ class GroupFourierIntegral:
         )
         return (R + R.T) * 0.5
 
-    def ThetaIntegrals(self, X1, X2, t0, t1, time_steps):
-        rr = [self.GetRMatrix(X1), self.GetRMatrix(X2)]
-
-        def TwoIntegrals(t):
-            c1 = SphericalRestrictedIntegral(rr[0] / np.sqrt(t))
-            c2 = SphericalRestrictedIntegral(rr[1] / np.sqrt(t))
-            return (c1 + c2) / 2
-
-        ans = parallel_map(TwoIntegrals, linspace(t0, t1, time_steps), mp.cpu_count())
-        return ans
-
     def ThetaIntegralsScipy(self, X1, X2, t0, t1, time_steps):
         rr = [self.GetRMatrix(X1), self.GetRMatrix(X2)]
 
@@ -205,7 +194,7 @@ class GroupFourierIntegral:
             (r2, i2) = SphericalRestrictedIntegral(rr[1] / np.sqrt(t))
             return (r1[0] + r2[0] + 1j * (i1[0] + i2[0])) / 2
 
-        ans = parallel_map(TwoIntegrals, linspace(t0, t1, time_steps), mp.cpu_count())
+        ans = parallel_map(TwoIntegrals, linspace(t0, t1, time_steps), 0)#mp.cpu_count())
         return ans
 
     def ThetaIntegralsMathematica(self, X1, X2, t0, t1, time_steps):
@@ -227,7 +216,7 @@ def test_GroupFourierIntegral():
     r = r.reshape((3, 10))
     X2 = r.dot(r.T)
     with Timer("multi integrals in QuadPy"):
-        test1 = gfi.ThetaIntegrals(X1, X2, 1, 2, 100)
+        test1 = gfi.ThetaIntegralsScipy(X1, X2, 1, 2, 100)
     print(test1)
     pass
 
@@ -333,7 +322,7 @@ class IterMoves():
         self.Frun[(zero_index + 3) % M, :] = FF[2]
         pass
 
-    def CollectStatistics(self, C0, t0, t1, time_steps):
+    def CollectStatistics(self, t0, t1, time_steps):
         M = self.M
         try:
             CDir = np.fromfile(self.GetCLoopFilename(), float).reshape((-1, 3))
@@ -362,15 +351,15 @@ class IterMoves():
                 F = np.fromfile(pathname, dtype=complex)
                 F = F.reshape((-1, 3))
                 assert F.shape == (M, 3)  # (M by 3 complex tensor)
-                Q = np.roll(F, 1, axis=0) - F  # (M by 3 complex tensor)
+                Q = np.roll(F, -1, axis=0) - F  # (M by 3 complex tensor)
                 X1 = np.dot(CDir.T, Q)  # (3 by 3 complex tensor for direct curve)
                 X2 = np.dot(CRev.T, np.conjugate(Q))  # (3 by 3 complex tensor for reflected curve)
-                return GFI.ThetaIntegrals(X1, X2, t0, t1, time_steps)
+                return GFI.ThetaIntegralsScipy(X1, X2, t0, t1, time_steps)
             except Exception as ex:
                 print(ex)
                 return None
 
-        result = parallel_map(Psi, pathnames, 0);
+        result = parallel_map(Psi, pathnames, mp.cpu_count());
         psidata = np.array([x for x in result if x is not None], complex)
         psidata.tofile(
             os.path.join(self.GetSaveDirname(), "psidata." + str(t0) + "." + str(t1) + "." + str(time_steps) + ".np"))
@@ -487,9 +476,9 @@ def runIterMoves(num_vertices=100,num_cycles=10, T=1.0, num_steps=1000,
         mover.GetPathStats()
         mover.PlotEnstropyDistribution()
         mover.PlotFractalDimension()
-        # mover.PlotWilsonLoop(t0, t1, time_steps)
     else:
         mover.CollectStatistics(t0, t1, time_steps)
+        mover.PlotWilsonLoop(t0, t1, time_steps)
 
 
 def test_IterMoves():
