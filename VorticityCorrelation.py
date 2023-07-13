@@ -101,7 +101,9 @@ def corrfunction(M, T, R, l0, l1):
             sq = np.copy(rdata[:]) * sqrt(ds.dot(ds))
             return (Omega(n).dot(Omega(m))).real / (M * (M - 1)) * sin(sq) / sq
 
-        ans = np.zeros((M, M, R), dtype=float)
+        ans = np.zeros((M, M, R), dtype=float),
+
+
         for m in range(1, M):
             for n in range(m):
                 ans[n, m] = ans[m, n] = II(n, m)
