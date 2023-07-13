@@ -66,8 +66,10 @@ def _run_jobs(work, args_list, num_cores):
     jobs = []
     for rank in range(min(len(args_list), num_cores)):
         job = mp.Process(target=work, name="worker_%s" % rank, args=(rank,))
-        job.start()
         jobs.append(job)
+
+    for job in jobs:
+        job.start()
 
     for job in jobs:
         job.join()
