@@ -49,6 +49,8 @@ CorrFunction[M_, T_, MySum_, WP_] :=
 
 
 '''
+import os
+from plot import MakeDir, RankHistPos
 # from functools import reduce
 # from operator import add
 
@@ -59,8 +61,15 @@ from parallel import parallel_map, ConstSharedArray
 import multiprocessing as mp
 
 mp.set_start_method('fork')
+def CorrFuncDir(M):
+    return os.path.join("plots", "VorticityCorr." + str(M))
+
+
+
+
 
 def corrfunction(M, T, R, l0, l1):
+    MakeDir(CorrFuncDir(M))
     q = 1
     for n in range(1, M):
         p = prime(n)
@@ -112,8 +121,54 @@ def corrfunction(M, T, R, l0, l1):
         return np.sum(ans, axis=(0, 1))
 
     res = parallel_map(SampleCorr, range(T), mp.cpu_count())
-    return np.mean(np.vstack(res), axis=0)
+    data = np.mean(np.vstack(res), axis=0)
+    pathname = os.path.join(CorrFuncDir(M), "corrdata.np")
+    data.tofile(pathname)
+    return pathname
 
 
 def test_corfunction():
     corrs = corrfunction(100, 100, 100, -5, 5)
+
+def FDistribution(M,T):
+    MakeDir(CorrFuncDir(M))
+    q = 1
+    for n in range(1, M):
+        p = prime(n)
+        if 3 * p < M:
+            q = p
+        else:
+            break
+        pass
+    p = np.random.randint(1, q - 1)
+    beta = 2 * pi * p / q
+    sigmas = ConstSharedArray(np.array([1] * (M - q) + [-1] * q, dtype=int))
+    def SampleCorr(t):
+        alphas = np.copy(sigmas[:])* beta
+        np.random.shuffle(alphas)
+        alphas = np.cumsum(alphas)
+        alphas = np.append(alphas, alphas[0])
+
+        FF = 1 / (2 * sin(beta / 2)) * np.vstack([np.array([cos(alphas[k]), sin(alphas[k]), 1j * cos(beta / 2)], complex) for k in range(M)])
+        FS = np.cumsum(FF, axis=0)
+        Stot = FS[-1]
+        m = np.random.randint(1,M)
+        n = np.random.randint(0,m)
+        Snm = FS[m] - FS[n]
+        Smn = Stot - Snm
+        snm = Snm / (m - n)
+        smn = Smn / (n + M - m)
+        return (snm.real - smn.real) ** 2
+    res = parallel_map(SampleCorr, range(T), mp.cpu_count())
+    data = np.array(res,float)
+    pathname = os.path.join(CorrFuncDir(M), "Fdata.np")
+    data.tofile(pathname)
+    return pathname
+
+def test_FDistribution():
+    M = 1000
+    T = 1000
+    pathname = FDistribution(M, T)
+    data = np.fromfile(pathname,float)
+    plotpath = os.path.join(CorrFuncDir(M), "Fdata.png")
+    RankHistPos(data,plotpath,name='SFHist',var_name='SF',logx=True, logy=True)
