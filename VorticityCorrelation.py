@@ -185,8 +185,8 @@ class FDPlotter():
 
 def test_FDistribution():
     M = 50000
-    T = 100000
-    R = 100000
+    T = 10000
+    R = 1000000
     fdp = FDPlotter(M ,T ,R )
     fdp.MakePlots()
 
