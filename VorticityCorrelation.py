@@ -50,18 +50,21 @@ CorrFunction[M_, T_, MySum_, WP_] :=
 
 '''
 import os
+
+from mpmath import rational
+
 from plot import MakeDir, RankHistPos, RankHist2, XYPlot
 # from functools import reduce
 # from operator import add
 
 from numpy import pi, sin, cos, tan, sqrt, exp
-from sympy import prime
+from sympy import prime, ceiling
 import numpy as np
 from parallel import parallel_map, ConstSharedArray
 import multiprocessing as mp
 import concurrent.futures as fut
-
-mp.set_start_method('fork')
+from fractions import Fraction
+# mp.set_start_method('fork')
 def CorrFuncDir(M):
     return os.path.join("plots", "VorticityCorr." + str(M))
 
@@ -75,136 +78,117 @@ def Omega(k, alphas, beta):
         [cos((alphas[k] + alphas[k + 1]) / 2), sin((alphas[k] + alphas[k + 1]) / 2), 1j], complex)
 
 
-def corrfunction(M, T, R, l0, l1):
-    MakeDir(CorrFuncDir(M))
-    q = 1
-    for n in range(1, M):
-        p = prime(n)
-        if 3 * p < M:
-            q = p
-        else:
-            break
-        pass
-    p = np.random.randint(1, q - 1)
-    beta = 2 * pi * p / q
-    sigmas = ConstSharedArray(np.array([1] * (M - q) + [-1] * q, dtype=int))
-    logrdata = np.linspace(l0, l1, R)
-    rdata = ConstSharedArray(exp(logrdata))
+class FDPlotter():
+    def __init__(self, M, T, R):
+        self.M = M
+        self.T = T
+        self.R = R
+        if not os.path.isfile(self.FDistributionPathname()):
+            self.FDistribution()
+            print("made FDistribution " + str(M) )
+        data = []
+        try:
+            data = np.fromfile(self.FDistributionPathname(),float).reshape(-1,2).T
+            plotpath = os.path.join(CorrFuncDir(M), "DSdata.png")
+            RankHistPos(data[0],plotpath,name='delta S Hist',var_name='DS',logx=True, logy=True)
+            print("made DSHist " + str(M) )
+        except Exception as ex:
+            print(ex)
+        plotpath = os.path.join(CorrFuncDir(M), "OmegaOmega.png")
+        try:
+            RankHistPos(-data[1], plotpath, name='OmegaOmega Hist', var_name='OdotO', logx=True, logy=True)
+            print("made OmegaOmega " + str(M) )
+        except Exception as ex:
+            print(ex)
+        self.dss = ConstSharedArray(data[0])
+        self.OdotO = ConstSharedArray(data[1])
+        self.Rdata = ConstSharedArray(np.exp(np.linspace(-5, 20, R)))
 
-    def SampleCorr(t):
-        alphas = np.copy(sigmas[:])* beta
-        np.random.shuffle(alphas)
-        alphas = np.cumsum(alphas)
-        alphas = np.append(alphas, alphas[0])
 
-        FF = np.vstack([F(k,alphas, beta) for k in range(M)])
-        FS = np.cumsum(FF, axis=0)
-        Stot = FS[-1]
 
-        def II(n, m):
+    def FDistributionPathname(self):
+        return os.path.join(CorrFuncDir(self.M), "Fdata." + str(self.T) + ".np")
+
+    def CorrDataPathname(self):
+        return os.path.join(CorrFuncDir(self.M), "CorrData." + str(self.T) + ".np")
+
+
+    def FDistribution(self):
+        M = self.M
+        T = self.T
+        MakeDir(CorrFuncDir(M))
+        res = []
+        with fut.ProcessPoolExecutor() as exec:
+            step = max(1, int(T/(mp.cpu_count()-1))+1)
+            params = [[k,k+ step] for k in range(0,T, step)]
+            params[-1][1] = T
+            res = list(exec.map(self.SampleCorr, params))
+        data = np.append(np.stack(res[:-1]),np.array(res[-1])).reshape(-1,2)
+        data.tofile(self.FDistributionPathname())
+
+    def SampleCorr(self,params):
+        beg,end = params
+        M = self.M
+        f = np.random.random()
+        pq = Fraction(f).limit_denominator(int(M/2))
+        p = pq.numerator
+        q = pq.denominator
+        beta = 2 * pi * p / q
+        ar = []
+        r = np.random.randint(0,int(M/q))
+        if (M - q*r)%2 != 0:
+            r +=1
+        n = (M - q* r)//2
+        for t in range(beg,end):
+            alphas = np.array([beta] * (M - n) + [-beta] * n, dtype=float)
+            np.random.shuffle(alphas)
+            alphas = np.cumsum(alphas)
+            alphas = np.append(alphas, alphas[0])
+
+            FF = np.vstack([F(k,alphas, beta) for k in range(M)])
+            FS = np.cumsum(FF, axis=0)
+            Stot = FS[-1]
+            m = np.random.randint(1,M)
+            n = np.random.randint(0,m)
             Snm = FS[m] - FS[n]
             Smn = Stot - Snm
             snm = Snm / (m - n)
             smn = Smn / (n + M - m)
             ds = snm.real - smn.real
-            sq = np.copy(rdata[:]) * sqrt(ds.dot(ds))
-            return (Omega(n,alphas, beta).dot(Omega(m,alphas,beta))).real / (M * (M - 1)) * sin(sq) / sq
+            ar.extend([sqrt(ds.dot(ds)),np.dot(Omega(n,alphas,beta),Omega(m,alphas,beta)).real])
+        return ar
 
-        ans = np.zeros((M, M, R), dtype=float),
-
-
-        for m in range(1, M):
-            for n in range(m):
-                ans[n, m] = ans[m, n] = II(n, m)
-            pass
-        pass
-        return np.sum(ans, axis=(0, 1))
-
-    res = parallel_map(SampleCorr, range(T), mp.cpu_count())
-    data = np.mean(np.vstack(res), axis=0)
-    pathname = os.path.join(CorrFuncDir(M), "corrdata.np")
-    data.tofile(pathname)
-    return pathname
-
-
-def test_corfunction():
-    corrs = corrfunction(100, 100, 100, -5, 5)
-
-def FDistributionPathname(M,T):
-    return os.path.join(CorrFuncDir(M), "Fdata." + str(T) + ".np")
-
-def FDistribution(M,T):
-    MakeDir(CorrFuncDir(M))
-    q = 1
-    for n in range(1, M):
-        p = prime(n)
-        if 3 * p < M:
-            q = p
-        else:
-            break
-        pass
-    p = np.random.randint(1, q - 1)
-    beta = 2 * pi * p / q
-    sigmas = ConstSharedArray(np.array([1] * (M - q) + [-1] * q, dtype=int))
-    def SampleCorr(t):
-        alphas =sigmas[:]* beta
-        np.random.shuffle(alphas)
-        alphas = np.cumsum(alphas)
-        alphas = np.append(alphas, alphas[0])
-
-        FF = np.vstack([F(k,alphas, beta) for k in range(M)])
-        FS = np.cumsum(FF, axis=0)
-        Stot = FS[-1]
-        m = np.random.randint(1,M)
-        n = np.random.randint(0,m)
-        Snm = FS[m] - FS[n]
-        Smn = Stot - Snm
-        snm = Snm / (m - n)
-        smn = Smn / (n + M - m)
-        ds = snm.real - smn.real
-
-        return np.array([sqrt(ds.dot(ds)),np.dot(Omega(n,alphas,beta),Omega(m,alphas,beta)).real],float)
-    res = []
-    with fut.ProcessPoolExecutor() as exec:
-        res = list(exec.map(SampleCorr, range(T)))
-        data = np.vstack(res)
-    data.tofile(FDistributionPathname(M,T))
-
-def plot_FDistribution(M,T,R):
-    if not os.path.isfile(FDistributionPathname(M,T)):
-        FDistribution(M,T)
-        print("made FDistribution " + str(M) )
-    data = np.fromfile(FDistributionPathname(M,T),float).reshape(-1,2).T
-    plotpath = os.path.join(CorrFuncDir(M), "DSdata.png")
-    RankHistPos(data[0],plotpath,name='DSHist',var_name='DS',logx=True, logy=True)
-    print("made DSHist " + str(M) )
-    plotpath = os.path.join(CorrFuncDir(M), "OmegaOmega.png")
-    RankHistPos(-data[1], plotpath, name='OmegaOmega', var_name='OdotO', logx=True, logy=True)
-    print("made OmegaOmega " + str(M) )
-    dss = ConstSharedArray(data[0])
-    OdotO = ConstSharedArray(data[1])
-    Rdata = ConstSharedArray(np.exp(np.linspace(-5, 20, R)))
-    def GetCorr(beg,end):
-        s = dss[:,np.newaxis]* Rdata[np.newaxis,beg:end]
+    def GetCorr(self,params):
+        beg,end = params
+        s = self.dss[:,np.newaxis]* self.Rdata[np.newaxis,beg:end]
         s = sin(s)/s
-        return OdotO[:].dot(s)/len(OdotO)
+        return self.OdotO[:].dot(s)/len(self.OdotO)
 
-    step = max(1, int(R/mp.cpu_count()))
-    ranges = [(k,k+ step) for k in range(0,R, step)]
-    ranges[-1][1] = R
-    res = list(parallel_map(GetCorr, ranges))
-    corrdata = np.array(res,float)
-    data.tofile(FDistributionPathname(M,T))
-    print("made parallel map corrdata " + str(M) )
-    plotpath = os.path.join(CorrFuncDir(M), "VortCorr.png")
-    XYPlot([Rdata[:],np.abs(corrdata)],plotpath,logx=True,logy=True)
-    print("made VortCorr " + str(M) )
+    def MakePlots(self):
+        res = []
+        R = self.R
+        M = self.M
+        T = self.T
+        with fut.ProcessPoolExecutor() as exec:
+            step = max(1, int(R/(mp.cpu_count()-1))+1)
+            ranges = [[k,k+ step] for k in range(0,R, step)]
+            ranges[-1][1] = R
+            res = list(exec.map(self.GetCorr, ranges))
+        corrdata =np.append(np.stack(res[:-1]),res[-1])
+        corrdata.tofile(self.CorrDataPathname())
+        print("made parallel map corrdata " + str(M) )
+        plotpath = os.path.join(CorrFuncDir(M), "VortCorr.png")
+        XYPlot([self.Rdata[:],np.abs(corrdata)],plotpath,logx=True,logy=True,title="log-log vorticity corr(r)")
+        print("made VortCorr " + str(M) )
+
+
 
 def test_FDistribution():
-    M = 1000
-    T = 200
-    R = 1000
-    plot_FDistribution(M ,T ,R )
+    M = 50000
+    T = 100000
+    R = 100000
+    fdp = FDPlotter(M ,T ,R )
+    fdp.MakePlots()
 
 if __name__ == '__main__':
     test_FDistribution()

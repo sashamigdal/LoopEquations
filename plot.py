@@ -410,6 +410,7 @@ def XYPlot(xy, plotpath,logx=False, logy=False, lims=None, title='XY',scatter=Fa
     if not lims is None:
         plt.axis(lims)
     plt.title(r'$%s$'%title)
+    pylab.legend(loc='upper right')
     pylab.savefig(plotpath, dpi=500)
     pylab.close()
     return plotpath
