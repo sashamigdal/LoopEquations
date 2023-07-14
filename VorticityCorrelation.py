@@ -58,13 +58,11 @@ from plot import MakeDir, RankHistPos, RankHist2, XYPlot
 # from operator import add
 
 from numpy import pi, sin, cos, tan, sqrt, exp
-from sympy import prime, ceiling
 import numpy as np
-from parallel import parallel_map, ConstSharedArray
+from parallel import ConstSharedArray
 import multiprocessing as mp
 import concurrent.futures as fut
 from fractions import Fraction
-# mp.set_start_method('fork')
 def CorrFuncDir(M):
     return os.path.join("plots", "VorticityCorr." + str(M))
 
@@ -86,7 +84,7 @@ class FDPlotter():
         if not os.path.isfile(self.FDistributionPathname()):
             self.FDistribution()
             print("made FDistribution " + str(M) )
-        data = []
+        data = None
         try:
             data = np.fromfile(self.FDistributionPathname(),float).reshape(-1,2).T
             plotpath = os.path.join(CorrFuncDir(M), "DSdata.png")
@@ -178,7 +176,8 @@ class FDPlotter():
         corrdata.tofile(self.CorrDataPathname())
         print("made parallel map corrdata " + str(M) )
         plotpath = os.path.join(CorrFuncDir(M), "VortCorr.png")
-        XYPlot([self.Rdata[:],np.abs(corrdata)],plotpath,logx=True,logy=True,title="log-log vorticity corr(r)")
+        ok = corrdata>0
+        XYPlot([self.Rdata[ok],corrdata[ok]],plotpath,logx=True,logy=True,title="vorticity-corr(r)")
         print("made VortCorr " + str(M) )
 
 
