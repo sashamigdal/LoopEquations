@@ -104,7 +104,7 @@ class FDPlotter():
             print(ex)
         self.dss = ConstSharedArray(data[0])
         self.OdotO = ConstSharedArray(data[1])
-        self.Rdata = ConstSharedArray(np.exp(np.linspace(-40, 0, R)))
+        self.Rdata = ConstSharedArray(np.exp(np.linspace(-5, -1, R)))
 
     def FDistributionPathname(self):
         return os.path.join(CorrFuncDir(self.M), "Fdata." + str(self.T) + ".np")
@@ -178,14 +178,15 @@ class FDPlotter():
         print("made parallel map corrdata " + str(M))
         plotpath = os.path.join(CorrFuncDir(M), "VortCorr.png")
         ok = corrdata > 0
-        XYPlot([self.Rdata[ok], corrdata[ok]], plotpath, logx=True, logy=True, title="vorticity-corr(r)")
+        XYPlot([self.Rdata[ok], corrdata[ok]], plotpath, logx=False, logy=False,
+               title="vortCorr",x_label='r',y_label='corr')
         print("made VortCorr " + str(M))
 
 
 def test_FDistribution():
     M = 100001
     T = 10000
-    R = 1000000
+    R = 100000
     with Timer("done FDistribution for M,T,R= " + str(M) + "," + str(T) + "," + str(R)):
         fdp = FDPlotter(M, T, R)
         fdp.MakePlots()

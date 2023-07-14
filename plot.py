@@ -382,7 +382,7 @@ def test_PnlPlot(N=250):
     plot_monthly_return_distrib(times,pnl,plotpath= TMP_PLOT + 'mdist_test.png')
     plot_daily_return_underwater(times, pnl, plotpath=TMP_PLOT + 'mdd_test.png')
 
-def XYPlot(xy, plotpath,logx=False, logy=False, lims=None, title='XY',scatter=False, frac_last = 0.1):
+def XYPlot(xy, plotpath,logx=False, logy=False, lims=None, title='XY',scatter=False, frac_last = 0.1, x_label = 'x', y_label='y'):
     import matplotlib as mpl
     mpl.use('Agg')
     from matplotlib import pylab
@@ -395,7 +395,7 @@ def XYPlot(xy, plotpath,logx=False, logy=False, lims=None, title='XY',scatter=Fa
     x,y = (x[ord],y[ord])
     if scatter:
         plt.scatter(np.asarray(x), np.asarray(y))
-    elif logx:
+    elif logx and logy:
         N = int(len(x)*frac_last)
         l = np.log(x[-N:])
         t = np.log(y[-N:])
@@ -410,6 +410,8 @@ def XYPlot(xy, plotpath,logx=False, logy=False, lims=None, title='XY',scatter=Fa
     if not lims is None:
         plt.axis(lims)
     plt.title(r'$%s$'%title)
+    plt.xlabel(r'$%s$'%x_label)
+    plt.ylabel(r'$%s$'%y_label)
     pylab.legend(loc='upper right')
     pylab.savefig(plotpath, dpi=500)
     pylab.close()
