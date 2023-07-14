@@ -86,21 +86,21 @@ class FDPlotter():
             print("made FDistribution " + str(M) )
         data = None
         try:
-            data = np.fromfile(self.FDistributionPathname(),float).reshape(-1,2).T
-            plotpath = os.path.join(CorrFuncDir(M), "DSdata.png")
-            RankHistPos(data[0],plotpath,name='delta S Hist',var_name='DS',logx=True, logy=True)
-            print("made DSHist " + str(M) )
-        except Exception as ex:
-            print(ex)
-        plotpath = os.path.join(CorrFuncDir(M), "OmegaOmega.png")
-        try:
-            RankHistPos(-data[1], plotpath, name='OmegaOmega Hist', var_name='OdotO', logx=True, logy=True)
+            data = np.fromfile(self.FDistributionPathname(),float).reshape(-1,3).T
+            plotpath = os.path.join(CorrFuncDir(M), "beta.png")
+            RankHistPos(data[0],plotpath,name='beta Hist',var_name='beta',logx=True, logy=True)
+            print("made betaHist " + str(M) )
+            plotpath = os.path.join(CorrFuncDir(M), "DS.png")
+            RankHistPos(data[1],plotpath,name='DSHist',var_name='DS',logx=True, logy=True)
+            print("made DS Hist " + str(M) )
+            plotpath = os.path.join(CorrFuncDir(M), "OmegaOmega.png")
+            RankHistPos(-data[2], plotpath, name='OmegaOmega Hist', var_name='OdotO', logx=True, logy=True)
             print("made OmegaOmega " + str(M) )
         except Exception as ex:
             print(ex)
         self.dss = ConstSharedArray(data[0])
         self.OdotO = ConstSharedArray(data[1])
-        self.Rdata = ConstSharedArray(np.exp(np.linspace(-5, 20, R)))
+        self.Rdata = ConstSharedArray(np.exp(np.linspace(-25, 0, R)))
 
 
 
@@ -121,7 +121,7 @@ class FDPlotter():
             params = [[k,k+ step] for k in range(0,T, step)]
             params[-1][1] = T
             res = list(exec.map(self.SampleCorr, params))
-        data = np.append(np.stack(res[:-1]),np.array(res[-1])).reshape(-1,2)
+        data = np.append(np.stack(res[:-1]),np.array(res[-1]))
         data.tofile(self.FDistributionPathname())
 
     def SampleCorr(self,params):
@@ -153,7 +153,7 @@ class FDPlotter():
             snm = Snm / (m - n)
             smn = Smn / (n + M - m)
             ds = snm.real - smn.real
-            ar.extend([sqrt(ds.dot(ds)),np.dot(Omega(n,alphas,beta),Omega(m,alphas,beta)).real])
+            ar.extend([beta,sqrt(ds.dot(ds)),np.dot(Omega(n,alphas,beta),Omega(m,alphas,beta)).real])
         return ar
 
     def GetCorr(self,params):
@@ -183,9 +183,9 @@ class FDPlotter():
 
 
 def test_FDistribution():
-    M = 100000
+    M = 100001
     T = 10000
-    R = 5000000
+    R = 100000
     fdp = FDPlotter(M ,T ,R )
     fdp.MakePlots()
 
