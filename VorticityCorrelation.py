@@ -199,7 +199,7 @@ class FDPlotter():
             try:
                 MultiRankHistPos(data,plotpath,name,logx=True,logy=True)
             except Exception as ex:
-                print(name+ex)
+                print(ex)
         pass
         corrdata = np.fromfile(self.CorrDataPathname(),dtype=float).reshape(4,-1)
         datapos = []
@@ -213,12 +213,12 @@ class FDPlotter():
         try:
             MultiXYPlot(datapos, plotpath, logx=True, logy=True, title='VortCorrPos',scatter=False, xlabel ='r', ylabel='corr')
         except Exception as ex:
-            print("multicorr pos " +ex)
+            print(ex)
         plotpath = os.path.join(CorrFuncDir(M),"multicorrNeg.png")
         try:
             MultiXYPlot(dataneg, plotpath, logx=True, logy=True, title='VortCorrNeg',scatter=False, xlabel ='r', ylabel='-corr')
         except Exception as ex:
-            print("multicorr neg " +ex)
+            print(ex)
         print("made VortCor " + str(M))
 
 
