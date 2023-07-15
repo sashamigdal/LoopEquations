@@ -417,7 +417,52 @@ def XYPlot(xy, plotpath,logx=False, logy=False, lims=None, title='XY',scatter=Fa
     pylab.close()
     return plotpath
 
+def MultiXYPlot(data, plotpath, logx=True, logy=True, title='XY',scatter=False, xlabel ='x', ylabel='y'):
+    import matplotlib as mpl
+    mpl.use('Agg')
+    from matplotlib import pylab
+    from matplotlib.colors import BoundaryNorm
+    from matplotlib.ticker import MaxNLocator
+    import matplotlib.pyplot as plt
+    import matplotlib.dates as md
+    for (name, x,y) in data:
+        ord = np.argsort(x)
+        x,y = (x[ord],y[ord])
+        if scatter:
+            plt.scatter(np.asarray(x), np.asarray(y),label=name)
+        elif logx and logy:
+            pylab.loglog(x,y, linewidth=1., linestyle="-",label=name)
+        else:
+            if logy:
+                pylab.semilogy(x,y,  linewidth=1., linestyle="-",label=name)
+            else:
+                pylab.plot(x,y, linewidth=1., linestyle="-",label=name)
+    plt.xlabel(r'$%s$'%xlabel)
+    plt.ylabel(r'$%s$'%ylabel)
+    plt.title(r'$%s$'%title)
+    pylab.legend(loc='best')
+    pylab.savefig(plotpath, dpi=500)
+    pylab.close()
+    return plotpath
 
+
+def MultiPlot(data, plotpath, logy=False, title='XY',scatter=False, xlabel ='x', ylabel='y'):
+    import matplotlib as mpl
+    mpl.use('Agg')
+    from matplotlib import pylab
+    from matplotlib.colors import BoundaryNorm
+    from matplotlib.ticker import MaxNLocator
+    import matplotlib.pyplot as plt
+    import matplotlib.dates as md
+    for (name, x) in data:
+        pylab.plot(x,  linewidth=1., linestyle="-",label= name)
+    plt.xlabel(r'$%s$'%xlabel)
+    plt.ylabel(r'$%s$'%ylabel)
+    plt.title(r'$%s$'%title)
+    pylab.legend(loc='upper right')
+    pylab.savefig(plotpath, dpi=500)
+    pylab.close()
+    return plotpath
 
 def Plot(t, plotpath='/tmp/plot.png',x_label='x',y_label='y',title='Plot'):
     import matplotlib as mpl
@@ -659,13 +704,13 @@ def SubSample(X,Y,K):
 
 def SubSampleWithErr(X,Y,K):
     N = len(X)
-    grid = np.arange(K,dtype=np.int32)*(N/K)
+    grid = np.arange(K,dtype=float)*(float(N)/K)
     x = np.zeros(K,dtype=float)
     y = np.zeros(K,dtype=float)
     s = np.zeros(K,dtype=float)
     for k in range(K):
-        beg = grid[k]
-        end = grid[k+1] if k +1 < K else N
+        beg = int(grid[k])
+        end = int(grid[k+1]) if k +1 < K else N
         if end< beg+2: continue
         x[k] = X[beg:end].mean()
         y[k] = Y[beg:end].mean()
@@ -938,6 +983,45 @@ def RankHistPos(data,plotpath,name='RankHist',var_name='\eta',logx=False, logy=T
     pylab.close()
     return plotpath
 
+
+def MultiRankHistPos(arrays,plotpath,var_name='\eta',logx=False, logy=True):
+    import matplotlib as mpl
+    mpl.use('Agg')
+    from matplotlib import pylab
+    from matplotlib.colors import BoundaryNorm
+    from matplotlib.ticker import MaxNLocator
+    import matplotlib.pyplot as plt
+    import matplotlib.dates as md
+    for name, data in arrays:
+        x = np.sort(data[data>0])
+        N = len(x)
+        tail = (1-np.arange(1,N+1,dtype=float)/(N+1))
+        m = x.mean()
+        mean,err = data.mean(), data.std()
+        gen_lab = '$%s;<%s>=%.4f\pm%.4f$; '%(name,var_name,mean,err)
+        if logx:
+            ok = (tail < 0.1) &  (tail > 5./N)
+            l = np.log(x[ok])
+            t = np.log(tail[ok])
+            p = np.polyfit(l,t,  1)
+            lab = '$\mu=%.2f$' % (p[0])
+            pylab.loglog(x[ok],tail[ok],  linewidth=1., linestyle="-",label=name)
+            # l01 = [np.exp(l[0]),np.exp(l[-1])]
+            # p01 = [np.exp(p[1] + p[0]*l[0]),np.exp(p[1] + p[0] *l[-1])]
+            # pylab.loglog(l01, p01, color="green", linestyle="--", label=name+" fit "+lab)
+        else:
+            if logy:
+                pylab.semilogy(x,tail,  linewidth=1., linestyle="-",label=name)
+            else:
+                pylab.plot(x,tail,  linewidth=1., linestyle="-",label=name)
+
+
+    pass
+    pylab.legend(loc='best')
+    pylab.title(gen_lab)
+    pylab.savefig(plotpath, dpi=500)
+    pylab.close()
+    return plotpath
 
 def RankHist2(data, plotpath, name='RankHist', var_name='\\eta', logx=False, logy=True):
     import matplotlib as mpl

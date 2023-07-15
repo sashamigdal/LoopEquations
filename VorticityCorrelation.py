@@ -53,12 +53,13 @@ import os
 
 from mpmath import rational
 
+from SortedArrayIter import SortedArrayIter
 from Timer import MTimer as Timer
-from plot import MakeDir, RankHistPos, RankHist2, XYPlot
+from plot import MakeDir, XYPlot, SubSampleWithErr, PlotXYErrBars, MultiPlot, MultiRankHistPos, MultiXYPlot
 # from functools import reduce
 # from operator import add
 
-from numpy import pi, sin, cos, tan, sqrt, exp
+from numpy import pi, sin, cos, tan, sqrt, exp, log
 import numpy as np
 from parallel import ConstSharedArray
 import multiprocessing as mp
@@ -80,69 +81,18 @@ def Omega(k, alphas, beta):
 
 
 class FDPlotter():
-    def __init__(self, M, T, R):
-        MakeDir(CorrFuncDir(M))
-        self.M = M
-        self.T = T
-        self.R = R
-        if not os.path.isfile(self.FDistributionPathname()):
-            self.FDistribution()
-            print("made FDistribution " + str(M))
-        data = None
-        try:
-            data = np.fromfile(self.FDistributionPathname(), float).reshape(-1, 3).T
-            plotpath = os.path.join(CorrFuncDir(M), "beta.png")
-            RankHistPos(data[0], plotpath, name='beta Hist', var_name='beta', logx=True, logy=True)
-            print("made betaHist " + str(M))
-            plotpath = os.path.join(CorrFuncDir(M), "DS.png")
-            RankHistPos(data[1], plotpath, name='DSHist', var_name='DS', logx=True, logy=True)
-            print("made DS Hist " + str(M))
-            plotpath = os.path.join(CorrFuncDir(M), "OmegaOmega.png")
-            RankHistPos(-data[2], plotpath, name='OmegaOmega Hist', var_name='OdotO', logx=True, logy=True)
-            print("made OmegaOmega " + str(M))
-        except Exception as ex:
-            print(ex)
-        self.dss = ConstSharedArray(data[0])
-        self.OdotO = ConstSharedArray(data[1])
-        self.Rdata = ConstSharedArray(np.exp(np.linspace(-5, -1, R)))
-
-    def FDistributionPathname(self):
-        return os.path.join(CorrFuncDir(self.M), "Fdata." + str(self.T) + ".np")
-
-    def CorrDataPathname(self):
-        return os.path.join(CorrFuncDir(self.M), "CorrData." + str(self.T) + ".np")
-
-    def FDistribution(self):
-        M = self.M
-        T = self.T
-        MakeDir(CorrFuncDir(M))
-        res = []
-        with fut.ProcessPoolExecutor() as exec:
-            step = max(1, int(T / (mp.cpu_count() - 1)) + 1)
-            params = [[k, k + step] for k in range(0, T, step)]
-            params[-1][1] = T
-            res = list(exec.map(self.SampleCorr, params))
-        data = np.append(np.stack(res[:-1]), np.array(res[-1]))
-        data.tofile(self.FDistributionPathname())
-
-    def SampleCorr(self, params):
+    def GetSamples(self, params):
         beg, end = params
-        M = self.M
-        ar = []
-        for t in range(beg, end):
-            f = np.random.random()
-            pq = Fraction(f).limit_denominator(int(M / 2))
-            p = pq.numerator
-            q = pq.denominator
+        ar = np.zeros((end-beg)*3,dtype=float).reshape(-1,3)
+        for k in range(beg, end):
+            M = self.MM(k,self.T)
+            q = 2-(M%2) +2 *np.random.randint((M+1)//2)
+            p = np.random.randint(1,q)
             beta = 2 * pi * p / q
-            r = np.random.randint(0, int(M / q))
-            if (M - q * r) % 2 != 0:
-                r += 1
-            n = (M - q * r) // 2
-            alphas = np.array([beta] * (M - n) + [-beta] * n, dtype=float)
+            alphas = np.array([1] * ((M+q)//2) + [-1] * ((M-q)//2), dtype=int)
             np.random.shuffle(alphas)
             alphas = np.cumsum(alphas)
-            alphas = np.append(alphas, alphas[0])
+            alphas = np.append(alphas, alphas[0]).astype(float) * beta
 
             FF = np.vstack([F(k, alphas, beta) for k in range(M)])
             FS = np.cumsum(FF, axis=0)
@@ -154,42 +104,130 @@ class FDPlotter():
             snm = Snm / (m - n)
             smn = Smn / (n + M - m)
             ds = snm.real - smn.real
-            ar.extend([beta, sqrt(ds.dot(ds)), np.dot(Omega(n, alphas, beta), Omega(m, alphas, beta)).real])
+            t = k-beg
+            ar[t,0] = beta
+            ar[t,1] = sqrt(ds.dot(ds))
+            ar[t,2] = np.dot(Omega(n, alphas, beta), Omega(m, alphas, beta)).real
         return ar
 
     def GetCorr(self, params):
-        beg, end = params
-        s = self.dss[:, np.newaxis] * self.Rdata[np.newaxis, beg:end]
+        i,j, beg, end  = params
+        s = self.dss[i:j, np.newaxis] * self.Rdata[np.newaxis, beg:end]
         s = sin(s) / s
-        return self.OdotO[:].dot(s) / len(self.OdotO)
+        return self.OdotO[i:j].dot(s)/(j-i)
 
-    def MakePlots(self):
-        res = []
-        R = self.R
+    def PlotWithErr(self, xdata, ydata, name, num_samples=100):
+        x, y, yerr =SubSampleWithErr(xdata,ydata, num_samples )
+        plotpath = os.path.join(CorrFuncDir(self.M),name + ".png")
+        PlotXYErrBars(x, y, yerr, plotpath,title=name)
+
+    def FDistributionPathname(self):
+        return os.path.join(CorrFuncDir(self.M), "Fdata." + str(self.T) + ".np")
+
+    def CorrDataPathname(self):
+        return os.path.join(CorrFuncDir(self.M), "CorrData." + str(self.T) + ".np")
+    def MDataPathname(self):
+        return os.path.join(CorrFuncDir(self.M), "MData." + str(self.T) + ".np")
+
+    def MM(self, k, T):
+        if k < T//4:  return  self.M
+        if k < T//2:  return 2* self.M
+        if k < (3 * T)//4: return  3 * self.M
+        return  4 * self.M
+
+    def FDistribution(self):
         M = self.M
         T = self.T
-        with fut.ProcessPoolExecutor() as exec:
-            step = max(1, int(R / (mp.cpu_count() - 1)) + 1)
-            ranges = [[k, k + step] for k in range(0, R, step)]
-            ranges[-1][1] = R
-            res = list(exec.map(self.GetCorr, ranges))
-        corrdata = np.append(np.stack(res[:-1]), res[-1])
+        R = self.R
+        Tstep = self.Tstep
+
+        MakeDir(CorrFuncDir(M))
+        try:
+            data = np.fromfile(self.FDistributionPathname(),dtype=float).reshape(-1,3)
+        except:
+            res = []
+            params = [[k, k + Tstep ] for k in range(0, T, Tstep)]
+            with fut.ProcessPoolExecutor() as exec:
+                res = list(exec.map(self.GetSamples, params))
+            data = np.vstack(res)
+            data.tofile(self.FDistributionPathname())
+            print("made FDistribution " + str(M))
+        data = data.T
+        self.betas = ConstSharedArray(data[0])
+        self.dss = ConstSharedArray(data[1])
+        self.OdotO = ConstSharedArray(data[2])
+        self.Rdata = ConstSharedArray(np.linspace(1./M, 0.5, R))
+
+
+    def MakeCorrData(self):
+        M = self.M
+        R = self.R
+        T = self.T
+        Rstep = self.Rstep
+        if os.path.isfile(self.CorrDataPathname()):
+            print("already made parallel map GetCorr " + str(M))
+            return
+
+        dd =[]
+        for i,j, m in [(T*k//4,T*(k+1)//4,(k+1)*M) for k in range(4)]:
+            res = []
+            with fut.ProcessPoolExecutor() as exec:
+                ranges = [[ i,j, k, k + Rstep] for k in range(0, R, Rstep)]
+                res.extend(list(exec.map(self.GetCorr, ranges)))
+            dd.extend([np.hstack(res)])
+        corrdata = np.stack(dd)
         corrdata.tofile(self.CorrDataPathname())
-        print("made parallel map corrdata " + str(M))
-        plotpath = os.path.join(CorrFuncDir(M), "VortCorr.png")
-        ok = corrdata > 0
-        XYPlot([self.Rdata[ok], corrdata[ok]], plotpath, logx=False, logy=False,
-               title="vortCorr",x_label='r',y_label='corr')
-        print("made VortCorr " + str(M))
+        print("made parallel map GetCorr " + str(M))
+
+
+    def __init__(self, M, T, R):
+        MakeDir(CorrFuncDir(M))
+        self.M = M
+        self.Tstep = max(1, int(T / (mp.cpu_count() - 1)) + 1)
+        T = self.Tstep * (T//self.Tstep)
+        self.T = T
+        self.Rstep = max(1, int(R / (mp.cpu_count() - 1)) + 1)
+        R =  self.Rstep * (R//self.Rstep)
+        self.R = R
+        self.FDistribution()
+        self.MakeCorrData()
+        for x, name in zip([self.betas,self.dss,-self.OdotO[:], self.OdotO[:]],["beta","DS","-OmOm","OmOm"]):
+            data = []
+            for beg,end, m in [(T*k//4,T*(k+1)//4,(k+1)*M) for k in range(4)]:
+                data.append([str(m),x[beg:end]])
+            plotpath = os.path.join(CorrFuncDir(M),"multi " + name + ".png")
+            try:
+                MultiRankHistPos(data,plotpath,name,logx=True,logy=True)
+            except Exception as ex:
+                print(name+ex)
+        pass
+        corrdata = np.fromfile(self.CorrDataPathname(),dtype=float).reshape(4,-1)
+        datapos = []
+        dataneg= []
+        for i, m in enumerate([self.M, self.M *2,self.M * 3, self.M *4 ]):
+            pos = corrdata[i] >0
+            neg = corrdata[i] <0
+            datapos.append([str(m),self.Rdata[pos],corrdata[i][pos]])
+            dataneg.append([str(m),self.Rdata[neg],-corrdata[i][neg]])
+        plotpath = os.path.join(CorrFuncDir(M),"multicorrPos.png")
+        try:
+            MultiXYPlot(datapos, plotpath, logx=True, logy=True, title='VortCorrPos',scatter=False, xlabel ='r', ylabel='corr')
+        except Exception as ex:
+            print("multicorr pos " +ex)
+        plotpath = os.path.join(CorrFuncDir(M),"multicorrNeg.png")
+        try:
+            MultiXYPlot(dataneg, plotpath, logx=True, logy=True, title='VortCorrNeg',scatter=False, xlabel ='r', ylabel='-corr')
+        except Exception as ex:
+            print("multicorr neg " +ex)
+        print("made VortCor " + str(M))
 
 
 def test_FDistribution():
-    M = 100001
-    T = 10000
-    R = 100000
+    M = 1000000
+    T = 1000
+    R = 1000
     with Timer("done FDistribution for M,T,R= " + str(M) + "," + str(T) + "," + str(R)):
         fdp = FDPlotter(M, T, R)
-        fdp.MakePlots()
 
 if __name__ == '__main__':
     test_FDistribution()
