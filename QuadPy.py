@@ -60,6 +60,24 @@ def GroupIntegral():
 def test_GroupIntegral():
     GroupIntegral()
 
+def SphericalFourierIntegral(R):
+    dim = 4
+    scheme = quadpy.un.mysovskikh_2(dim)
+    print("tol=", scheme.test_tolerance)
+    vol = scheme.integrate(lambda x: np.ones(x.shape[1]), np.zeros(dim), 1.0)
+    def func(x): return np.exp(1j * x.dot(RR.dot(x)))/ vol
+    return scheme.integrate(func, np.zeros(dim), 1.0)
+
+def test_FourieO3Integral():
+    R = np.array([np.random.normal() for _ in range(16)]).reshape((4, 4))
+    R += R.T
+    with Timer("quadpy O(3) Fourier Integral"):
+        res = SphericalFourierIntegral(R)
+        print("\nquadpy: SphericalFourierIntegral =", res)
 
 if __name__ == '__main__':
-    GroupIntegral()
+    R = np.array([np.random.normal() for _ in range(16)]).reshape((4, 4))
+    R += R.T
+    with Timer("quadpy O(3) Fourier Integral"):
+        res = SphericalFourierIntegral(R)
+        print("\nquadpy: SphericalFourierIntegral =", res)
