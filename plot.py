@@ -417,7 +417,7 @@ def XYPlot(xy, plotpath,logx=False, logy=False, lims=None, title='XY',scatter=Fa
     pylab.close()
     return plotpath
 
-def MultiXYPlot(data, plotpath, logx=True, logy=True, title='XY',scatter=False, xlabel ='x', ylabel='y'):
+def MultiXYPlot(data, plotpath, logx=True, logy=True, title='XY',scatter=False, xlabel ='x', ylabel='y',frac_last = 0.1):
     import matplotlib as mpl
     mpl.use('Agg')
     from matplotlib import pylab
@@ -432,6 +432,12 @@ def MultiXYPlot(data, plotpath, logx=True, logy=True, title='XY',scatter=False, 
             if scatter:
                 plt.scatter(np.asarray(x), np.asarray(y),label=name)
             elif logx and logy:
+                N = int(len(x)*frac_last)
+                l = np.log(x[-N:])
+                t = np.log(y[-N:])
+                p = np.polyfit(l,t,  1)
+                lab = '$%s: \mu=%.2f$' % (name,p[0])
+                pylab.loglog(x[-N:],y[-N:], color="red", linewidth=1., linestyle="-",label=lab)
                 pylab.loglog(x,y, linewidth=1., linestyle="-",label=name)
             else:
                 if logy:

@@ -48,7 +48,7 @@ class RandomFractions():
         return os.path.join(self.SaveDir(), str(self.M)+ ".np")
 
     def MakePairs(self):
-        T = self.T +1
+        T = self.T
         if os.path.isfile(self.GetPathname()):
             pairs = np.fromfile(self.GetPathname(),dtype=int).reshape(-1,2)
             if len(pairs) >= T:
@@ -167,7 +167,43 @@ class FDPlotter():
         corrdata = np.stack(dd)
         corrdata.tofile(self.CorrDataPathname())
         print("made parallel map GetCorr " + str(M))
+        corrdata = np.fromfile(self.CorrDataPathname(),dtype=float).reshape(4,-1)
+        datapos = []
+        dataneg= []
+        for i in range(4):
+            m = (1+1)*self.M
+            pos = corrdata[i] >0
+            neg = corrdata[i] <0
+            datapos.append([str(m),self.Rdata[pos],corrdata[i][pos]])
+            dataneg.append([str(m),self.Rdata[neg],-corrdata[i][neg]])
+        plotpath = os.path.join(CorrFuncDir(M),"multicorrPos.png")
+        try:
+            MultiXYPlot(datapos, plotpath, logx=True, logy=True, title='VortCorrPos',scatter=False, xlabel ='r', ylabel='corr')
+        except Exception as ex:
+            print(ex)
+        plotpath = os.path.join(CorrFuncDir(M),"multicorrNeg.png")
+        try:
+            MultiXYPlot(dataneg, plotpath, logx=True, logy=True, title='VortCorrNeg',scatter=False, xlabel ='r', ylabel='-corr')
+        except Exception as ex:
+            print(ex)
+        print("made VortCor " + str(M))
 
+
+    def MakeOmtoDSFit(self):
+        data = []
+        M = self.M
+        T = self.T
+        for i,j, m in [(T*k//4,T*(k+1)//4,(k+1)*M) for k in range(4)]:
+            oto = self.OdotO[i:j]
+            pos = oto >0
+            dss = self.dss[i:j]
+            data.append([str(m),dss[pos],oto[pos]])
+        try:
+            plotpath = os.path.join(CorrFuncDir(M),"multi OtOvsDss.png")
+            MultiXYPlot(data, plotpath, logx=True, logy=True, title='OtoOVsDss',scatter=False, xlabel ='dss', ylabel='oto',frac_last=0.5)
+        except Exception as ex:
+            print(ex)
+        print("made OtOvsDss " + str(M))
 
     def __init__(self, M, T, R):
         MakeDir(CorrFuncDir(M))
@@ -196,27 +232,7 @@ class FDPlotter():
             except Exception as ex:
                 print(ex)
         pass
-        self.MakeCorrData()
-        corrdata = np.fromfile(self.CorrDataPathname(),dtype=float).reshape(4,-1)
-        datapos = []
-        dataneg= []
-        for i in range(4):
-            m = (1+1)*self.M
-            pos = corrdata[i] >0
-            neg = corrdata[i] <0
-            datapos.append([str(m),self.Rdata[pos],corrdata[i][pos]])
-            dataneg.append([str(m),self.Rdata[neg],-corrdata[i][neg]])
-        plotpath = os.path.join(CorrFuncDir(M),"multicorrPos.png")
-        try:
-            MultiXYPlot(datapos, plotpath, logx=True, logy=True, title='VortCorrPos',scatter=False, xlabel ='r', ylabel='corr')
-        except Exception as ex:
-            print(ex)
-        plotpath = os.path.join(CorrFuncDir(M),"multicorrNeg.png")
-        try:
-            MultiXYPlot(dataneg, plotpath, logx=True, logy=True, title='VortCorrNeg',scatter=False, xlabel ='r', ylabel='-corr')
-        except Exception as ex:
-            print(ex)
-        print("made VortCor " + str(M))
+        self.MakeOmtoDSFit()
 
 
 def test_FDistribution():
