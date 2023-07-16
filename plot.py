@@ -1006,9 +1006,9 @@ def MultiRankHistPos(arrays,plotpath,var_name='\eta',logx=False, logy=True):
             p = np.polyfit(l,t,  1)
             lab = '$\mu=%.2f$' % (p[0])
             pylab.loglog(x[ok],tail[ok],  linewidth=1., linestyle="-",label=name)
-            # l01 = [np.exp(l[0]),np.exp(l[-1])]
-            # p01 = [np.exp(p[1] + p[0]*l[0]),np.exp(p[1] + p[0] *l[-1])]
-            # pylab.loglog(l01, p01, color="green", linestyle="--", label=name+" fit "+lab)
+            l01 = [np.exp(l[0]),np.exp(l[-1])]
+            p01 = [np.exp(p[1] + p[0]*l[0]),np.exp(p[1] + p[0] *l[-1])]
+            pylab.loglog(l01, p01, color="green", linestyle="--", label=name+" fit "+lab)
         else:
             if logy:
                 pylab.semilogy(x,tail,  linewidth=1., linestyle="-",label=name)

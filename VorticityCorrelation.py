@@ -79,6 +79,41 @@ def Omega(k, alphas, beta):
     return (alphas[k + 1] - alphas[k]) / (2 * beta * tan(beta / 2)) * np.array(
         [cos((alphas[k] + alphas[k + 1]) / 2), sin((alphas[k] + alphas[k + 1]) / 2), 1j], complex)
 
+class RandomFractions():
+    def Pair(self, f):
+        pq = Fraction(f).limit_denominator(self.M)
+        p,q =  [pq.numerator,pq.denominator]
+        return [p,q] if (p >0 and q > 1) else [0,0]
+
+    def __init__(self,M, T):
+        self.M = M
+        self.T = T
+        MakeDir(self.SaveDir())
+
+    def SaveDir(self):
+        return os.path.join("plots", "RandomFractions")
+
+    def GetPathname(self):
+        return os.path.join(self.SaveDir(), str(self.M)+ ".np")
+
+    def MakePairs(self):
+        T = self.T
+        if os.path.isfile(self.GetPathname()):
+            pairs = np.fromfile(self.GetPathname(),dtype=int).reshape(-1,2)
+            if len(pairs) >= T:
+                return pairs[:T]
+            pass
+        ff = np.linspace(0.,1., T)
+        res = []
+        with fut.ProcessPoolExecutor() as exec:
+            res = list(exec.map(self.Pair, ff))
+        pairs = np.stack(res)
+        test = np.sum(pairs,axis=1)
+        ok = test >0
+        pairs = pairs[ok]
+        pairs.tofile(self.GetPathname())
+        return pairs
+
 
 class FDPlotter():
     def GetSamples(self, params):
@@ -86,9 +121,8 @@ class FDPlotter():
         ar = np.zeros((end-beg)*3,dtype=float).reshape(-1,3)
         for k in range(beg, end):
             M = self.MM(k,self.T)
-            q = 2-(M%2) +2 *np.random.randint((M+1)//2)
-            p = np.random.randint(1,q)
-            beta = 2 * pi * p / q
+            p,q = (self.pq[k,0],self.pq[k,1])
+            beta = (2 * pi * p) / float(q)
             alphas = np.array([1] * ((M+q)//2) + [-1] * ((M-q)//2), dtype=int)
             np.random.shuffle(alphas)
             alphas = np.cumsum(alphas)
@@ -163,6 +197,7 @@ class FDPlotter():
         M = self.M
         R = self.R
         T = self.T
+
         Rstep = self.Rstep
         if os.path.isfile(self.CorrDataPathname()):
             print("already made parallel map GetCorr " + str(M))
@@ -183,12 +218,17 @@ class FDPlotter():
     def __init__(self, M, T, R):
         MakeDir(CorrFuncDir(M))
         self.M = M
+        with Timer("done RandomFractions for M,T= " + str(M) + "," + str(T)):
+            pq = RandomFractions(M,T).MakePairs()
+        T = min(T,len(pq))
         self.Tstep = max(1, int(T / (mp.cpu_count() - 1)) + 1)
         T = self.Tstep * (T//self.Tstep)
         self.T = T
+        self.pq = ConstSharedArray(pq[:T])
         self.Rstep = max(1, int(R / (mp.cpu_count() - 1)) + 1)
         R =  self.Rstep * (R//self.Rstep)
         self.R = R
+
         self.FDistribution()
         self.MakeCorrData()
         for x, name in zip([self.betas,self.dss,-self.OdotO[:], self.OdotO[:]],["beta","DS","-OmOm","OmOm"]):
@@ -197,7 +237,9 @@ class FDPlotter():
                 data.append([str(m),x[beg:end]])
             plotpath = os.path.join(CorrFuncDir(M),"multi " + name + ".png")
             try:
-                MultiRankHistPos(data,plotpath,name,logx=True,logy=True)
+                logx = (name in ("DS", "OmOm", "-OmOm"))
+                logy = (name != "beta")
+                MultiRankHistPos(data,plotpath,name,logx=logx,logy=logy)
             except Exception as ex:
                 print(ex)
         pass
@@ -224,10 +266,11 @@ class FDPlotter():
 
 def test_FDistribution():
     M = 1000000
-    T = 1000
-    R = 1000
+    T = 10000
+    R = 10000
     with Timer("done FDistribution for M,T,R= " + str(M) + "," + str(T) + "," + str(R)):
         fdp = FDPlotter(M, T, R)
 
 if __name__ == '__main__':
+    # pairs= RandomFractions(20,10)
     test_FDistribution()
