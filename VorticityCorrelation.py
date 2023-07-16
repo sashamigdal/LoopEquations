@@ -28,10 +28,13 @@ def Omega(k, alphas, beta):
         [cos((alphas[k] + alphas[k + 1]) / 2), sin((alphas[k] + alphas[k + 1]) / 2), 1j], complex)
 
 class RandomFractions():
-    def Pair(self, f):
-        pq = Fraction(f).limit_denominator(self.M)
+    @staticmethod
+    def Pair( fM):
+        f,M = fM
+        f = np.clip(f,0.5/M,1-0.5/M)
+        pq = Fraction(f).limit_denominator(M)
         p,q =  [pq.numerator,pq.denominator]
-        return [p,q] if (p >0 and q > 1) else [0,0]
+        return [p,q]
 
     def __init__(self,M, T):
         self.M = M
@@ -45,20 +48,20 @@ class RandomFractions():
         return os.path.join(self.SaveDir(), str(self.M)+ ".np")
 
     def MakePairs(self):
-        T = self.T
+        T = self.T +1
         if os.path.isfile(self.GetPathname()):
             pairs = np.fromfile(self.GetPathname(),dtype=int).reshape(-1,2)
             if len(pairs) >= T:
                 return pairs[:T]
             pass
-        ff = np.linspace(0.,1., T)
+        ff = list(zip(np.random.random(size=T),[self.M]*T))
         res = []
         with fut.ProcessPoolExecutor() as exec:
             res = list(exec.map(self.Pair, ff))
-        pairs = np.stack(res)
-        test = np.sum(pairs,axis=1)
-        ok = test >0
-        pairs = pairs[ok]
+        pairs = np.array(res,dtype= int)
+        pairs = np.unique(pairs,axis=0)
+        np.random.shuffle(pairs)
+        pairs = pairs[:self.T]
         pairs.tofile(self.GetPathname())
         return pairs
 
@@ -70,10 +73,7 @@ class FDPlotter():
         for k in range(beg, end):
             i = self.Mindex(k)
             M = (i+1)*self.M
-            p,q = (0,1)
-            while (p ==0 or q==1):
-                pq = Fraction(np.random.random()).limit_denominator(M)
-                p,q = pq.numerator,pq.denominator
+            p,q = list(self.pq[i][k])
             beta = (2 * pi * p) / float(q)
             # if np.random.randint(2) ==1 :
             #     beta =-beta
@@ -152,7 +152,6 @@ class FDPlotter():
         M = self.M
         R = self.R
         T = self.T
-
         Rstep = self.Rstep
         if os.path.isfile(self.CorrDataPathname()):
             print("already made parallel map GetCorr " + str(M))
@@ -173,15 +172,18 @@ class FDPlotter():
     def __init__(self, M, T, R):
         MakeDir(CorrFuncDir(M))
         self.M = M
-        self.Tstep = max(1, int(T / (mp.cpu_count() - 1)) + 1)
+        self.Tstep = int(T / (mp.cpu_count() - 1)) + 1
         T = self.Tstep * (T//self.Tstep)
         self.T = T
-        self.Rstep = max(1, int(R / (mp.cpu_count() - 1)) + 1)
+        self.Rstep =  int(R / (mp.cpu_count() - 1)) + 1
         R =  self.Rstep * (R//self.Rstep)
         self.R = R
-
+        self.pq = [None]*4
+        with Timer("making pairs "):
+            for i in range(4):
+                self.pq[i] =ConstSharedArray(RandomFractions((i+1)*M,T).MakePairs())
+            pass
         self.FDistribution()
-        self.MakeCorrData()
         for x, name in zip([self.betas,self.dss,-self.OdotO[:], self.OdotO[:]],["beta","DS","-OmOm","OmOm"]):
             data = []
             for beg,end, m in [(T*k//4,T*(k+1)//4,(k+1)*M) for k in range(4)]:
@@ -194,10 +196,12 @@ class FDPlotter():
             except Exception as ex:
                 print(ex)
         pass
+        self.MakeCorrData()
         corrdata = np.fromfile(self.CorrDataPathname(),dtype=float).reshape(4,-1)
         datapos = []
         dataneg= []
-        for i, m in enumerate([self.M, self.M *2,self.M * 3, self.M *4 ]):
+        for i in range(4):
+            m = (1+1)*self.M
             pos = corrdata[i] >0
             neg = corrdata[i] <0
             datapos.append([str(m),self.Rdata[pos],corrdata[i][pos]])
@@ -217,8 +221,8 @@ class FDPlotter():
 
 def test_FDistribution():
     M = 1000001
-    T = 1000
-    R = 1000
+    T = 10000
+    R = 10000
     with Timer("done FDistribution for M,T,R= " + str(M) + "," + str(T) + "," + str(R)):
         fdp = FDPlotter(M, T, R)
 

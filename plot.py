@@ -426,17 +426,20 @@ def MultiXYPlot(data, plotpath, logx=True, logy=True, title='XY',scatter=False, 
     import matplotlib.pyplot as plt
     import matplotlib.dates as md
     for (name, x,y) in data:
-        ord = np.argsort(x)
-        x,y = (x[ord],y[ord])
-        if scatter:
-            plt.scatter(np.asarray(x), np.asarray(y),label=name)
-        elif logx and logy:
-            pylab.loglog(x,y, linewidth=1., linestyle="-",label=name)
-        else:
-            if logy:
-                pylab.semilogy(x,y,  linewidth=1., linestyle="-",label=name)
+        try:
+            ord = np.argsort(x)
+            x,y = (x[ord],y[ord])
+            if scatter:
+                plt.scatter(np.asarray(x), np.asarray(y),label=name)
+            elif logx and logy:
+                pylab.loglog(x,y, linewidth=1., linestyle="-",label=name)
             else:
-                pylab.plot(x,y, linewidth=1., linestyle="-",label=name)
+                if logy:
+                    pylab.semilogy(x,y,  linewidth=1., linestyle="-",label=name)
+                else:
+                    pylab.plot(x,y, linewidth=1., linestyle="-",label=name)
+        except:
+            pass
     plt.xlabel(r'$%s$'%xlabel)
     plt.ylabel(r'$%s$'%ylabel)
     plt.title(r'$%s$'%title)
@@ -993,29 +996,31 @@ def MultiRankHistPos(arrays,plotpath,var_name='\eta',logx=False, logy=True):
     import matplotlib.pyplot as plt
     import matplotlib.dates as md
     for name, data in arrays:
-        x = np.sort(data[data>0])
-        N = len(x)
-        tail = (1-np.arange(1,N+1,dtype=float)/(N+1))
-        m = x.mean()
-        mean,err = data.mean(), data.std()
-        gen_lab = '$%s;<%s>=%.4f\pm%.4f$; '%(name,var_name,mean,err)
-        if logx:
-            ok = (tail < 0.1) &  (tail > 5./N)
-            l = np.log(x[ok])
-            t = np.log(tail[ok])
-            p = np.polyfit(l,t,  1)
-            lab = '$\mu=%.2f$' % (p[0])
-            pylab.loglog(x[ok],tail[ok],  linewidth=1., linestyle="-",label=name)
-            l01 = [np.exp(l[0]),np.exp(l[-1])]
-            p01 = [np.exp(p[1] + p[0]*l[0]),np.exp(p[1] + p[0] *l[-1])]
-            pylab.loglog(l01, p01, color="green", linestyle="--", label=name+" fit "+lab)
-        else:
-            if logy:
-                pylab.semilogy(x,tail,  linewidth=1., linestyle="-",label=name)
+        try:
+            x = np.sort(data[data>0])
+            N = len(x)
+            tail = (1-np.arange(1,N+1,dtype=float)/(N+1))
+            m = x.mean()
+            mean,err = data.mean(), data.std()
+            gen_lab = '$%s;<%s>=%.4f\pm%.4f$; '%(name,var_name,mean,err)
+            if logx:
+                ok = (tail < 0.1) &  (tail > 5./N)
+                l = np.log(x[ok])
+                t = np.log(tail[ok])
+                p = np.polyfit(l,t,  1)
+                lab = '$\mu=%.2f$' % (p[0])
+                pylab.loglog(x[ok],tail[ok],  linewidth=1., linestyle="-",label=name)
+                l01 = [np.exp(l[0]),np.exp(l[-1])]
+                p01 = [np.exp(p[1] + p[0]*l[0]),np.exp(p[1] + p[0] *l[-1])]
+                pylab.loglog(l01, p01, color="green", linestyle="--", label=name+" fit "+lab)
             else:
-                pylab.plot(x,tail,  linewidth=1., linestyle="-",label=name)
-
-
+                if logy:
+                    pylab.semilogy(x,tail,  linewidth=1., linestyle="-",label=name)
+                else:
+                    pylab.plot(x,tail,  linewidth=1., linestyle="-",label=name)
+            pass
+        except:
+            pass
     pass
     pylab.legend(loc='best')
     pylab.title(gen_lab)
