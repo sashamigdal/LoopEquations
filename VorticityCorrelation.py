@@ -70,7 +70,7 @@ class FDPlotter():
         for k in range(beg, end):
             i = self.Mindex(k)
             M = (i+1)*self.M
-            p,q = list(self.pk[i][k])
+            p,q = list(self.pq[i][k])
             beta = (2 * pi * p) / float(q)
             alphas = np.array([1] * ((M+q)//2) + [-1] * ((M-q)//2), dtype=int)
             np.random.shuffle(alphas)
@@ -173,7 +173,7 @@ class FDPlotter():
         self.Tstep = max(1, int(T / (mp.cpu_count() - 1)) + 1)
         T = self.Tstep * (T//self.Tstep)
         self.T = T
-        self.pq = [ConstSharedArray(pq[k][:T]  for k in range(4)]
+        self.pq = [ConstSharedArray(pq[k][:T])  for k in range(4)]
 
         self.Rstep = max(1, int(R / (mp.cpu_count() - 1)) + 1)
         R =  self.Rstep * (R//self.Rstep)
@@ -215,7 +215,7 @@ class FDPlotter():
 
 
 def test_FDistribution():
-    M = 1000000
+    M = 100000
     T = 10000
     R = 10000
     with Timer("done FDistribution for M,T,R= " + str(M) + "," + str(T) + "," + str(R)):
