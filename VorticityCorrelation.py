@@ -1,54 +1,4 @@
-'''
-CorrFunction[M_, T_, MySum_, WP_] :=
- Block[{\[Beta], p, q, f, sigmas, states},
-  For[n = 1, n < M, n++,
-   p = Prime[n];
-   If[ 3 p < M, q = p, Break[]];
-   ];
-  p = RandomInteger[{1, q - 1}];
-  \[Beta] = 2 Pi  p/q;
-  Print[{\[Beta], p, q, M - q}];
-  sigmas = Join[ Table[1, M - q], Table[-1, q]];
-  corr =
-   Table[
-    {l,
-      MySum[
-       Block[{\[Alpha], F, \[Omega], II, Stot, sq},
-        \[Alpha] = \[Beta] Accumulate[ RandomSample[sigmas]];
-        F[k_] :=
-         N[1/(2 Sin[\[Beta]/2]) {Cos[\[Alpha][[k]]],
-            Sin[\[Alpha][[k]]], I Cos[\[Beta]/2]}, WP];
-        \[Omega] =
-         Chop[ I Cross[F[#], F[1 + Mod[# + 1, M]]] & /@ Range[M]];
-        Stot = Sum[F[k], {k, M}];
-        II[n_, m_] :=
-         Block[{Snm, Smn, snm, smn, ds, k},
-          Snm = Sum[F[k], {k, n, m}];
-          Smn = Stot - Snm;
-          snm = Snm/(m - n);
-          smn = Smn/(n + M - m);
-          ds = snm - smn ;
-          sq = Exp[l] Sqrt[ds . ds];
-          \[Omega][[n]] . \[Omega][[m]] 2/(M (M - 1)) Sin[sq ]/sq
-          ];
-        (*Print[II[1,5]];*)
-        ans = Sum[II[n, m], {m, 2, M}, {n, 1, m - 1}];
-        (*Print[{Exp[l],ans}];*)
-        ans
-        ], {t, T}]/T
-     }
-    , {l, -2, 0, 0.1}]
-  ]
 
-
-
-  \vec \omega_k = \frac {\sigma_k} {2} \cot \left (\frac {\beta } {2} \right)
-  \left\{  \cos \left (\frac {\beta  \sigma_k } {2} + \alpha _k  \right),
-   \sin \left (\frac {\beta  \sigma_k } {2} + \alpha _k \right),
-    \imath \right\}
-
-
-'''
 import os
 
 from mpmath import rational
@@ -65,8 +15,6 @@ from parallel import ConstSharedArray
 import multiprocessing as mp
 import concurrent.futures as fut
 from fractions import Fraction
-
-
 def CorrFuncDir(M):
     return os.path.join("plots", "VorticityCorr." + str(M))
 
@@ -120,8 +68,9 @@ class FDPlotter():
         beg, end = params
         ar = np.zeros((end-beg)*3,dtype=float).reshape(-1,3)
         for k in range(beg, end):
-            M = self.MM(k,self.T)
-            p,q = (self.pq[k,0],self.pq[k,1])
+            i = self.Mindex(k)
+            M = (i+1)*self.M
+            p,q = list(self.pk[i][k])
             beta = (2 * pi * p) / float(q)
             alphas = np.array([1] * ((M+q)//2) + [-1] * ((M-q)//2), dtype=int)
             np.random.shuffle(alphas)
@@ -163,11 +112,9 @@ class FDPlotter():
     def MDataPathname(self):
         return os.path.join(CorrFuncDir(self.M), "MData." + str(self.T) + ".np")
 
-    def MM(self, k, T):
-        if k < T//4:  return  self.M
-        if k < T//2:  return 2* self.M
-        if k < (3 * T)//4: return  3 * self.M
-        return  4 * self.M
+    def Mindex(self, k):
+        return (4 * k)//self.T
+
 
     def FDistribution(self):
         M = self.M
@@ -218,13 +165,16 @@ class FDPlotter():
     def __init__(self, M, T, R):
         MakeDir(CorrFuncDir(M))
         self.M = M
+        pq =[None]*4
         with Timer("done RandomFractions for M,T= " + str(M) + "," + str(T)):
-            pq = RandomFractions(M,T).MakePairs()
-        T = min(T,len(pq))
+            for k in range(4):
+                pq[k] = RandomFractions((k+1)*M,T).MakePairs()
+                T = min(T,len(pq[k]))
         self.Tstep = max(1, int(T / (mp.cpu_count() - 1)) + 1)
         T = self.Tstep * (T//self.Tstep)
         self.T = T
-        self.pq = ConstSharedArray(pq[:T])
+        self.pq = [ConstSharedArray(pq[k][:T]  for k in range(4)]
+
         self.Rstep = max(1, int(R / (mp.cpu_count() - 1)) + 1)
         R =  self.Rstep * (R//self.Rstep)
         self.R = R
