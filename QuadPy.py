@@ -65,8 +65,16 @@ def SphericalFourierIntegral(R):
     scheme = quadpy.un.mysovskikh_2(dim)
     print("tol=", scheme.test_tolerance)
     vol = scheme.integrate(lambda x: np.ones(x.shape[1]), np.zeros(dim), 1.0)
-    def func(x): return np.exp(1j * x.dot(RR.dot(x)))/ vol
+
+    def func(x):
+        return np.exp(1j * np.sum(x * (R.dot(x)), axis=0))/ vol
     return scheme.integrate(func, np.zeros(dim), 1.0)
+    '''
+    runfile('/home/sasha/LoopEquations/QuadPy.py', wdir='/home/sasha/LoopEquations')
+    tol= 1e-14
+    quadpy: SphericalFourierIntegral = (0.5802040356506966+0.45746786871519785j)
+    quadpy O(3) Fourier Integral 68.31 ms
+    '''
 
 def test_FourieO3Integral():
     R = np.array([np.random.normal() for _ in range(16)]).reshape((4, 4))
