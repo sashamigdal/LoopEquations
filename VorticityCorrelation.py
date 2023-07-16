@@ -70,9 +70,17 @@ class FDPlotter():
         for k in range(beg, end):
             i = self.Mindex(k)
             M = (i+1)*self.M
-            p,q = list(self.pq[i][k])
+            p,q = (0,1)
+            while (p ==0 or q==1):
+                pq = Fraction(np.random.random()).limit_denominator(M)
+                p,q = pq.numerator,pq.denominator
             beta = (2 * pi * p) / float(q)
-            alphas = np.array([1] * ((M+q)//2) + [-1] * ((M-q)//2), dtype=int)
+            # if np.random.randint(2) ==1 :
+            #     beta =-beta
+            N1,N2 = (M+q)//2,(M-q)//2
+            if np.random.randint(2) ==1 :
+                N1,N2 = N2,N1
+            alphas = np.array([1] * N1 + [-1] *N2 , dtype=int)
             np.random.shuffle(alphas)
             alphas = np.cumsum(alphas)
             alphas = np.append(alphas, alphas[0]).astype(float) * beta
@@ -165,16 +173,9 @@ class FDPlotter():
     def __init__(self, M, T, R):
         MakeDir(CorrFuncDir(M))
         self.M = M
-        pq =[None]*4
-        with Timer("done RandomFractions for M,T= " + str(M) + "," + str(T)):
-            for k in range(4):
-                pq[k] = RandomFractions((k+1)*M,T).MakePairs()
-                T = min(T,len(pq[k]))
         self.Tstep = max(1, int(T / (mp.cpu_count() - 1)) + 1)
         T = self.Tstep * (T//self.Tstep)
         self.T = T
-        self.pq = [ConstSharedArray(pq[k][:T])  for k in range(4)]
-
         self.Rstep = max(1, int(R / (mp.cpu_count() - 1)) + 1)
         R =  self.Rstep * (R//self.Rstep)
         self.R = R
@@ -215,12 +216,11 @@ class FDPlotter():
 
 
 def test_FDistribution():
-    M = 100000
-    T = 10000
-    R = 10000
+    M = 1000001
+    T = 1000
+    R = 1000
     with Timer("done FDistribution for M,T,R= " + str(M) + "," + str(T) + "," + str(R)):
         fdp = FDPlotter(M, T, R)
 
 if __name__ == '__main__':
-    # pairs= RandomFractions(20,10)
     test_FDistribution()
