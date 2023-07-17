@@ -201,7 +201,7 @@ class FDPlotter():
             data.append([str(m),dss[pos],oto[pos]])
         try:
             plotpath = os.path.join(CorrFuncDir(M),"multi OtOvsDss.png")
-            MultiXYPlot(data, plotpath, logx=True, logy=True, title='OtoOVsDss',scatter=False, xlabel ='dss', ylabel='oto',frac_last=0.5)
+            MultiXYPlot(data, plotpath, logx=True, logy=True, title='OtoOVsDss',scatter=False, xlabel ='dss', ylabel='oto',frac_last=0.95)
         except Exception as ex:
             print(ex)
         print("made OtOvsDss " + str(M))
@@ -237,10 +237,9 @@ class FDPlotter():
 
 
 def test_FDistribution():
-    M = 10001
-    T = 1000
-    R = 1000
-    # pq= RandomFractions(M,T).MakePairs()
+    M = 1000003
+    T = 100000
+    R = 10000
     with Timer("done FDistribution for M,T,R= " + str(M) + "," + str(T) + "," + str(R)):
         fdp = FDPlotter(M, T, R)
 
