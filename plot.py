@@ -437,7 +437,7 @@ def MultiXYPlot(data, plotpath, logx=True, logy=True, title='XY',scatter=False, 
                 t = np.log(y[-N:])
                 p = np.polyfit(l,t,  1)
                 lab = '$%s: \mu=%.2f$' % (name,p[0])
-                pylab.loglog(x[-N:],y[-N:], color="red", linewidth=1., linestyle="-",label=lab)
+                pylab.loglog(x[-N:],y[-N:], color="blue", linewidth=1., linestyle="-",label=lab)
                 pylab.loglog(x,y, linewidth=1., linestyle="-",label=name)
             else:
                 if logy:
@@ -1010,7 +1010,7 @@ def MultiRankHistPos(arrays,plotpath,var_name='\eta',logx=False, logy=True):
             mean,err = data.mean(), data.std()
             gen_lab = '$%s;<%s>=%.4f\pm%.4f$; '%(name,var_name,mean,err)
             if logx:
-                ok = (tail < 0.1) &  (tail > 5./N)
+                ok = (tail < 0.1) &  (tail > 2./N)
                 l = np.log(x[ok])
                 t = np.log(tail[ok])
                 p = np.polyfit(l,t,  1)

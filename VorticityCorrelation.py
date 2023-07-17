@@ -200,7 +200,7 @@ class FDPlotter():
             data.append([str(m),dss[pos],oto[pos]])
         try:
             plotpath = os.path.join(CorrFuncDir(M),"multi OtOvsDss.png")
-            MultiXYPlot(data, plotpath, logx=True, logy=True, title='OtoOVsDss',scatter=False, xlabel ='dss', ylabel='oto',frac_last=0.5)
+            MultiXYPlot(data, plotpath, logx=True, logy=True, title='OtoOVsDss',scatter=False, xlabel ='dss', ylabel='oto',frac_last=0.95)
         except Exception as ex:
             print(ex)
         print("made OtOvsDss " + str(M))
