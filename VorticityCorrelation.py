@@ -32,8 +32,9 @@ class RandomFractions():
     def Pair( fM):
         f,M = fM
         f = np.clip(f,0.5/M,1-0.5/M)
-        pq = Fraction(f).limit_denominator(M)
-        p,q =  [pq.numerator,pq.denominator]
+        pq = Fraction(f).limit_denominator(M//2)
+        eps = M%2
+        p,q =  [pq.numerator,2*pq.denominator+ eps]
         return [p,q]
 
     def __init__(self,M, T):
@@ -236,9 +237,10 @@ class FDPlotter():
 
 
 def test_FDistribution():
-    M = 1000001
-    T = 10000
-    R = 10000
+    M = 10001
+    T = 1000
+    R = 1000
+    # pq= RandomFractions(M,T).MakePairs()
     with Timer("done FDistribution for M,T,R= " + str(M) + "," + str(T) + "," + str(R)):
         fdp = FDPlotter(M, T, R)
 
