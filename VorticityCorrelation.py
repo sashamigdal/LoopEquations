@@ -29,9 +29,8 @@ def Omega(k, alphas, beta):
 
 class RandomFractions():
     @staticmethod
-    def Pair( fM):
-        f,M = fM
-        f = np.clip(f,0.5/M,1-0.5/M)
+    def Pair(M):
+        f = np.clip(np.random.random(),0.5/M,1-0.5/M)
         pq = Fraction(f).limit_denominator(M//2)
         eps = M%2
         p,q =  [2 *pq.numerator,2*pq.denominator+ eps]
@@ -50,15 +49,15 @@ class RandomFractions():
 
     def MakePairs(self):
         T = self.T
+        M = self.M
         if os.path.isfile(self.GetPathname()):
             pairs = np.fromfile(self.GetPathname(),dtype=int).reshape(-1,2)
             if len(pairs) >= T:
                 return pairs[:T]
             pass
-        ff = list(zip(np.random.random(size=T),[self.M]*T))
         res = []
         with fut.ProcessPoolExecutor() as exec:
-            res = list(exec.map(self.Pair, ff))
+            res = list(exec.map(self.Pair, [M]*T))
         pairs = np.array(res,dtype= int)
         pairs = np.unique(pairs,axis=0)
         np.random.shuffle(pairs)
@@ -240,6 +239,7 @@ def test_FDistribution():
     M = 1000003
     T = 100000
     R = 10000
+    pairs = RandomFractions(100, 100).MakePairs()
     with Timer("done FDistribution for M,T,R= " + str(M) + "," + str(T) + "," + str(R)):
         fdp = FDPlotter(M, T, R)
 
