@@ -34,7 +34,7 @@ class RandomFractions():
         f = np.clip(f,0.5/M,1-0.5/M)
         pq = Fraction(f).limit_denominator(M//2)
         eps = M%2
-        p,q =  [pq.numerator,2*pq.denominator+ eps]
+        p,q =  [2 *pq.numerator,2*pq.denominator+ eps]
         return [p,q]
 
     def __init__(self,M, T):
