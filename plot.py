@@ -437,8 +437,10 @@ def MultiXYPlot(data, plotpath, logx=True, logy=True, title='XY',scatter=False, 
                 t = np.log(y[-N:])
                 p = np.polyfit(l,t,  1)
                 lab = '$%s: \mu=%.2f$' % (name,p[0])
-                pylab.loglog(x[-N:],y[-N:], color="blue", linewidth=1., linestyle="-",label=lab)
-                pylab.loglog(x,y, linewidth=1., linestyle="-",label=name)
+                pylab.scatter(l,t, linewidth=1.,label=name)
+                pylab.plot(l,l*p[0] + p[1], linewidth=1.,label=lab)
+                pylab.set_xscale("log")
+                pylab.set_yscale("log")
             else:
                 if logy:
                     pylab.semilogy(x,y,  linewidth=1., linestyle="-",label=name)
