@@ -236,8 +236,8 @@ class FDPlotter():
 
 
 def test_FDistribution():
-    M = 1000001
-    T = 10000
+    M = 1000003
+    T = 100000
     R = 10000
     with Timer("done FDistribution for M,T,R= " + str(M) + "," + str(T) + "," + str(R)):
         fdp = FDPlotter(M, T, R)
