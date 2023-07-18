@@ -235,8 +235,8 @@ class FDPlotter():
 
 
 def test_FDistribution():
-    M = 1000001
-    T = 20000
+    M = 1000000
+    T = 200000
     R = 10000
     pairs = RandomFractions(100, 100).MakePairs()
     with Timer("done FDistribution for M,T,R= " + str(M) + "," + str(T) + "," + str(R)):
