@@ -67,7 +67,7 @@ class RandomFractions():
         return pairs
 
 
-class FDPlotter():
+class CurveSimulator():
     def GetSamples(self, params):
         beg, end = params
         ar = np.zeros((end-beg)*3,dtype=float).reshape(-1,3)
@@ -100,11 +100,6 @@ class FDPlotter():
             ar[t,2] = np.dot(Omega(n, alphas, sigmas,beta), Omega(m, alphas,sigmas, beta)).real
         return ar
 
-    def GetCorr(self, params):
-        i,j, beg, end  = params
-        s = self.dss[i:j, np.newaxis] * self.Rdata[np.newaxis, beg:end]
-        s = sin(s) / s
-        return self.OdotO[i:j].dot(s)/(j-i)
 
     def PlotWithErr(self, xdata, ydata, name, num_samples=100):
         x, y, yerr =SubSampleWithErr(xdata,ydata, num_samples )
@@ -114,10 +109,6 @@ class FDPlotter():
     def FDistributionPathname(self):
         return os.path.join(CorrFuncDir(self.M), "Fdata." + str(self.T) + ".np")
 
-    def CorrDataPathname(self):
-        return os.path.join(CorrFuncDir(self.M), "CorrData." + str(self.T) + ".np")
-    def MDataPathname(self):
-        return os.path.join(CorrFuncDir(self.M), "MData." + str(self.T) + ".np")
 
     def Mindex(self, k):
         return (4 * k)//self.T
@@ -126,7 +117,6 @@ class FDPlotter():
     def FDistribution(self):
         M = self.M
         T = self.T
-        R = self.R
         Tstep = self.Tstep
 
         MakeDir(CorrFuncDir(M))
@@ -144,49 +134,6 @@ class FDPlotter():
         self.betas = ConstSharedArray(data[0])
         self.dss = ConstSharedArray(data[1])
         self.OdotO = ConstSharedArray(data[2])
-        self.Rdata = ConstSharedArray(np.linspace(1./M, 0.5, R))
-
-
-    def MakeCorrData(self):
-        M = self.M
-        R = self.R
-        T = self.T
-        Rstep = self.Rstep
-        if os.path.isfile(self.CorrDataPathname()):
-            print("already made parallel map GetCorr " + str(M))
-            return
-
-        dd =[]
-        for i,j, m in [(T*k//4,T*(k+1)//4,(k+1)*M) for k in range(4)]:
-            res = []
-            with fut.ProcessPoolExecutor() as exec:
-                ranges = [[ i,j, k, k + Rstep] for k in range(0, R, Rstep)]
-                res.extend(list(exec.map(self.GetCorr, ranges)))
-            dd.extend([np.hstack(res)])
-        corrdata = np.stack(dd)
-        corrdata.tofile(self.CorrDataPathname())
-        print("made parallel map GetCorr " + str(M))
-        corrdata = np.fromfile(self.CorrDataPathname(),dtype=float).reshape(4,-1)
-        datapos = []
-        dataneg= []
-        for i in range(4):
-            m = (1+1)*self.M
-            pos = corrdata[i] >0
-            neg = corrdata[i] <0
-            datapos.append([str(m),self.Rdata[pos],corrdata[i][pos]])
-            dataneg.append([str(m),self.Rdata[neg],-corrdata[i][neg]])
-        plotpath = os.path.join(CorrFuncDir(M),"multicorrPos.png")
-        try:
-            MultiXYPlot(datapos, plotpath, logx=True, logy=True, title='VortCorrPos',scatter=False, xlabel ='r', ylabel='corr')
-        except Exception as ex:
-            print(ex)
-        plotpath = os.path.join(CorrFuncDir(M),"multicorrNeg.png")
-        try:
-            MultiXYPlot(dataneg, plotpath, logx=True, logy=True, title='VortCorrNeg',scatter=False, xlabel ='r', ylabel='-corr')
-        except Exception as ex:
-            print(ex)
-        print("made VortCor " + str(M))
-
 
     def MakeOmtoDSFit(self):
         data = []
@@ -204,20 +151,12 @@ class FDPlotter():
             print(ex)
         print("made OtOvsDss " + str(M))
 
-    def __init__(self, M, T, R):
+    def __init__(self, M, T):
         MakeDir(CorrFuncDir(M))
         self.M = M
         self.Tstep = int(T / (mp.cpu_count() - 1)) + 1
         T = self.Tstep * (T//self.Tstep)
         self.T = T
-        self.Rstep =  int(R / (mp.cpu_count() - 1)) + 1
-        R =  self.Rstep * (R//self.Rstep)
-        self.R = R
-        # self.pq = [None]*4
-        # with Timer("making pairs "):
-        #     for i in range(4):
-        #         self.pq[i] =ConstSharedArray(RandomFractions((i+1)*M,T).MakePairs())
-        #     pass
         self.FDistribution()
         for x, name in zip([self.betas,self.dss,-self.OdotO[:], self.OdotO[:]],["beta","DS","-OmOm","OmOm"]):
             data = []
@@ -237,10 +176,9 @@ class FDPlotter():
 def test_FDistribution():
     M = 1000000
     T = 200000
-    R = 10000
     pairs = RandomFractions(100, 100).MakePairs()
-    with Timer("done FDistribution for M,T,R= " + str(M) + "," + str(T) + "," + str(R)):
-        fdp = FDPlotter(M, T, R)
+    with Timer("done FDistribution for M,T= " + str(M) + "," + str(T)):
+        fdp = CurveSimulator(M, T)
 
 if __name__ == '__main__':
     test_FDistribution()
