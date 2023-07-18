@@ -19,22 +19,23 @@ def CorrFuncDir(M):
     return os.path.join("plots", "VorticityCorr." + str(M))
 
 
-def F(k, alphas, beta):
-    return 1 / (2 * sin(beta / 2)) * np.array([cos(alphas[k]), sin(alphas[k]), 1j * cos(beta / 2)], complex)
+def F(alphas, beta):
+    return 1 / (2 * sin(beta / 2)) * np.array([cos(alphas), sin(alphas), 1j * cos(beta / 2)* np.ones_like(alphas)], complex)
 
 
-def Omega(k, alphas, beta):
-    return (alphas[k + 1] - alphas[k]) / (2 * beta * tan(beta / 2)) * np.array(
-        [cos((alphas[k] + alphas[k + 1]) / 2), sin((alphas[k] + alphas[k + 1]) / 2), 1j], complex)
+def Omega(k, alphas, sigmas, beta):
+    phi = alphas[k] + sigmas[k] *( beta / 2)
+    return sigmas[k] / (2 *  tan(beta / 2)) * np.array( [cos(phi), sin(phi), 1j], complex)
 
 class RandomFractions():
     @staticmethod
     def Pair(M):
-        f = np.clip(np.random.random(),0.5/M,1-0.5/M)
-        pq = Fraction(f).limit_denominator(M//2)
-        eps = M%2
-        p,q =  [2 *pq.numerator,2*pq.denominator+ eps]
-        return [p,q]
+        while(True):
+            f = np.clip(np.random.random(),0.5/M,1-0.5/M)
+            pq = Fraction(f).limit_denominator(M)
+            if pq.denominator%2 == M%2:
+                break
+        return [pq.numerator,pq.denominator]
 
     def __init__(self,M, T):
         self.M = M
@@ -70,22 +71,20 @@ class FDPlotter():
     def GetSamples(self, params):
         beg, end = params
         ar = np.zeros((end-beg)*3,dtype=float).reshape(-1,3)
+        np.random.seed(beg)
         for k in range(beg, end):
             i = self.Mindex(k)
             M = (i+1)*self.M
-            p,q = list(self.pq[i][k])
+            p,q = RandomFractions.Pair(M)
             beta = (2 * pi * p) / float(q)
-            # if np.random.randint(2) ==1 :
-            #     beta =-beta
             N1,N2 = (M+q)//2,(M-q)//2
             if np.random.randint(2) ==1 :
                 N1,N2 = N2,N1
-            alphas = np.array([1] * N1 + [-1] *N2 , dtype=int)
-            np.random.shuffle(alphas)
-            alphas = np.cumsum(alphas)
-            alphas = np.append(alphas, alphas[0]).astype(float) * beta
+            sigmas = np.array([1] * N1 + [-1] *N2 , dtype=int)
+            np.random.shuffle(sigmas)
+            alphas = np.cumsum(sigmas).astype(float) * beta
 
-            FF = np.vstack([F(k, alphas, beta) for k in range(M)])
+            FF = F(alphas, beta).T
             FS = np.cumsum(FF, axis=0)
             Stot = FS[-1]
             m = np.random.randint(1, M)
@@ -98,7 +97,7 @@ class FDPlotter():
             t = k-beg
             ar[t,0] = beta
             ar[t,1] = sqrt(ds.dot(ds))
-            ar[t,2] = np.dot(Omega(n, alphas, beta), Omega(m, alphas, beta)).real
+            ar[t,2] = np.dot(Omega(n, alphas, sigmas,beta), Omega(m, alphas,sigmas, beta)).real
         return ar
 
     def GetCorr(self, params):
@@ -214,11 +213,11 @@ class FDPlotter():
         self.Rstep =  int(R / (mp.cpu_count() - 1)) + 1
         R =  self.Rstep * (R//self.Rstep)
         self.R = R
-        self.pq = [None]*4
-        with Timer("making pairs "):
-            for i in range(4):
-                self.pq[i] =ConstSharedArray(RandomFractions((i+1)*M,T).MakePairs())
-            pass
+        # self.pq = [None]*4
+        # with Timer("making pairs "):
+        #     for i in range(4):
+        #         self.pq[i] =ConstSharedArray(RandomFractions((i+1)*M,T).MakePairs())
+        #     pass
         self.FDistribution()
         for x, name in zip([self.betas,self.dss,-self.OdotO[:], self.OdotO[:]],["beta","DS","-OmOm","OmOm"]):
             data = []
@@ -236,7 +235,7 @@ class FDPlotter():
 
 
 def test_FDistribution():
-    M = 1000000
+    M = 1000001
     T = 20000
     R = 10000
     pairs = RandomFractions(100, 100).MakePairs()
