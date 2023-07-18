@@ -68,6 +68,29 @@ class RandomFractions():
 
 
 class CurveSimulator():
+    def __init__(self, M, T):
+        T_param = T
+        MakeDir(CorrFuncDir(M))
+        self.M = M
+        self.Tstep = int(T / (4 * mp.cpu_count())) + 1  # 4 to make last #CPU jobs equal. (+12% speed)
+        T = self.Tstep * (T//self.Tstep)
+        print(f"Adjusted parameter T: {T_param} --> {T}")
+        self.T = T
+        self.FDistribution()
+        for x, name in zip([self.betas,self.dss,-self.OdotO[:], self.OdotO[:]],["beta","DS","-OmOm","OmOm"]):
+            data = []
+            for beg,end, m in [(T*k//4,T*(k+1)//4,(k+1)*M) for k in range(4)]:
+                data.append([str(m),x[beg:end]])
+            plotpath = os.path.join(CorrFuncDir(M),"multi " + name + ".png")
+            try:
+                logx = (name in ("DS", "OmOm", "-OmOm"))
+                logy = (name != "beta")
+                MultiRankHistPos(data,plotpath,name,logx=logx,logy=logy)
+            except Exception as ex:
+                print(ex)
+        pass
+        self.MakeOmtoDSFit()
+
     def GetSamples(self, params):
         beg, end = params
         ar = np.zeros((end-beg)*3,dtype=float).reshape(-1,3)
@@ -80,7 +103,7 @@ class CurveSimulator():
             N1,N2 = (M+q)//2,(M-q)//2
             if np.random.randint(2) ==1 :
                 N1,N2 = N2,N1
-            sigmas = np.array([1] * N1 + [-1] *N2 , dtype=int)
+            sigmas = np.hstack([np.full(N1, 1, dtype=int), np.full(N2, -1, dtype=int)])  # +30% speed
             np.random.shuffle(sigmas)
             alphas = np.cumsum(sigmas).astype(float) * beta
 
@@ -125,7 +148,7 @@ class CurveSimulator():
         except:
             res = []
             params = [[k, k + Tstep ] for k in range(0, T, Tstep)]
-            with fut.ProcessPoolExecutor() as exec:
+            with fut.ProcessPoolExecutor(max_workers=mp.cpu_count() - 1) as exec:
                 res = list(exec.map(self.GetSamples, params))
             data = np.vstack(res)
             data.tofile(self.FDistributionPathname())
@@ -150,27 +173,6 @@ class CurveSimulator():
         except Exception as ex:
             print(ex)
         print("made OtOvsDss " + str(M))
-
-    def __init__(self, M, T):
-        MakeDir(CorrFuncDir(M))
-        self.M = M
-        self.Tstep = int(T / (mp.cpu_count() - 1)) + 1
-        T = self.Tstep * (T//self.Tstep)
-        self.T = T
-        self.FDistribution()
-        for x, name in zip([self.betas,self.dss,-self.OdotO[:], self.OdotO[:]],["beta","DS","-OmOm","OmOm"]):
-            data = []
-            for beg,end, m in [(T*k//4,T*(k+1)//4,(k+1)*M) for k in range(4)]:
-                data.append([str(m),x[beg:end]])
-            plotpath = os.path.join(CorrFuncDir(M),"multi " + name + ".png")
-            try:
-                logx = (name in ("DS", "OmOm", "-OmOm"))
-                logy = (name != "beta")
-                MultiRankHistPos(data,plotpath,name,logx=logx,logy=logy)
-            except Exception as ex:
-                print(ex)
-        pass
-        self.MakeOmtoDSFit()
 
 
 def test_FDistribution():
