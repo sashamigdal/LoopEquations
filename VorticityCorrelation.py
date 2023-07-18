@@ -68,6 +68,29 @@ class RandomFractions():
 
 
 class CurveSimulator():
+    def __init__(self, M, T):
+        T_param = T
+        MakeDir(CorrFuncDir(M))
+        self.M = M
+        self.Tstep = int(T / (4 * mp.cpu_count())) + 1  # 4 to make last #CPU jobs equal. (+12% speed)
+        T = self.Tstep * (T//self.Tstep)
+        print(f"Adjusted parameter T: {T_param} --> {T}")
+        self.T = T
+        self.FDistribution()
+        for x, name in zip([self.betas,self.dss,-self.OdotO[:], self.OdotO[:]],["beta","DS","-OmOm","OmOm"]):
+            data = []
+            for beg,end, m in [(T*k//4,T*(k+1)//4,(k+1)*M) for k in range(4)]:
+                data.append([str(m),x[beg:end]])
+            plotpath = os.path.join(CorrFuncDir(M),"multi " + name + ".png")
+            try:
+                logx = (name in ("DS", "OmOm", "-OmOm"))
+                logy = (name != "beta")
+                MultiRankHistPos(data,plotpath,name,logx=logx,logy=logy)
+            except Exception as ex:
+                print(ex)
+        pass
+        self.MakeOmtoDSFit()
+
     def GetSamples(self, params):
         beg, end = params
         ar = np.zeros((end-beg)*3,dtype=float).reshape(-1,3)
@@ -150,29 +173,6 @@ class CurveSimulator():
         except Exception as ex:
             print(ex)
         print("made OtOvsDss " + str(M))
-
-    def __init__(self, M, T):
-        T_param = T
-        MakeDir(CorrFuncDir(M))
-        self.M = M
-        self.Tstep = int(T / (4 * mp.cpu_count())) + 1  # 4 to make last #CPU jobs equal. (+12% speed)
-        T = self.Tstep * (T//self.Tstep)
-        print(f"Adjusted parameter T: {T_param} --> {T}")
-        self.T = T
-        self.FDistribution()
-        for x, name in zip([self.betas,self.dss,-self.OdotO[:], self.OdotO[:]],["beta","DS","-OmOm","OmOm"]):
-            data = []
-            for beg,end, m in [(T*k//4,T*(k+1)//4,(k+1)*M) for k in range(4)]:
-                data.append([str(m),x[beg:end]])
-            plotpath = os.path.join(CorrFuncDir(M),"multi " + name + ".png")
-            try:
-                logx = (name in ("DS", "OmOm", "-OmOm"))
-                logy = (name != "beta")
-                MultiRankHistPos(data,plotpath,name,logx=logx,logy=logy)
-            except Exception as ex:
-                print(ex)
-        pass
-        self.MakeOmtoDSFit()
 
 
 def test_FDistribution():
