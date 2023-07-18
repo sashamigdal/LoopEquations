@@ -174,7 +174,7 @@ class CurveSimulator():
 
 
 def test_FDistribution():
-    M = 1000000
+    M = 10000000
     T = 200000
     pairs = RandomFractions(100, 100).MakePairs()
     with Timer("done FDistribution for M,T= " + str(M) + "," + str(T)):
