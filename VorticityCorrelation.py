@@ -82,7 +82,7 @@ class CurveSimulator():
     def GetSamples(self, params):
         beg, end = params
         ar = np.zeros((end-beg)*3,dtype=float).reshape(-1,3)
-        np.random.seed(beg*(1+self.C))
+        np.random.seed(self.C + 1000* beg)# to make a unique seed for at least 1000 nodes
         for k in range(beg, end):
             i = self.Mindex(k)
             M = (i+1)*self.M
@@ -94,10 +94,6 @@ class CurveSimulator():
             sigmas = np.hstack([np.full(N1, 1, dtype=int), np.full(N2, -1, dtype=int)])  # +30% speed
             np.random.shuffle(sigmas)
             alphas = np.cumsum(sigmas).astype(float) * beta
-
-            # FF = F(alphas, beta).T
-            # FS = np.cumsum(FF, axis=0)
-            # Stot = FS[-1]
             m = np.random.randint(1, M)
             n = np.random.randint(0, m)
             Snm = np.sum(F(alphas[n:m],beta),axis=1)
