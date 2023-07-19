@@ -436,7 +436,7 @@ def MultiXYPlot(data, plotpath, logx=True, logy=True, title='XY',scatter=False, 
                 l = np.log(x[-N:])
                 t = np.log(y[-N:])
                 p = np.polyfit(l,t,  1)
-                lab = '$%s:W=%d, \mu=%.2f$' % (name,N, p[0])
+                lab = '$%s:W=%d, %.3f*ds**(%.3f)$' % (name,N, np.exp(p[1]),p[0])
                 ll,tt,ee  = SubSampleWithErr(l,t,num_subsamples)
                 plt.errorbar(ll, tt, yerr=ee, fmt='o', elinewidth=0.2)
                 l01 = [ll[0], ll[-1]]
