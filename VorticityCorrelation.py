@@ -77,9 +77,7 @@ class CurveSimulator():
         T = self.Tstep * (T//self.Tstep)
         print(f"Adjusted parameter T: {T_param} --> {T}")
         self.T = T
-        self.FDistribution()
 
-        self.MakeOmtoDSFit()
 
     def GetSamples(self, params):
         beg, end = params
@@ -197,8 +195,13 @@ def test_FDistribution():
     T = 200000
     C =0
     pairs = RandomFractions(100, 100).MakePairs()
-    with Timer("done FDistribution for M,T= " + str(M) + "," + str(T)):
+    with Timer("done FDistribution for M,T,C= " + str(M) + "," + str(T)+ "," + str(C)):
         fdp = CurveSimulator(M, T, C)
+        fdp.FDistribution()# runs on each node, outputs placed in the plot dir of the main node
+    with Timer("done GetAllStats for M,T= " + str(M) + "," + str(T)):
+        fdp.GetAllStats()# runs on main node, reads outputs from all nodes and pools together
+    with Timer("done MakePlots for M,T= " + str(M) + "," + str(T)):
+        fdp.MakePlots()#runs on main node, subsamples data and makes plots
 
 if __name__ == '__main__':
     import argparse
