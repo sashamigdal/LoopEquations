@@ -191,10 +191,10 @@ class CurveSimulator():
 
 
 def test_FDistribution():
-    M = 10000000
-    T = 200000
+    M = 100000
+    T = 20000
     C =0
-    pairs = RandomFractions(100, 100).MakePairs()
+
     with Timer("done FDistribution for M,T,C= " + str(M) + "," + str(T)+ "," + str(C)):
         fdp = CurveSimulator(M, T, C)
         fdp.FDistribution()# runs on each node, outputs placed in the plot dir of the main node
@@ -209,8 +209,8 @@ if __name__ == '__main__':
 
     logger = logging.getLogger()
     parser = argparse.ArgumentParser()
-    parser.add_argument('-M', type=int, default=1000000)
-    parser.add_argument('-T', type=int, default=1000)
+    parser.add_argument('-M', type=int, default=100000)
+    parser.add_argument('-T', type=int, default=10000)
     parser.add_argument('-C', type=int, default=0)
     parser.add_argument('-debug', action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument('-plot', action=argparse.BooleanOptionalAction, default=False)
