@@ -436,12 +436,12 @@ def MultiXYPlot(data, plotpath, logx=True, logy=True, title='XY',scatter=False, 
                 l = np.log(x[-N:])
                 t = np.log(y[-N:])
                 p = np.polyfit(l,t,  1)
-                lab = '$%s: \mu=%.2f$' % (name, p[0])
+                lab = '$%s:W=%d, \mu=%.2f$' % (name,N, p[0])
                 ll,tt,ee  = SubSampleWithErr(l,t,num_subsamples)
-                plt.errorbar(ll, tt, yerr=ee, fmt='o', elinewidth=0.2, label=name)
+                plt.errorbar(ll, tt, yerr=ee, fmt='o', elinewidth=0.2)
                 l01 = [ll[0], ll[-1]]
                 p01 = [p[1] + p[0] * ll[0], p[1] + p[0] * ll[-1]]
-                pylab.plot(l01, p01, linestyle="--", label=name + " fit " + lab)
+                pylab.plot(l01, p01, linestyle="--", label=lab)
             else:
                 if logy:
                     pylab.semilogy(x,y,  linewidth=1., linestyle="-",label=name)
@@ -1025,9 +1025,11 @@ def MultiRankHistPos(arrays,plotpath,var_name='\eta',logx=False, logy=True, num_
                 pylab.plot(l01, p01, color="green", linestyle="--", label=name+" fit "+lab)
             else:
                 if logy:
-                    pylab.semilogy(x,tail,  linewidth=1., linestyle="-",label=name)
+                    xx, tt, terr = SubSampleWithErr(x, np.log(tail), num_subsamples)
+                    plt.errorbar(xx,tt, yerr=terr,  linewidth=1., linestyle="-",label=name)
                 else:
-                    pylab.plot(x,tail,  linewidth=1., linestyle="-",label=name)
+                    xx, tt, terr = SubSampleWithErr(x, tail, num_subsamples)
+                    plt.errorbar(xx,tt, yerr=terr,  linewidth=1., linestyle="-",label=name)
             pass
         except:
             pass

@@ -11,7 +11,7 @@ from plot import MakeDir, XYPlot, SubSampleWithErr, PlotXYErrBars, MultiPlot, Mu
 
 from numpy import pi, sin, cos, tan, sqrt, exp, log
 import numpy as np
-from parallel import ConstSharedArray
+from parallel import ConstSharedArray, print_debug
 import multiprocessing as mp
 import concurrent.futures as fut
 from fractions import Fraction
@@ -129,15 +129,18 @@ class CurveSimulator():
         M = self.M
         T = self.T
         Tstep = self.Tstep
-
         MakeDir(CorrFuncDir(M))
-        res = []
-        params = [[k, k + Tstep ] for k in range(0, T, Tstep)]
-        with fut.ProcessPoolExecutor(max_workers=mp.cpu_count() - 1) as exec:
-            res = list(exec.map(self.GetSamples, params))
-        data = np.vstack(res)
-        data.tofile(self.FDistributionPathname())
+        if not os.path.isfile(self.FDistributionPathname()):
+            res = []
+            params = [[k, k + Tstep ] for k in range(0, T, Tstep)]
+            with fut.ProcessPoolExecutor(max_workers=mp.cpu_count() - 1) as exec:
+                res = list(exec.map(self.GetSamples, params))
+            data = np.vstack(res)
+            data.tofile(self.FDistributionPathname())
         print("made FDistribution " + str(M))
+
+    def ReadFile(self,pathname):
+        return np.fromfile(pathname,float).reshape(self.T,3)
 
     def GetAllStats(self):
         pathnames = []
@@ -154,17 +157,22 @@ class CurveSimulator():
             pass
         res = []
         with fut.ProcessPoolExecutor(max_workers=mp.cpu_count() - 1) as exec:
-            res = list(exec.map(lambda filename:np.fromfile(pathname,float).reshape(self.T,3), pathnames))
+            res = list(exec.map(self.ReadFile, pathnames))
         data = np.vstack(res).reshape(-1,self.T,3)
-        data = np.transpose(data,(2,1,0))
-        self.betas = data[0]
-        self.dss  = data[1]
-        self.OdotO = data[2]
+        data.tofile(os.path.join(CorrFuncDir(self.M), 'AllStats.np'))
+
 
     def MakePlots(self):
         T = self.T
         M = self.M
-        for x, name in zip([self.betas,self.dss, self.OdotO],["beta","DS","OmOm"]):
+        if not os.path.isfile(os.path.join(CorrFuncDir(self.M), 'AllStats.np')):
+            self.GetAllStats()
+        stats  = np.fromfile(os.path.join(CorrFuncDir(self.M), 'AllStats.np'), float).reshape(-1,self.T,3)
+        stats = np.transpose(stats,(2,1,0))
+        Betas = stats[0]
+        Dss  = stats[1]
+        OdotO = stats[2]
+        for x, name in zip([Betas,Dss, OdotO],["beta","DS","OmOm"]):
             data = []
             for beg,end, m in [(T*k//4,T*(k+1)//4,(k+1)*M) for k in range(4)]:
                 data.append([str(m),x[beg:end].reshape(-1)])
@@ -178,10 +186,13 @@ class CurveSimulator():
         pass
         data = []
         for i,j, m in [(T*k//4,T*(k+1)//4,(k+1)*M) for k in range(4)]:
-            oto = self.OdotO[i:j].reshape(-1)
+            oto = OdotO[i:j].reshape(-1)
+
+            dss = Dss[i:j].reshape(-1)
             pos = oto >0
-            dss = self.dss[i:j].reshape(-1)
+            neg = oto < 0
             data.append([str(m),dss[pos],oto[pos]])
+            data.append([str(-m),dss[neg],-oto[neg]])
         try:
             plotpath = os.path.join(CorrFuncDir(M),"multi OtOvsDss.png")
             MultiXYPlot(data, plotpath, logx=True, logy=True, title='OtoOVsDss',scatter=False, xlabel ='log(dss)', ylabel='log(oto)',frac_last=0.95,num_subsamples=1000)
@@ -190,18 +201,12 @@ class CurveSimulator():
         print("made OtOvsDss " + str(M))
 
 
-def test_FDistribution():
-    M = 100000
-    T = 20000
-    C =0
-
+def test_FDistribution(M = 100000,T = 20000,C =0):
     with Timer("done FDistribution for M,T,C= " + str(M) + "," + str(T)+ "," + str(C)):
         fdp = CurveSimulator(M, T, C)
         fdp.FDistribution()# runs on each node, outputs placed in the plot dir of the main node
-    with Timer("done GetAllStats for M,T= " + str(M) + "," + str(T)):
-        fdp.GetAllStats()# runs on main node, reads outputs from all nodes and pools together
     with Timer("done MakePlots for M,T= " + str(M) + "," + str(T)):
-        fdp.MakePlots()#runs on main node, subsamples data and makes plots
+        fdp.MakePlots()#runs on main node, pools tata if not yet done so,  subsamples data and makes plots
 
 if __name__ == '__main__':
     import argparse
@@ -209,13 +214,13 @@ if __name__ == '__main__':
 
     logger = logging.getLogger()
     parser = argparse.ArgumentParser()
-    parser.add_argument('-M', type=int, default=100000)
-    parser.add_argument('-T', type=int, default=10000)
+    parser.add_argument('-M', type=int, default=1000002)
+    parser.add_argument('-T', type=int, default=100000)
     parser.add_argument('-C', type=int, default=0)
     parser.add_argument('-debug', action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument('-plot', action=argparse.BooleanOptionalAction, default=False)
     A = parser.parse_args()
     if A.debug: logging.basicConfig(level=logging.DEBUG)
-    with Timer("done FDistribution for M,T= " + str(M) + "," + str(T)):
-           fdp = CurveSimulator(A.M, A.T, A.C)
+    with Timer("done FDistribution for M,T= " + str(A.M) + "," + str(A.T)):
+        test_FDistribution(A.M, A.T, A.C)
 
