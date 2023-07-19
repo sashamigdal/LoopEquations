@@ -68,33 +68,23 @@ class RandomFractions():
 
 
 class CurveSimulator():
-    def __init__(self, M, T):
+    def __init__(self, M, T, C):
         T_param = T
         MakeDir(CorrFuncDir(M))
         self.M = M
+        self.C = C
         self.Tstep = int(T / (4 * mp.cpu_count())) + 1  # 4 to make last #CPU jobs equal. (+12% speed)
         T = self.Tstep * (T//self.Tstep)
         print(f"Adjusted parameter T: {T_param} --> {T}")
         self.T = T
         self.FDistribution()
-        for x, name in zip([self.betas,self.dss,-self.OdotO[:], self.OdotO[:]],["beta","DS","-OmOm","OmOm"]):
-            data = []
-            for beg,end, m in [(T*k//4,T*(k+1)//4,(k+1)*M) for k in range(4)]:
-                data.append([str(m),x[beg:end]])
-            plotpath = os.path.join(CorrFuncDir(M),"multi " + name + ".png")
-            try:
-                logx = (name in ("DS", "OmOm", "-OmOm"))
-                logy = (name != "beta")
-                MultiRankHistPos(data,plotpath,name,logx=logx,logy=logy)
-            except Exception as ex:
-                print(ex)
-        pass
+
         self.MakeOmtoDSFit()
 
     def GetSamples(self, params):
         beg, end = params
         ar = np.zeros((end-beg)*3,dtype=float).reshape(-1,3)
-        np.random.seed(beg)
+        np.random.seed(beg*(1+self.C))
         for k in range(beg, end):
             i = self.Mindex(k)
             M = (i+1)*self.M
@@ -107,13 +97,13 @@ class CurveSimulator():
             np.random.shuffle(sigmas)
             alphas = np.cumsum(sigmas).astype(float) * beta
 
-            FF = F(alphas, beta).T
-            FS = np.cumsum(FF, axis=0)
-            Stot = FS[-1]
+            # FF = F(alphas, beta).T
+            # FS = np.cumsum(FF, axis=0)
+            # Stot = FS[-1]
             m = np.random.randint(1, M)
             n = np.random.randint(0, m)
-            Snm = FS[m] - FS[n]
-            Smn = Stot - Snm
+            Snm = np.sum(F(alphas[n:m],beta),axis=1)
+            Smn = np.sum(F(alphas[m:M],beta),axis=1) + np.sum(F(alphas[0:n],beta),axis=1)
             snm = Snm / (m - n)
             smn = Smn / (n + M - m)
             ds = snm.real - smn.real
@@ -130,7 +120,7 @@ class CurveSimulator():
         PlotXYErrBars(x, y, yerr, plotpath,title=name)
 
     def FDistributionPathname(self):
-        return os.path.join(CorrFuncDir(self.M), "Fdata." + str(self.T) + ".np")
+        return os.path.join(CorrFuncDir(self.M), "Fdata." + str(self.T) +"." + str(self.C) + ".np")
 
 
     def Mindex(self, k):
@@ -143,33 +133,60 @@ class CurveSimulator():
         Tstep = self.Tstep
 
         MakeDir(CorrFuncDir(M))
-        try:
-            data = np.fromfile(self.FDistributionPathname(),dtype=float).reshape(-1,3)
-        except:
-            res = []
-            params = [[k, k + Tstep ] for k in range(0, T, Tstep)]
-            with fut.ProcessPoolExecutor(max_workers=mp.cpu_count() - 1) as exec:
-                res = list(exec.map(self.GetSamples, params))
-            data = np.vstack(res)
-            data.tofile(self.FDistributionPathname())
-            print("made FDistribution " + str(M))
-        data = data.T
-        self.betas = ConstSharedArray(data[0])
-        self.dss = ConstSharedArray(data[1])
-        self.OdotO = ConstSharedArray(data[2])
+        res = []
+        params = [[k, k + Tstep ] for k in range(0, T, Tstep)]
+        with fut.ProcessPoolExecutor(max_workers=mp.cpu_count() - 1) as exec:
+            res = list(exec.map(self.GetSamples, params))
+        data = np.vstack(res)
+        data.tofile(self.FDistributionPathname())
+        print("made FDistribution " + str(M))
 
-    def MakeOmtoDSFit(self):
-        data = []
-        M = self.M
+    def GetAllStats(self):
+        pathnames = []
+        for filename in os.listdir(CorrFuncDir(self.M)):
+            if filename.endswith(".np") and filename.startswith("Fdata." + str(self.T) +"."):
+                try:
+                    splits = filename.split(".")
+                    node_num = int(splits[-2])
+                    if (node_num >=0):
+                        pathnames.append(os.path.join(CorrFuncDir(self.M), filename))
+                except Exception as ex:
+                    print_debug(ex)
+                pass
+            pass
+        res = []
+        with fut.ProcessPoolExecutor(max_workers=mp.cpu_count() - 1) as exec:
+            res = list(exec.map(lambda filename:np.fromfile(pathname,float).reshape(self.T,3), pathnames))
+        data = np.vstack(res).reshape(-1,self.T,3)
+        data = np.transpose(data,(2,1,0))
+        self.betas = data[0]
+        self.dss  = data[1]
+        self.OdotO = data[2]
+
+    def MakePlots(self):
         T = self.T
+        M = self.M
+        for x, name in zip([self.betas,self.dss, self.OdotO],["beta","DS","OmOm"]):
+            data = []
+            for beg,end, m in [(T*k//4,T*(k+1)//4,(k+1)*M) for k in range(4)]:
+                data.append([str(m),x[beg:end].reshape(-1)])
+            plotpath = os.path.join(CorrFuncDir(M),"multi " + name + ".png")
+            try:
+                logx = (name in ("DS", "OmOm"))
+                logy = (name != "beta")
+                MultiRankHistPos(data,plotpath,name,logx=logx,logy=logy,num_subsamples=1000)
+            except Exception as ex:
+                print(ex)
+        pass
+        data = []
         for i,j, m in [(T*k//4,T*(k+1)//4,(k+1)*M) for k in range(4)]:
-            oto = self.OdotO[i:j]
+            oto = self.OdotO[i:j].reshape(-1)
             pos = oto >0
-            dss = self.dss[i:j]
+            dss = self.dss[i:j].reshape(-1)
             data.append([str(m),dss[pos],oto[pos]])
         try:
             plotpath = os.path.join(CorrFuncDir(M),"multi OtOvsDss.png")
-            MultiXYPlot(data, plotpath, logx=True, logy=True, title='OtoOVsDss',scatter=False, xlabel ='log(dss)', ylabel='log(oto)',frac_last=0.95)
+            MultiXYPlot(data, plotpath, logx=True, logy=True, title='OtoOVsDss',scatter=False, xlabel ='log(dss)', ylabel='log(oto)',frac_last=0.95,num_subsamples=1000)
         except Exception as ex:
             print(ex)
         print("made OtOvsDss " + str(M))
@@ -178,9 +195,24 @@ class CurveSimulator():
 def test_FDistribution():
     M = 10000000
     T = 200000
+    C =0
     pairs = RandomFractions(100, 100).MakePairs()
     with Timer("done FDistribution for M,T= " + str(M) + "," + str(T)):
-        fdp = CurveSimulator(M, T)
+        fdp = CurveSimulator(M, T, C)
 
 if __name__ == '__main__':
-    test_FDistribution()
+    import argparse
+    import logging
+
+    logger = logging.getLogger()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-M', type=int, default=1000000)
+    parser.add_argument('-T', type=int, default=1000)
+    parser.add_argument('-C', type=int, default=0)
+    parser.add_argument('-debug', action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument('-plot', action=argparse.BooleanOptionalAction, default=False)
+    A = parser.parse_args()
+    if A.debug: logging.basicConfig(level=logging.DEBUG)
+    with Timer("done FDistribution for M,T= " + str(M) + "," + str(T)):
+           fdp = CurveSimulator(A.M, A.T, A.C)
+

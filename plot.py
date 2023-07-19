@@ -417,7 +417,7 @@ def XYPlot(xy, plotpath,logx=False, logy=False, lims=None, title='XY',scatter=Fa
     pylab.close()
     return plotpath
 
-def MultiXYPlot(data, plotpath, logx=True, logy=True, title='XY',scatter=False, xlabel ='x', ylabel='y',frac_last = 0.1):
+def MultiXYPlot(data, plotpath, logx=True, logy=True, title='XY',scatter=False, xlabel ='x', ylabel='y',frac_last = 0.1,num_subsamples=1000):
     import matplotlib as mpl
     mpl.use('Agg')
     from matplotlib import pylab
@@ -436,11 +436,12 @@ def MultiXYPlot(data, plotpath, logx=True, logy=True, title='XY',scatter=False, 
                 l = np.log(x[-N:])
                 t = np.log(y[-N:])
                 p = np.polyfit(l,t,  1)
-                lab = '$%s: \mu=%.2f$' % (name,p[0])
-                pylab.scatter(l,t, linewidth=1.,label=name)
-                pylab.plot(l,l*p[0] + p[1], linewidth=1.,label=lab)
-                pylab.set_xscale("log")
-                pylab.set_yscale("log")
+                lab = '$%s: \mu=%.2f$' % (name, p[0])
+                ll,tt,ee  = SubSampleWithErr(l,t,num_subsamples)
+                plt.errorbar(ll, tt, yerr=ee, fmt='o', elinewidth=0.2, label=name)
+                l01 = [ll[0], ll[-1]]
+                p01 = [p[1] + p[0] * ll[0], p[1] + p[0] * ll[-1]]
+                pylab.plot(l01, p01, linestyle="--", label=name + " fit " + lab)
             else:
                 if logy:
                     pylab.semilogy(x,y,  linewidth=1., linestyle="-",label=name)
@@ -995,7 +996,7 @@ def RankHistPos(data,plotpath,name='RankHist',var_name='\eta',logx=False, logy=T
     return plotpath
 
 
-def MultiRankHistPos(arrays,plotpath,var_name='\eta',logx=False, logy=True):
+def MultiRankHistPos(arrays,plotpath,var_name='\eta',logx=False, logy=True, num_subsamples=1000):
     import matplotlib as mpl
     mpl.use('Agg')
     from matplotlib import pylab
@@ -1017,10 +1018,11 @@ def MultiRankHistPos(arrays,plotpath,var_name='\eta',logx=False, logy=True):
                 t = np.log(tail[ok])
                 p = np.polyfit(l,t,  1)
                 lab = '$\mu=%.2f$' % (p[0])
-                pylab.loglog(x[ok],tail[ok],  linewidth=1., linestyle="-",label=name)
-                l01 = [np.exp(l[0]),np.exp(l[-1])]
-                p01 = [np.exp(p[1] + p[0]*l[0]),np.exp(p[1] + p[0] *l[-1])]
-                pylab.loglog(l01, p01, color="green", linestyle="--", label=name+" fit "+lab)
+                ll, tt, terr = SubSampleWithErr(l, t, num_subsamples)
+                plt.errorbar(ll, tt, yerr=terr, fmt='o', elinewidth=0.2,label=name)
+                l01 = [ll[0],ll[-1]]
+                p01 = [p[1] + p[0]*ll[0],p[1] + p[0] *ll[-1]]
+                pylab.plot(l01, p01, color="green", linestyle="--", label=name+" fit "+lab)
             else:
                 if logy:
                     pylab.semilogy(x,tail,  linewidth=1., linestyle="-",label=name)
