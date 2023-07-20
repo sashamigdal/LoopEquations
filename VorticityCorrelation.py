@@ -1,8 +1,7 @@
-
 import os
 
-from mpmath import rational
-
+#from mpmath import rational
+#here is a new line
 from SortedArrayIter import SortedArrayIter
 from Timer import MTimer as Timer
 from plot import MakeDir, XYPlot, SubSampleWithErr, PlotXYErrBars, MultiPlot, MultiRankHistPos, MultiXYPlot
@@ -68,12 +67,13 @@ class RandomFractions():
 
 
 class CurveSimulator():
-    def __init__(self, M, T, C):
+    def __init__(self, M, T,CPU, C):
         T_param = T
         MakeDir(CorrFuncDir(M))
         self.M = M
+	self.CPU = CPU
         self.C = C
-        self.Tstep = int(T / (4 * mp.cpu_count())) + 1  # 4 to make last #CPU jobs equal. (+12% speed)
+        self.Tstep = int(T / (4 * self.CPU)) + 1  # 4 to make last #CPU jobs equal. (+12% speed)
         T = self.Tstep * (T//self.Tstep)
         print(f"Adjusted parameter T: {T_param} --> {T}")
         self.T = T
@@ -129,7 +129,7 @@ class CurveSimulator():
         if not os.path.isfile(self.FDistributionPathname()):
             res = []
             params = [[k, k + Tstep ] for k in range(0, T, Tstep)]
-            with fut.ProcessPoolExecutor(max_workers=mp.cpu_count() - 1) as exec:
+            with fut.ProcessPoolExecutor(max_workers=self.CPU - 1) as exec:
                 res = list(exec.map(self.GetSamples, params))
             data = np.vstack(res)
             data.tofile(self.FDistributionPathname())
@@ -152,7 +152,7 @@ class CurveSimulator():
                 pass
             pass
         res = []
-        with fut.ProcessPoolExecutor(max_workers=mp.cpu_count() - 1) as exec:
+        with fut.ProcessPoolExecutor(max_workers=self.CPU - 1) as exec:
             res = list(exec.map(self.ReadFile, pathnames))
         data = np.vstack(res).reshape(-1,self.T,3)
         data.tofile(os.path.join(CorrFuncDir(self.M), 'AllStats.np'))
@@ -179,7 +179,7 @@ class CurveSimulator():
                 MultiRankHistPos(data,plotpath,name,logx=logx,logy=logy,num_subsamples=1000)
             except Exception as ex:
                 print(ex)
-        pass
+        passg
         data = []
         for i,j, m in [(T*k//4,T*(k+1)//4,(k+1)*M) for k in range(4)]:
             oto = OdotO[i:j].reshape(-1)
@@ -197,11 +197,14 @@ class CurveSimulator():
         print("made OtOvsDss " + str(M))
 
 
-def test_FDistribution(M = 100000,T = 20000,C =0):
+def test_FDistribution(M = 100000,T = 20000,CPU = 1, C =0):
     with Timer("done FDistribution for M,T,C= " + str(M) + "," + str(T)+ "," + str(C)):
-        fdp = CurveSimulator(M, T, C)
+        fdp = CurveSimulator(M, T,CPU, C)
         fdp.FDistribution()# runs on each node, outputs placed in the plot dir of the main node
+
+def MakePlots(M = 100000,T = 20000, CPU=1):
     with Timer("done MakePlots for M,T= " + str(M) + "," + str(T)):
+        fdp = CurveSimulator(M, T, CPU, 0)
         fdp.MakePlots()#runs on main node, pools tata if not yet done so,  subsamples data and makes plots
 
 if __name__ == '__main__':
@@ -212,11 +215,14 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-M', type=int, default=1000002)
     parser.add_argument('-T', type=int, default=100000)
+    parser.add_argument('-CPU', type=int, default=100000)
     parser.add_argument('-C', type=int, default=0)
     parser.add_argument('-debug', action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument('-plot', action=argparse.BooleanOptionalAction, default=False)
     A = parser.parse_args()
     if A.debug: logging.basicConfig(level=logging.DEBUG)
-    with Timer("done FDistribution for M,T= " + str(A.M) + "," + str(A.T)):
-        test_FDistribution(A.M, A.T, A.C)
-
+    if A.C >0:
+        with Timer("done FDistribution for M,T= " + str(A.M) + "," + str(A.T)):
+            test_FDistribution(A.M, A.T, A.CPU, A.C)
+    else:
+            MakePlots(A.M, A.T, A.CPU)
