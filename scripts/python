@@ -1,0 +1,21 @@
+#!/bin/bash
+
+args=''
+for i in "$@"; do 
+  i="${i//\\/\\\\}"
+  args="${args} \"${i//\"/\\\"}\""
+done
+
+if [ "${args}" == "" ]; then args="/bin/bash"; fi
+
+if [[ -e /dev/nvidia0 ]]; then nv="--nv"; fi
+
+singularity \
+    exec \
+    --overlay /scratch/work/public/singularity/anaconda3-2023.03-1.sqf:ro \
+    /scratch/work/public/singularity/ubuntu-22.04.1.sif \
+    /bin/bash -c "
+unset -f which	 
+source /ext3/anaconda3/env.sh 
+python ${args}	 
+"
