@@ -716,6 +716,8 @@ def SubSample(X,Y,K):
 
 def SubSampleWithErr(X,Y,K):
     N = len(X)
+    if N < 10* K:
+         return X,Y,np.zeros_like(Y)
     grid = np.arange(K,dtype=float)*(float(N)/K)
     x = np.zeros(K,dtype=float)
     y = np.zeros(K,dtype=float)

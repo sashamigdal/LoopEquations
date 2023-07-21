@@ -86,17 +86,28 @@ class CurveSimulator():
         beg, end = params
         ar = np.zeros((end - beg) * 3, dtype=float).reshape(-1, 3)
         np.random.seed(self.C + 1000 * beg)  # to make a unique seed for at least 1000 nodes
+        i0 = self.Mindex(beg)
+        M = (i0+1)*self.M
+        sigmas = np.ones(M, dtype=int)  # +30% speed
+        alphas = np.zeros(M,dtype=float)
         for k in range(beg, end):
             i = self.Mindex(k)
-            M = (i + 1) * self.M
+            if i > i0:
+                i0 = i
+                M = (i+1)*self.M
+                sigmas = np.ones(M, dtype=int)  # +30% speed
+                alphas = np.zeros(M,dtype=float)
+            else:
+                sigmas.fill(1)
+                alphas.fill(0)
             p, q = RandomFractions.Pair(M)
             beta = (2 * pi * p) / float(q)
             N1, N2 = (M + q) // 2, (M - q) // 2
             if np.random.randint(2) == 1:
                 N1, N2 = N2, N1
-            sigmas = np.hstack([np.full(N1, 1, dtype=int), np.full(N2, -1, dtype=int)])  # +30% speed
+            sigmas[:N1].fill(-1)
             np.random.shuffle(sigmas)
-            alphas = np.cumsum(sigmas).astype(float) * beta
+            alphas[:] = np.cumsum(sigmas).astype(float) * beta
             m = np.random.randint(1, M)
             n = np.random.randint(0, m)
             Snm = np.sum(F(alphas[n:m], beta), axis=1)
@@ -197,12 +208,12 @@ class CurveSimulator():
             print(ex)
         print("made OtOvsDss " + str(M))
 
-def test_FDistribution(M = 100000, T = 20000, CPU = 1, C =0):
+def test_FDistribution(M = 100000, T = 20000, CPU = mp.cpu_count(), C =0):
     with Timer("done FDistribution for M,T,C= " + str(M) + "," + str(T)+ "," + str(C)):
         fdp = CurveSimulator(M, T, CPU, C)
         fdp.FDistribution()# runs on each node, outputs placed in the plot dir of the main node
 
-def MakePlots(M=100000, T=20000, CPU=1):
+def MakePlots(M=100000, T=20000, CPU=mp.cpu_count()):
     with Timer("done MakePlots for M,T= " + str(M) + "," + str(T)):
         fdp = CurveSimulator(M, T, CPU, 0)
         fdp.MakePlots()  # runs on main node, pools tata if not yet done so,  subsamples data and makes plots
@@ -215,10 +226,10 @@ if __name__ == '__main__':
 
     logger = logging.getLogger()
     parser = argparse.ArgumentParser()
-    parser.add_argument('-M', type=int, default=100001)
+    parser.add_argument('-M', type=int, default=100003)
     parser.add_argument('-T', type=int, default=10000)
     parser.add_argument('-CPU', type=int, default=mp.cpu_count())
-    parser.add_argument('-C', type=int, default=1)
+    parser.add_argument('-C', type=int, default=0)
     parser.add_argument('-debug', action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument('-plot', action=argparse.BooleanOptionalAction, default=False)
     A = parser.parse_args()
