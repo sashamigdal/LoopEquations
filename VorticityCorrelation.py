@@ -197,12 +197,10 @@ class CurveSimulator():
             print(ex)
         print("made OtOvsDss " + str(M))
 
-
-def test_FDistribution(M=100000, T=20000, CPU=1, C=0):
-    with Timer("done FDistribution for M,T,C= " + str(M) + "," + str(T) + "," + str(C)):
+def test_FDistribution(M = 100000, T = 20000, CPU = 1, C =0):
+    with Timer("done FDistribution for M,T,C= " + str(M) + "," + str(T)+ "," + str(C)):
         fdp = CurveSimulator(M, T, CPU, C)
-        fdp.FDistribution()  # runs on each node, outputs placed in the plot dir of the main node
-
+        fdp.FDistribution()# runs on each node, outputs placed in the plot dir of the main node
 
 def MakePlots(M=100000, T=20000, CPU=1):
     with Timer("done MakePlots for M,T= " + str(M) + "," + str(T)):
@@ -229,3 +227,4 @@ if __name__ == '__main__':
             test_FDistribution(A.M, A.T, A.CPU, A.C)
     else:
         MakePlots(A.M, A.T, A.CPU)
+
