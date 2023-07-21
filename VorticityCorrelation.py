@@ -221,6 +221,8 @@ if __name__ == '__main__':
     parser.add_argument('-T', type=int, default=10000)
     parser.add_argument('-CPU', type=int, default=mp.cpu_count())
     parser.add_argument('-C', type=int, default=1)
+    parser.add_argument('-debug', action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument('-plot', action=argparse.BooleanOptionalAction, default=False)
     A = parser.parse_args()
     if A.C > 0:
         with Timer("done FDistribution for M,T= " + str(A.M) + "," + str(A.T)):
