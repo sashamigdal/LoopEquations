@@ -136,14 +136,13 @@ class CurveSimulator():
         M = self.M
         T = self.T
         Tstep = self.Tstep
-        MakeDir(CorrFuncDir(M))
+        MakeNewDir(CorrFuncDir(M))
         if not os.path.isfile(self.FDistributionPathname()):
             res = []
             params = [[k, k + Tstep] for k in range(0, T, Tstep)]
             with fut.ProcessPoolExecutor(max_workers=self.CPU - 1) as exec:
                 res = list(exec.map(self.GetSamples, params))
             data = np.vstack(res)
-            MakeNewDir(CorrFuncDir(M))
             data.tofile(self.FDistributionPathname())
         print("made FDistribution " + str(M))
 
@@ -229,7 +228,7 @@ if __name__ == '__main__':
     parser.add_argument('-M', type=int, default=100003)
     parser.add_argument('-T', type=int, default=10000)
     parser.add_argument('-CPU', type=int, default=mp.cpu_count())
-    parser.add_argument('-C', type=int, default=0)
+    parser.add_argument('-C', type=int, default=1)
     parser.add_argument('-debug', action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument('-plot', action=argparse.BooleanOptionalAction, default=False)
     A = parser.parse_args()
