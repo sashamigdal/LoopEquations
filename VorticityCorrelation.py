@@ -13,8 +13,8 @@ import numpy as np
 from parallel import ConstSharedArray, print_debug
 import multiprocessing as mp
 import concurrent.futures as fut
-from fractions import Fraction
-
+from fractions import Fractionimport memory_profiler
+from memory_profiler import profile
 
 def CorrFuncDir(M):
     return os.path.join("plots", "VorticityCorr." + str(M))
@@ -81,7 +81,7 @@ class CurveSimulator():
         T = self.Tstep * (T // self.Tstep)
         print(f"Adjusted parameter T: {T_param} --> {T}")
         self.T = T
-
+    @profile
     def GetSamples(self, params):
         beg, end = params
         ar = np.zeros((end - beg) * 3, dtype=float).reshape(-1, 3)
@@ -131,7 +131,8 @@ class CurveSimulator():
 
     def Mindex(self, k):
         return (4 * k) // self.T
-
+    
+   
     def FDistribution(self):
         M = self.M
         T = self.T
@@ -225,7 +226,7 @@ if __name__ == '__main__':
 
     logger = logging.getLogger()
     parser = argparse.ArgumentParser()
-    parser.add_argument('-M', type=int, default=100003)
+    parser.add_argument('-M', type=int, default=5000000)
     parser.add_argument('-T', type=int, default=10000)
     parser.add_argument('-CPU', type=int, default=mp.cpu_count())
     parser.add_argument('-C', type=int, default=1)
