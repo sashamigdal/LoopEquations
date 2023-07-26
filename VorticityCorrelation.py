@@ -137,7 +137,7 @@ class CurveSimulator():
         M = self.M
         T = self.T
         Tstep = self.Tstep
-        MakeNewDir(CorrFuncDir(M))
+        MakeDir(CorrFuncDir(M))
         if not os.path.isfile(self.FDistributionPathname()):
             res = []
             params = [[k, k + Tstep] for k in range(0, T, Tstep)]

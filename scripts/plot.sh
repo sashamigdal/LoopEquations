@@ -2,16 +2,20 @@
 
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=am10485@nyu.edu
-#SBATCH --cpus-per-task=32
+#SBATCH --cpus-per-task=64
 #SBATCH --output=/scratch/am10485/slurm-logs/slurm-%A_%a.out
-#SBATCH --time=1-00:00:00
-#SBATCH --mem=100GB  
+#SBATCH --time=7-00:00:00
+#SBATCH --mem=240GB
 
-NODE=0
-CPU=${SLURM_CPUS_PER_TASK}
+PROJECT_DIR=/scratch/${USER}/LoopEquations
 
-cd /home/am10485/LoopEquations
+echo PROJECT_DIR = ${PROJECT_DIR}
 
-/home/am10485/LoopEquations/scripts/python  \
-    -u VorticityCorrelation.py -M $M -T $T -CPU $CPU -C $NODE
+cd ${PROJECT_DIR}
 
+source /share/apps/NYUAD/miniconda/3-4.11.0/bin/activate
+conda activate py39
+
+echo "Starting plotting script on node . . . "
+
+python -u VorticityCorrelation.py -M ${M} -T ${T} -CPU ${SLURM_CPUS_PER_TASK} -C 0
