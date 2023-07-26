@@ -13,7 +13,8 @@ import numpy as np
 from parallel import ConstSharedArray, print_debug
 import multiprocessing as mp
 import concurrent.futures as fut
-from fractions import Fractionimport memory_profiler
+from fractions import Fraction
+import memory_profiler
 from memory_profiler import profile
 
 def CorrFuncDir(M):
@@ -81,6 +82,7 @@ class CurveSimulator():
         T = self.Tstep * (T // self.Tstep)
         print(f"Adjusted parameter T: {T_param} --> {T}")
         self.T = T
+
     @profile
     def GetSamples(self, params):
         beg, end = params
