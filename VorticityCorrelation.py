@@ -107,21 +107,24 @@ class CurveSimulator():
                 sigmas = np.ones(M, dtype=int)  # +30% speed
                 alphas = np.zeros(M,dtype=float)
             else:
+                #########to be parallemized on GPU
                 sigmas.fill(1)
                 alphas.fill(0)
+                #########
             p, q = RandomFractions.Pair(M)
             beta = (2 * pi * p) / float(q)
             N1, N2 = (M + q) // 2, (M - q) // 2
             if np.random.randint(2) == 1:
                 N1, N2 = N2, N1
+            m = np.random.randint(1, M)
+            n = np.random.randint(0, m)
+            #########to be parallemized on GPU
             sigmas[:N1].fill(-1)
             np.random.shuffle(sigmas)
             alphas[:] = np.cumsum(sigmas).astype(float) * beta
-            m = np.random.randint(1, M)
-            n = np.random.randint(0, m)
-            # Snm, Smn = self.SS(n, m, M, alphas, beta)
             Snm = np.sum(F(alphas[n:m], beta), axis=1)
             Smn = np.sum(F(alphas[m:M], beta), axis=1) + np.sum(F(alphas[0:n], beta), axis=1)
+            #################################################
             snm = Snm / (m - n)
             smn = Smn / (n + M - m)
             ds = snm.real - smn.real
