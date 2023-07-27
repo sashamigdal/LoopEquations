@@ -1019,12 +1019,12 @@ def MultiRankHistPos(arrays,plotpath,var_name='\eta',logx=False, logy=True, num_
                 l = np.log(x[ok])
                 t = np.log(tail[ok])
                 p = np.polyfit(l,t,  1)
-                lab = '$\mu=%.2f$' % (p[0])
+                lab = '$%s:W=%d, %.3e*ds**(%.3f)$' % (name,N, np.exp(p[1]),p[0])
                 ll, tt, terr = SubSampleWithErr(l, t, num_subsamples)
                 plt.errorbar(ll, tt, yerr=terr, fmt='o', elinewidth=0.2,label=name)
                 l01 = [ll[0],ll[-1]]
                 p01 = [p[1] + p[0]*ll[0],p[1] + p[0] *ll[-1]]
-                pylab.plot(l01, p01, color="green", linestyle="--", label=name+" fit "+lab)
+                pylab.plot(l01, p01, color="green", linestyle="--", label=lab)
             else:
                 if logy:
                     xx, tt, terr = SubSampleWithErr(x, np.log(tail), num_subsamples)

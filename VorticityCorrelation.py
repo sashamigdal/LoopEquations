@@ -14,8 +14,8 @@ from parallel import ConstSharedArray, print_debug
 import multiprocessing as mp
 import concurrent.futures as fut
 from fractions import Fraction
-import memory_profiler
-from memory_profiler import profile
+from numba import vectorize, guvectorize, float64, int64
+
 
 def CorrFuncDir(M):
     return os.path.join("plots", "VorticityCorr." + str(M))
@@ -29,6 +29,13 @@ def F(alphas, beta):
 def Omega(k, alphas, sigmas, beta):
     phi = alphas[k] + sigmas[k] * (beta / 2)
     return sigmas[k] / (2 * tan(beta / 2)) * np.array([cos(phi), sin(phi), 1j], complex)
+
+# @vectorize([float64(int64,int64,int64,float64[:], float64)])
+def SS(n, m, M, alphas, beta):
+    Snm = np.sum(F(alphas[n:m], beta), axis=1)
+    Smn = np.sum(F(alphas[m:M], beta), axis=1) + np.sum(F(alphas[0:n], beta), axis=1)
+    return Snm.dot(Smn)
+
 
 
 class RandomFractions():
@@ -78,12 +85,12 @@ class CurveSimulator():
         self.M = M
         self.CPU = CPU
         self.C = C
-        self.Tstep = int(T / (4. * self.CPU)) + 1  # 4 to make last #CPU jobs equal. (+12% speed)
-        T = self.Tstep * (T // self.Tstep)
-        print(f"Adjusted parameter T: {T_param} --> {T}")
+        if C > 0:
+            self.Tstep = int(T / (4. * self.CPU)) + 1  # 4 to make last #CPU jobs equal. (+12% speed)
+            T = self.Tstep * (T // self.Tstep)
+            print(f"Adjusted parameter T: {T_param} --> {T}")
         self.T = T
-
-    @profile
+    
     def GetSamples(self, params):
         beg, end = params
         ar = np.zeros((end - beg) * 3, dtype=float).reshape(-1, 3)
@@ -112,6 +119,7 @@ class CurveSimulator():
             alphas[:] = np.cumsum(sigmas).astype(float) * beta
             m = np.random.randint(1, M)
             n = np.random.randint(0, m)
+            # Snm, Smn = self.SS(n, m, M, alphas, beta)
             Snm = np.sum(F(alphas[n:m], beta), axis=1)
             Smn = np.sum(F(alphas[m:M], beta), axis=1) + np.sum(F(alphas[0:n], beta), axis=1)
             snm = Snm / (m - n)
@@ -134,7 +142,6 @@ class CurveSimulator():
     def Mindex(self, k):
         return (4 * k) // self.T
     
-   
     def FDistribution(self):
         M = self.M
         T = self.T
@@ -168,15 +175,30 @@ class CurveSimulator():
         res = []
         with fut.ProcessPoolExecutor(max_workers=self.CPU - 1) as exec:
             res = list(exec.map(self.ReadStatsFile, pathnames))
+        if res ==[]:
+            raise Exception("no stats to collect!!!!")
         data = np.vstack(res).reshape(-1, self.T, 3)
-        data.tofile(os.path.join(CorrFuncDir(self.M), 'AllStats.np'))
+        self.pathname = os.path.join(CorrFuncDir(self.M), 'AllStats.' + str(self.T) + '.np')
+        data.tofile(self.pathname)
 
     def MakePlots(self):
-        T = self.T
         M = self.M
-        if not os.path.isfile(os.path.join(CorrFuncDir(self.M), 'AllStats.np')):
+        self.pathname = None
+        for filename in os.listdir(CorrFuncDir(self.M)):
+            if filename.endswith(".np") and filename.startswith("AllStats."):
+                try:
+                    splits = filename.split(".")
+                    T = int(splits[-2])
+                    if (T > 0): 
+                        self.pathname = os.path.join(CorrFuncDir(self.M), filename)
+                        break
+                except Exception as ex:
+                    break
+                pass
+        
+        if self.pathname is None:
             self.GetAllStats()
-        stats = np.fromfile(os.path.join(CorrFuncDir(self.M), 'AllStats.np'), float).reshape(-1, self.T, 3)
+        stats = np.fromfile(self.pathname).reshape(-1, self.T, 3)
         stats = np.transpose(stats, (2, 1, 0))
         Betas = stats[0]
         Dss = stats[1]
@@ -220,18 +242,36 @@ def MakePlots(M=100000, T=20000, CPU=mp.cpu_count()):
         fdp = CurveSimulator(M, T, CPU, 0)
         fdp.MakePlots()  # runs on main node, pools tata if not yet done so,  subsamples data and makes plots
 
+def test_Numba():
+    M = 1000
+    sigmas = np.ones(M,dtype=int)
+    alphas = np.zeros(M, dtype=float)
+    p, q = RandomFractions.Pair(M)
+    beta = (2 * pi * p) / float(q)
+    N1, N2 = (M + q) // 2, (M - q) // 2
+    if np.random.randint(2) == 1:
+        N1, N2 = N2, N1
+    sigmas[:N1].fill(-1)
+    np.random.shuffle(sigmas)
+    alphas[:] = np.cumsum(sigmas).astype(float) * beta
+    m = np.random.randint(1, M)
+    n = np.random.randint(0, m)
+    Snm, Smn = SS(n, m, M, alphas, beta)
+    return Snm, Smn
+
 
 if __name__ == '__main__':
+    # test_Numba()
     import argparse
     import logging
     import multiprocessing as mp
 
     logger = logging.getLogger()
     parser = argparse.ArgumentParser()
-    parser.add_argument('-M', type=int, default=5000000)
+    parser.add_argument('-M', type=int, default=50000)
     parser.add_argument('-T', type=int, default=1000)
     parser.add_argument('-CPU', type=int, default=mp.cpu_count())
-    parser.add_argument('-C', type=int, default=0)
+    parser.add_argument('-C', type=int, default=1)
     A = parser.parse_args()
     if A.C > 0:
         with Timer("done FDistribution for M,T= " + str(A.M) + "," + str(A.T)):
