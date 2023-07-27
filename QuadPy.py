@@ -63,7 +63,7 @@ def test_GroupIntegral():
 def SphericalFourierIntegral(R):
     dim = 4
     scheme = quadpy.un.mysovskikh_2(dim)
-    print("tol=", scheme.test_tolerance)
+    # print("tol=", scheme.test_tolerance)
     vol = scheme.integrate(lambda x: np.ones(x.shape[1]), np.zeros(dim), 1.0)
 
     def func(x):

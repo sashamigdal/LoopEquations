@@ -9,13 +9,13 @@ from plot import MakeDir, MakeNewDir, XYPlot, SubSampleWithErr, PlotXYErrBars, M
 # from operator import add
 
 from numpy import pi, sin, cos, tan, sqrt, exp, log
+from numpy.linalg import multi_dot as mdot
 import numpy as np
-from parallel import ConstSharedArray, print_debug
 import multiprocessing as mp
 import concurrent.futures as fut
 from fractions import Fraction
-from numba import vectorize, guvectorize, float64, int64
-
+#from numba import vectorize, guvectorize, float64, int64
+from QuadPy import SphericalFourierIntegral
 
 def CorrFuncDir(M):
     return os.path.join("plots", "VorticityCorr." + str(M))
@@ -30,8 +30,7 @@ def F(sigmas, beta):
 
 def Omega(k, sigmas, beta):
     M = len(sigmas)
-    k1 = (k+1)
-    if k1 >= M: k1 -= M
+    k1 = (k+1)%M
     phi = (sigmas[k1] + sigmas[k]) * (beta / 2)
     return (sigmas[k1]- sigmas[k]) / (2 * tan(beta / 2)) * np.array([cos(phi), sin(phi), 1j], complex)
 
@@ -78,6 +77,58 @@ class RandomFractions():
         return pairs
 
 
+class GroupFourierIntegral:
+    def __init__(self):
+        s0 = np.matrix([[1, 0], [0, 1]])
+        s1 = np.matrix([[0, 1], [1, 0]])
+        s2 = np.matrix([[0, -1j], [1j, 0]])
+        s3 = np.matrix([[1, 0], [0, -1]])
+        self.Sigma = [s1, s2, s3]  # Pauli matrices
+        self.Tau = [s0, 1j * s1, 1j * s2, 1j * s3]  # quaternions
+        TT =np.array(
+                        [np.trace(mdot([self.Sigma[i], self.Tau[al], self.Sigma[j], self.Tau[be].H]))
+                                        for i in range(3)
+                                    for j in range(3)
+                                for al in range(4)
+                            for be in range(4)
+                        ]
+                    ).reshape((3,3,4,4))
+        TT +=  np.transpose(TT,(0,1,3,2))
+        self.TT = np.transpose(TT * 0.5,(2,3,0,1))
+    def GetRMatrix(self, X):
+        # using quaternionic representation for tr_3 (O(3).X)
+        # O(3)_{i j} = q_a q_b tr_2 (s_i.Tau_a.s_j.Tau^H_b)
+        # Q = q_a Tau_a = q.Tau
+        # O(3)_{i j} = tr_2 (s_i.Q.s_j.Q.H)
+        #  V1.O(3).V2 =  tr_3( O(3).kron(V2,V1)) = O(3)_{i j} V2_j V1_i = tr_2 (HV1.Q.Hv2.Q.H)
+        Y = np.dot(X,self.TT)
+        return np.trace(Y,axis1=0, axis2=3)
+
+    def Integral(self, t):
+        return SphericalFourierIntegral(self.rr / np.sqrt(t))
+    def FourierIntegralQuadpy(self, X, t0, t1, time_steps):
+        self.rr = self.GetRMatrix(X)
+
+        res = []
+        with fut.ProcessPoolExecutor() as exec:
+            res = list(exec.map(self.Integral, np.linspace(t0, t1, time_steps)))
+        return res
+
+    def __del__(self):
+        pass
+
+
+def test_GroupFourierIntegral():
+    gfi = GroupFourierIntegral()
+    r = np.random.normal(scale=0.1, size=30) + 1j * np.random.normal(scale=0.1, size=30)
+    r = r.reshape((3, 10))
+    X = r.dot(r.T)
+    with Timer("multi integrals in QuadPy"):
+        test1 = gfi.FourierIntegralQuadpy(X,  1, 2, 1000)
+    # print(test1)
+    pass
+
+
 class CurveSimulator():
     def __init__(self, M, T, CPU, C):
         T_param = T
@@ -85,6 +136,7 @@ class CurveSimulator():
         self.M = M
         self.CPU = CPU
         self.C = C
+        self.Tstep =1
         if C > 0:
             self.Tstep = int(T / (4. * self.CPU)) + 1  # 4 to make last #CPU jobs equal. (+12% speed)
             T = self.Tstep * (T // self.Tstep)

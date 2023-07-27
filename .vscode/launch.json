@@ -2,10 +2,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Current File",
+            "name": "Python: test_GroupFourierIntegral",
             "type": "python",
             "request": "launch",
-            "program": "${file}",
+            "program": "VorticityCorrelation.test_GroupFourierIntegral",
             "console": "integratedTerminal",
             "justMyCode": true
         },
