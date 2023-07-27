@@ -21,20 +21,20 @@ def CorrFuncDir(M):
     return os.path.join("plots", "VorticityCorr." + str(M))
 
 
-def F(alphas, beta):
-    return 1 / (2 * sin(beta / 2)) * np.array([cos(alphas), sin(alphas), 1j * cos(beta / 2) * np.ones_like(alphas)],
-                                              complex)
+def F(sigmas, beta):
+    M = len(sigmas)
+    tmp = np.empty(M,complex)
+    tmp.fill(1j * cos(beta / 2))
+    return 1 / (2 * sin(beta / 2)) * np.array([cos(sigmas * beta), sin(sigmas * beta), tmp],dtype= complex)
 
 
-def Omega(k, alphas, sigmas, beta):
-    phi = alphas[k] + sigmas[k] * (beta / 2)
-    return sigmas[k] / (2 * tan(beta / 2)) * np.array([cos(phi), sin(phi), 1j], complex)
+def Omega(k, sigmas, beta):
+    M = len(sigmas)
+    k1 = (k+1)
+    if k1 >= M: k1 -= M
+    phi = (sigmas[k1] + sigmas[k]) * (beta / 2)
+    return (sigmas[k1]- sigmas[k]) / (2 * tan(beta / 2)) * np.array([cos(phi), sin(phi), 1j], complex)
 
-# @vectorize([float64(int64,int64,int64,float64[:], float64)])
-def SS(n, m, M, alphas, beta):
-    Snm = np.sum(F(alphas[n:m], beta), axis=1)
-    Smn = np.sum(F(alphas[m:M], beta), axis=1) + np.sum(F(alphas[0:n], beta), axis=1)
-    return Snm.dot(Smn)
 
 
 
@@ -95,22 +95,10 @@ class CurveSimulator():
         beg, end = params
         ar = np.zeros((end - beg) * 3, dtype=float).reshape(-1, 3)
         np.random.seed(self.C + 1000 * beg)  # to make a unique seed for at least 1000 nodes
-        i0 = self.Mindex(beg)
-        M = (i0+1)*self.M
+        M = self.M
         sigmas = np.ones(M, dtype=int)  # +30% speed
-        alphas = np.zeros(M,dtype=float)
         for k in range(beg, end):
-            i = self.Mindex(k)
-            if i > i0:
-                i0 = i
-                M = (i+1)*self.M
-                sigmas = np.ones(M, dtype=int)  # +30% speed
-                alphas = np.zeros(M,dtype=float)
-            else:
-                #########to be parallemized on GPU
-                sigmas.fill(1)
-                alphas.fill(0)
-                #########
+            sigmas.fill(1)
             p, q = RandomFractions.Pair(M)
             beta = (2 * pi * p) / float(q)
             N1, N2 = (M + q) // 2, (M - q) // 2
@@ -121,9 +109,9 @@ class CurveSimulator():
             #########to be parallemized on GPU
             sigmas[:N1].fill(-1)
             np.random.shuffle(sigmas)
-            alphas[:] = np.cumsum(sigmas).astype(float) * beta
-            Snm = np.sum(F(alphas[n:m], beta), axis=1)
-            Smn = np.sum(F(alphas[m:M], beta), axis=1) + np.sum(F(alphas[0:n], beta), axis=1)
+            sigmas[:] = np.cumsum(sigmas)
+            Snm = np.sum(F(sigmas[n:m], beta), axis=1)
+            Smn = np.sum(F(sigmas[m:M], beta), axis=1) + np.sum(F(sigmas[0:n], beta), axis=1)
             #################################################
             snm = Snm / (m - n)
             smn = Smn / (n + M - m)
@@ -131,19 +119,13 @@ class CurveSimulator():
             t = k - beg
             ar[t, 0] = beta
             ar[t, 1] = sqrt(ds.dot(ds))
-            ar[t, 2] = np.dot(Omega(n, alphas, sigmas, beta), Omega(m, alphas, sigmas, beta)).real
+            ar[t, 2] = np.dot(Omega(n, sigmas, beta), Omega(m,sigmas, beta)).real
         return ar
 
-    def PlotWithErr(self, xdata, ydata, name, num_samples=100):
-        x, y, yerr = SubSampleWithErr(xdata, ydata, num_samples)
-        plotpath = os.path.join(CorrFuncDir(self.M), name + ".png")
-        PlotXYErrBars(x, y, yerr, plotpath, title=name)
 
     def FDistributionPathname(self):
         return os.path.join(CorrFuncDir(self.M), "Fdata." + str(self.T) + "." + str(self.C) + ".np")
 
-    def Mindex(self, k):
-        return (4 * k) // self.T
     
     def FDistribution(self):
         M = self.M
@@ -159,58 +141,69 @@ class CurveSimulator():
             data.tofile(self.FDistributionPathname())
         print("made FDistribution " + str(M))
 
-    def ReadStatsFile(self, pathname):
-        return np.fromfile(pathname, float).reshape(self.T, 3)
+    def ReadStatsFile(self, pathdata):
+        pathname, T = pathdata
+        return np.fromfile(pathname, float).reshape(T, 3)
 
-    def GetAllStats(self):
-        pathnames = []
-        for filename in os.listdir(CorrFuncDir(self.M)):
-            if filename.endswith(".np") and filename.startswith("Fdata." + str(self.T) + "."):
+    
+    def GetAllStats(self,M):
+        pathdata= []
+        T = None
+        for filename in os.listdir(CorrFuncDir(M)):
+            if filename.endswith(".np") and filename.startswith("Fdata."):
                 try:
                     splits = filename.split(".")
+                    T = int(splits[-3])
                     node_num = int(splits[-2])
-                    if (node_num >= 0):
-                        pathnames.append(os.path.join(CorrFuncDir(self.M), filename))
+                    if (node_num >= 0 and T >0):
+                        pathdata.append([os.path.join(CorrFuncDir(M), filename), T])
                 except Exception as ex:
                     print_debug(ex)
                 pass
             pass
         res = []
-        with fut.ProcessPoolExecutor(max_workers=self.CPU - 1) as exec:
-            res = list(exec.map(self.ReadStatsFile, pathnames))
+        with fut.ProcessPoolExecutor(max_workers=mp.cpu_count() -1) as exec:
+            res = list(exec.map(self.ReadStatsFile, pathdata))
         if res ==[]:
             raise Exception("no stats to collect!!!!")
-        data = np.vstack(res).reshape(-1, self.T, 3)
-        self.pathname = os.path.join(CorrFuncDir(self.M), 'AllStats.' + str(self.T) + '.np')
-        data.tofile(self.pathname)
-
-    def MakePlots(self):
-        M = self.M
-        self.pathname = None
-        for filename in os.listdir(CorrFuncDir(self.M)):
-            if filename.endswith(".np") and filename.startswith("AllStats."):
-                try:
-                    splits = filename.split(".")
-                    T = int(splits[-2])
-                    if (T > 0): 
-                        self.pathname = os.path.join(CorrFuncDir(self.M), filename)
-                        break
-                except Exception as ex:
-                    break
-                pass
+        data = np.vstack(res).reshape(-1, T, 3)
+        pathname = os.path.join(CorrFuncDir(self.M), 'AllStats.' + str(T) + '.np')
+        data.tofile(pathname)
+        return pathname
         
-        if self.pathname is None:
-            self.GetAllStats()
-        stats = np.fromfile(self.pathname).reshape(-1, self.T, 3)
-        stats = np.transpose(stats, (2, 1, 0))
-        Betas = stats[0]
-        Dss = stats[1]
-        OdotO = stats[2]
-        for x, name in zip([Betas, Dss, OdotO], ["beta", "DS", "OmOm"]):
+    def MakePlots(self, Mlist):
+        Betas =[]
+        Dss = []
+        OdotO = []
+        np.sort(Mlist)
+        for M in Mlist:
+            pathname = None
+            T = None
+            for filename in os.listdir(CorrFuncDir(M)):
+                if filename.endswith(".np") and filename.startswith("AllStats."):
+                    try:
+                        splits = filename.split(".")
+                        T = int(splits[-2])
+                        if (T > 0): 
+                            pathname = os.path.join(CorrFuncDir(self.M), filename)
+                            break
+                    except Exception as ex:
+                        break
+                    pass
+            if pathname is None:
+                pathname = self.GetAllStats(M)
+            stats = np.fromfile(pathname).reshape(-1, T, 3)
+            stats = np.transpose(stats, (2, 1, 0)).reshape(3,-1)
+            Betas.append(stats[0])
+            Dss.append(stats[1])
+            OdotO.append(stats[2])
+        pass
+        MaxM = Mlist[-1]
+        for X, name in zip([Betas, Dss, OdotO], ["beta", "DS", "OmOm"]):
             data = []
-            for beg, end, m in [(T * k // 4, T * (k + 1) // 4, (k + 1) * M) for k in range(4)]:
-                data.append([str(m), x[beg:end].reshape(-1)])
-            plotpath = os.path.join(CorrFuncDir(M), "multi " + name + ".png")
+            for k, m in enumerate(Mlist):
+                data.append([str(m), X[k]])
+            plotpath = os.path.join(CorrFuncDir(MaxM), "multi " + name + ".png")
             try:
                 logx = (name in ("DS", "OmOm"))
                 logy = (name != "beta")
@@ -219,21 +212,20 @@ class CurveSimulator():
                 print(ex)
         pass
         data = []
-        for i, j, m in [(T * k // 4, T * (k + 1) // 4, (k + 1) * M) for k in range(4)]:
-            oto = OdotO[i:j].reshape(-1)
-
-            dss = Dss[i:j].reshape(-1)
+        for k, m in enumerate(Mlist):
+            oto = OdotO[k]
+            dss =Dss[k]
             pos = oto > 0
             neg = oto < 0
             data.append([str(m), dss[pos], oto[pos]])
             data.append([str(-m), dss[neg], -oto[neg]])
         try:
-            plotpath = os.path.join(CorrFuncDir(M), "multi OtOvsDss.png")
+            plotpath = os.path.join(CorrFuncDir(MaxM), "multi OtOvsDss.png")
             MultiXYPlot(data, plotpath, logx=True, logy=True, title='OtoOVsDss', scatter=False, xlabel='log(dss)',
                         ylabel='log(oto)', frac_last=0.95, num_subsamples=1000)
         except Exception as ex:
             print(ex)
-        print("made OtOvsDss " + str(M))
+        print("made OtOvsDss " + str(MaxM))
 
 def test_FDistribution(M = 100000, T = 20000, CPU = mp.cpu_count(), C =0):
     with Timer("done FDistribution for M,T,C= " + str(M) + "," + str(T)+ "," + str(C)):
@@ -243,7 +235,7 @@ def test_FDistribution(M = 100000, T = 20000, CPU = mp.cpu_count(), C =0):
 def MakePlots(M=100000, T=20000, CPU=mp.cpu_count()):
     with Timer("done MakePlots for M,T= " + str(M) + "," + str(T)):
         fdp = CurveSimulator(M, T, CPU, 0)
-        fdp.MakePlots()  # runs on main node, pools tata if not yet done so,  subsamples data and makes plots
+        fdp.MakePlots([M])  # runs on main node, pools tata if not yet done so,  subsamples data and makes plots
 
 def test_Numba():
     M = 1000

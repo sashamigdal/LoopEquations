@@ -15,6 +15,7 @@
             "request": "launch",
             "program": "VorticityCorrelation.py",
             "console": "integratedTerminal",
+            "args": "-M 500001  -T 1000  -C 0  -CPU 12",
             "justMyCode": true
         },
         {
