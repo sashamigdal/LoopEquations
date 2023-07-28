@@ -24,15 +24,16 @@ inline comp F( int sigma, double beta){
 double DS(int n, int m, int M, double * sigmas, double beta) 
 {
     comp smn, snm;
-    #pragma omp parallel for reduction (+:snm) if( m-n > 10000)
+    int lim = 10000;
+    #pragma omp parallel for reduction (+:snm) if( m-n > lim)
         for(int i =n; i <m; i++){
             snm +=  F(sigmas[i], beta);
         }
-    #pragma omp parallel for reduction (+:smn) if( n > 10000)
+    #pragma omp parallel for reduction (+:smn) if( n > lim)
         for(int i =0; i <n; i++){
             smn +=  F(sigmas[i], beta);
         }
-    #pragma omp parallel for reduction (+:smn) if(M -m > 10000)
+    #pragma omp parallel for reduction (+:smn) if(M -m > lim)
         for(int i =m; i <M; i++){
             smn +=  F(sigmas[i], beta);
         }
