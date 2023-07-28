@@ -3,5 +3,5 @@ project("DS")
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
 add_library(${PROJECT_NAME} src/DS.cpp)
 
-set(targetfname "libDS.so")
-set(projectname "DS")
+#set(retargeting "libDS.so")
+#set(projectname "DS")
