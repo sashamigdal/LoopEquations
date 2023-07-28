@@ -1,57 +1,14 @@
 
+#define _GNU_SOURCE
 #include <math.h>
-
-#define __int64 int
-
-class DPoint {
+#include <complex.h>
+#define int __int64
+#define comp complex<double>
+inline comp F( int sigma, double beta){
+    beta *= sigma;
     double x,y;
-public:
-	typedef double T;
-	typedef DPoint F;
-
-	DPoint(){	// fields automatically set to zero
-        x=y=0;
-	}
-	DPoint(T a, T b) {
-		x=a,y=b;
-	}
-	
-	double Dot(const & DPoint b) const {
-		return x*b.x + y*b.y;
-	}
-	double Sum() const {
-		return x + y;
-	}
-	double Dif() const {
-		return y - x;
-	}
-	double Sqr() const {
-		return x*x + y*y;
-	}
-	
-	double Len() {
-		return sqrt(Sqr());
-	}
-    DPoint operator +(const F &p) const{ 
-		return DPoint(x + p.x, y + p.y); 
-	}
-    void operator +=(const F &p) { 
-		x += p.x; y += p.y; 
-	}
-	void operator -=(const F &p) { 
-		x -= p.x; y -= p.y; 
-	}
-	void operator *=(T f) { 
-		x *= f; y *= f; 
-	}
-    void operator /=(T f) { 
-		x /= f; y /= f; 
-	}
-};
-
-DPoint F( int sigma, double beta){
-    double f = 1 / (2 * sin(beta / 2)) , alpha = sigma * beta;
-    return DPoint(f *cos(alpha), f* sin(alpha));
+    sincos(beta, &x, &y);
+    return comp(x,y)
 }
 
 // '''
@@ -66,7 +23,7 @@ DPoint F( int sigma, double beta){
 
 double DS(int n, int m, int M, double * sigmas, double beta) 
 {
-    DPoint smn, snm;
+    comp smn, snm;
     #pragma omp parallel for reduction (+:snm) if( m-n > 10000)
         for(int i =n; i <m; i++){
             snm +=  F(sigmas[i], beta);
@@ -82,6 +39,7 @@ double DS(int n, int m, int M, double * sigmas, double beta)
     snm /= double(m-n);
     smn /= double(n + M - m);
     smn -= snm;
-	return smn.Len();
+    double f = 1 / (2 * sin(beta / 2));
+	return smn.Len() * abs(f);
 }
 
