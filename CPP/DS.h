@@ -67,30 +67,18 @@ DPoint F( int sigma, double beta){
 double DS(int n, int m, int M, double * sigmas, double beta) 
 {
     DPoint smn, snm;
-	if(M < 10000){
+    #pragma omp parallel for reduction (+:snm) if( m-n > 10000)
         for(int i =n; i <m; i++){
-			snm += F(sigmas[i], beta);
-		}
+            snm +=  F(sigmas[i], beta);
+        }
+    #pragma omp parallel for reduction (+:smn) if( n > 10000)
         for(int i =0; i <n; i++){
-			smn += F(sigmas[i], beta);
-		}
+            smn +=  F(sigmas[i], beta);
+        }
+    #pragma omp parallel for reduction (+:snm) if(M -m > 10000)
         for(int i =m; i <M; i++){
-			snm += F(sigmas[i], beta);
-		}
-	}else{
-        #pragma omp parallel for reduction (+:snm)
-            for(int i =n; i <m; i++){
-                snm +=  F(sigmas[i], beta);
-            }
-        #pragma omp parallel for reduction (+:smn)
-            for(int i =0; i <n; i++){
-                smn +=  F(sigmas[i], beta);
-            }
-        #pragma omp parallel for reduction (+:snm) 
-            for(int i =m; i <M; i++){
-                smn +=  smn + F(sigmas[i], beta);
-            }
-    }
+            smn +=  F(sigmas[i], beta);
+        }
     snm /= double(m-n);
     smn /= double(n + M - m);
     smn -= snm;
