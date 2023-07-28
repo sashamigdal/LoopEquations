@@ -32,7 +32,7 @@ double DS(int n, int m, int M, double * sigmas, double beta)
         for(int i =0; i <n; i++){
             smn +=  F(sigmas[i], beta);
         }
-    #pragma omp parallel for reduction (+:snm) if(M -m > 10000)
+    #pragma omp parallel for reduction (+:smn) if(M -m > 10000)
         for(int i =m; i <M; i++){
             smn +=  F(sigmas[i], beta);
         }
