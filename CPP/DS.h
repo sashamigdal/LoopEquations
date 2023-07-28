@@ -39,8 +39,6 @@ double DS(int n, int m, int M, double * sigmas, double beta)
         }
     snm /= double(m-n);
     smn /= double(n + M - m);
-    smn -= snm;
-    double f = 1 / (2 * sin(beta / 2));
-	return smn.Len() * abs(f);
+	return abs((snm- smn) / (2 * sin(beta / 2)));
 }
 
