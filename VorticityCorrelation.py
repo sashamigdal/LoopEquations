@@ -16,16 +16,14 @@ import concurrent.futures as fut
 from fractions import Fraction
 #from numba import vectorize, guvectorize, float64, int64
 from QuadPy import SphericalFourierIntegral
+from memory_profiler import profile
 
 def CorrFuncDir(M):
     return os.path.join("plots", "VorticityCorr." + str(M))
 
 
-def F(sigmas, beta):
-    M = len(sigmas)
-    tmp = np.empty(M,complex)
-    tmp.fill(1j * cos(beta / 2))
-    return 1 / (2 * sin(beta / 2)) * np.array([cos(sigmas * beta), sin(sigmas * beta), tmp],dtype= complex)
+def F(sigma, beta):
+    return 1 / (2 * sin(beta / 2)) * np.array([cos(sigma * beta), sin(sigma * beta)],dtype= float)
 
 
 def Omega(k, sigmas, beta):
@@ -34,7 +32,14 @@ def Omega(k, sigmas, beta):
     phi = (sigmas[k1] + sigmas[k]) * (beta / 2)
     return (sigmas[k1]- sigmas[k]) / (2 * tan(beta / 2)) * np.array([cos(phi), sin(phi), 1j], complex)
 
-
+# @profile
+def SS(n, m, M, sigmas, beta):
+    Snm = np.sum(F(sigmas[n:m], beta), axis=1)
+    Smn = np.sum(F(sigmas[m:M], beta), axis=1) + np.sum(F(sigmas[0:n], beta), axis=1)
+    snm = Snm / (m - n)
+    smn = Smn / (n + M - m)
+    ds = snm - smn
+    return np.sqrt(ds.dot(ds))
 
 
 class RandomFractions():
@@ -131,16 +136,10 @@ def test_GroupFourierIntegral():
 
 class CurveSimulator():
     def __init__(self, M, T, CPU, C):
-        T_param = T
         MakeDir(CorrFuncDir(M))
         self.M = M
         self.CPU = CPU
         self.C = C
-        self.Tstep =1
-        if C > 0:
-            self.Tstep = int(T / (4. * self.CPU)) + 1  # 4 to make last #CPU jobs equal. (+12% speed)
-            T = self.Tstep * (T // self.Tstep)
-            print(f"Adjusted parameter T: {T_param} --> {T}")
         self.T = T
     
     def GetSamples(self, params):
@@ -162,15 +161,11 @@ class CurveSimulator():
             sigmas[:N1].fill(-1)
             np.random.shuffle(sigmas)
             sigmas[:] = np.cumsum(sigmas)
-            Snm = np.sum(F(sigmas[n:m], beta), axis=1)
-            Smn = np.sum(F(sigmas[m:M], beta), axis=1) + np.sum(F(sigmas[0:n], beta), axis=1)
+            dsabs = SS(n,m,M, sigmas, beta)
             #################################################
-            snm = Snm / (m - n)
-            smn = Smn / (n + M - m)
-            ds = snm.real - smn.real
             t = k - beg
             ar[t, 0] = beta
-            ar[t, 1] = sqrt(ds.dot(ds))
+            ar[t, 1] = dsabs
             ar[t, 2] = np.dot(Omega(n, sigmas, beta), Omega(m,sigmas, beta)).real
         return ar
 
@@ -182,13 +177,12 @@ class CurveSimulator():
     def FDistribution(self):
         M = self.M
         T = self.T
-        Tstep = self.Tstep
         MakeDir(CorrFuncDir(M))
         if not os.path.isfile(self.FDistributionPathname()):
             res = []
-            params = [[k, k + Tstep] for k in range(0, T, Tstep)]
-            with fut.ProcessPoolExecutor(max_workers=self.CPU - 1) as exec:
-                res = list(exec.map(self.GetSamples, params))
+            params = [(T * i // self.CPU, T * (i + 1) // self.CPU) for i in range(self.CPU)]
+            # with fut.ProcessPoolExecutor(max_workers=self.CPU - 1) as exec:
+            res = list(map(self.GetSamples, params))
             data = np.vstack(res)
             data.tofile(self.FDistributionPathname())
         print("made FDistribution " + str(M))
