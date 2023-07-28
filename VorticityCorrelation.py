@@ -215,7 +215,7 @@ class CurveSimulator():
         data = np.vstack(res).reshape(-1, T, 3)
         pathname = os.path.join(CorrFuncDir(self.M), 'AllStats.' + str(T) + '.np')
         data.tofile(pathname)
-        return pathname
+        return pathname, T
         
     def MakePlots(self, Mlist):
         Betas =[]
@@ -237,7 +237,7 @@ class CurveSimulator():
                         break
                     pass
             if pathname is None:
-                pathname = self.GetAllStats(M)
+                pathname, T = self.GetAllStats(M)
             stats = np.fromfile(pathname).reshape(-1, T, 3)
             stats = np.transpose(stats, (2, 1, 0)).reshape(3,-1)
             Betas.append(stats[0])
