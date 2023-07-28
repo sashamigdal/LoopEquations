@@ -17,7 +17,7 @@ from fractions import Fraction
 #from numba import vectorize, guvectorize, float64, int64
 from QuadPy import SphericalFourierIntegral
 from memory_profiler import profile
-
+CPP_lib = os.path.join("CPP", 'libDEMO.so')
 def CorrFuncDir(M):
     return os.path.join("plots", "VorticityCorr." + str(M))
 

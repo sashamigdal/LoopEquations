@@ -3,6 +3,8 @@
 #include <math.h>
 #include <complex.h>
 
+#define DS_API __declspec(dllexport)
+
 using comp = std::complex<double>;
 
 inline comp F( int sigma, double beta){
@@ -22,4 +24,7 @@ inline comp F( int sigma, double beta){
 //     return np.sqrt(ds.dot(ds))
 // '''
 
-double DS(std::int64_t n, std::int64_t m, std::int64_t M, double * sigmas, double beta);
+extern "C"{
+    DS_API double DS(std::int64_t n, std::int64_t m, std::int64_t M, double * sigmas, double beta);
+}
+
