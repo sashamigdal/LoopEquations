@@ -16,3 +16,13 @@ The code in VorticityCorrelation.py has two regimes:
    (T is the number of samples, and C is the number of a node that created these samples on a cluster in a parallel run.
 2. The second regime (script plot.sh and plot_local.sh, automatically launched in the "submit.sh" script after the statistics collection) is the data processing part\\
    This processing starts with pooling all the "FData....C.np" files for C =1,... Num_nodes into a single data file. Then this data file is used to plot various distributions
+
+
+# building C++ library
+1. `cd CPP`
+
+2. activate G++ 7 somehow
+
+3. `cmake .`
+
+4. `make` 

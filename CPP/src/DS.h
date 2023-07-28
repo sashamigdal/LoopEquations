@@ -2,13 +2,14 @@
 #define _GNU_SOURCE
 #include <math.h>
 #include <complex.h>
-#define int __int64
-#define comp complex<double>
+
+using comp = std::complex<double>;
+
 inline comp F( int sigma, double beta){
     beta *= sigma;
     double x,y;
     sincos(beta, &x, &y);
-    return comp(x,y)
+    return comp(x,y);
 }
 
 // '''
@@ -21,4 +22,4 @@ inline comp F( int sigma, double beta){
 //     return np.sqrt(ds.dot(ds))
 // '''
 
-double DS(int n, int m, int M, double * sigmas, double beta);
+double DS(std::int64_t n, std::int64_t m, std::int64_t M, double * sigmas, double beta);
