@@ -3,14 +3,18 @@
 #include <math.h>
 #include <complex.h>
 
-#define DS_API __declspec(dllexport)
+#if defined(_MSC_VER)
+#   define EXPORT __declspec(dllexport)
+#elif defined(__GNUC__)
+#   define EXPORT __attribute__((visibility("default")))
+#endif
 
 using comp = std::complex<double>;
 
 inline comp F( int sigma, double beta){
     beta *= sigma;
-    double x,y;
-    sincos(beta, &x, &y);
+    double x,y;https://nyu.zoom.us/j/91454885252
+    __sincos(beta, &x, &y);
     return comp(x,y);
 }
 
@@ -25,6 +29,6 @@ inline comp F( int sigma, double beta){
 // '''
 
 extern "C"{
-    DS_API double DS(std::int64_t n, std::int64_t m, std::int64_t M, double * sigmas, double beta);
+    EXPORT double DS(std::int64_t n, std::int64_t m, std::int64_t M, std::int64_t * sigmas, double beta);
 }
 

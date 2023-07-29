@@ -1,6 +1,6 @@
 #include "DS.h"
 
-double DS( std::int64_t n, std::int64_t m, std::int64_t M, double * sigmas, double beta ) {
+double DS( std::int64_t n, std::int64_t m, std::int64_t M, std::int64_t * sigmas, double beta ) {
     comp smn, snm;
     int lim = 10000;
     #pragma omp parallel for reduction (+:snm) if( m-n > lim)

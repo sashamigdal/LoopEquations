@@ -1,4 +1,4 @@
-import os
+import os, sys
 
 # from mpmath import rational
 # here is a new line
@@ -17,7 +17,15 @@ from fractions import Fraction
 #from numba import vectorize, guvectorize, float64, int64
 from QuadPy import SphericalFourierIntegral
 from memory_profiler import profile
-CPP_lib = os.path.join("CPP", 'libDEMO.so')
+
+import ctypes
+libDS_path = os.path.join("CPP/cmake-build-release", 'libDS.dylib')
+# sys.path.append("CPP/cmake-build-release")
+libDS = ctypes.cdll.LoadLibrary(libDS_path)
+c_double_p = ctypes.POINTER(ctypes.c_double)
+c_int64_p = ctypes.POINTER(ctypes.c_int64)
+c_uint64_p = ctypes.POINTER(ctypes.c_uint64)
+c_size_t_p = ctypes.POINTER(ctypes.c_size_t)
 def CorrFuncDir(M):
     return os.path.join("plots", "VorticityCorr." + str(M))
 
@@ -33,7 +41,7 @@ def Omega(k, sigmas, beta):
     return (sigmas[k1]- sigmas[k]) / (2 * tan(beta / 2)) * np.array([cos(phi), sin(phi), 1j], complex)
 
 # @profile
-def SS(n, m, M, sigmas, beta):
+def DS_Python(n, m, M, sigmas, beta):
     Snm = np.sum(F(sigmas[n:m], beta), axis=1)
     Smn = np.sum(F(sigmas[m:M], beta), axis=1) + np.sum(F(sigmas[0:n], beta), axis=1)
     snm = Snm / (m - n)
@@ -42,19 +50,33 @@ def SS(n, m, M, sigmas, beta):
     return np.sqrt(ds.dot(ds))
 
 
+def DS_CPP(n, m, M, sigmas, beta):
+    libDS.DS.restype = ctypes.c_double
+    return libDS.DS(ctypes.c_int64(n),
+                    ctypes.c_int64(m),
+                    ctypes.c_int64(M),
+                    sigmas.ctypes.data_as(c_int64_p),
+                    ctypes.c_double(beta))
+
+
+def DS(n, m, M, sigmas, beta):
+    return DS_CPP(n, m, M, sigmas, beta)
 class RandomFractions():
-    @staticmethod
-    def Pair(M):
-        while (True):
+    def Pairs(self, n):
+        M = self.M
+        pairs = np.zeros((n, 2), dtype=int)
+        l = 0;
+        while (l < n):
             f = np.clip(np.random.random(), 0.5 / M, 1 - 0.5 / M)
             pq = Fraction(f).limit_denominator(M)
             if pq.denominator % 2 == M % 2:
-                break
-        return [pq.numerator, pq.denominator]
-
+                pairs[l, 0] = pq.numerator
+                pairs[l, 1] = pq.denominator
+        return pairs
     def __init__(self, M, T):
         self.M = M
         self.T = T
+        self.CPU = mp.cpu_count()
         MakeDir(self.SaveDir())
 
     def SaveDir(self):
@@ -63,23 +85,24 @@ class RandomFractions():
     def GetPathname(self):
         return os.path.join(self.SaveDir(), str(self.M) + ".np")
 
-    def MakePairs(self):
+    def GetStats(self):
         T = self.T
         M = self.M
-        if os.path.isfile(self.GetPathname()):
-            pairs = np.fromfile(self.GetPathname(), dtype=int).reshape(-1, 2)
-            if len(pairs) >= T:
-                return pairs[:T]
-            pass
         res = []
-        with fut.ProcessPoolExecutor() as exec:
-            res = list(exec.map(self.Pair, [M] * T))
-        pairs = np.array(res, dtype=int)
-        pairs = np.unique(pairs, axis=0)
-        np.random.shuffle(pairs)
-        pairs = pairs[:self.T]
-        pairs.tofile(self.GetPathname())
-        return pairs
+        params = [(T * (i + 1) )// self.CPU - (T * i )// self.CPU for i in range(self.CPU)]
+        with fut.ProcessPoolExecutor(max_workers=self.CPU - 1) as exec:
+            res = list(exec.map(self.Pairs, params))
+        data = np.vstack(res)
+        data.tofile(self.GetPathname())
+        pairs = data.T
+        pp = pairs[0].astype(float)
+        qq = pairs[1].astype(float)
+        eps = pp/qq - 0.5
+        lim =  5. * sqrt(float(M))
+        ok = (qq < lim) & ( eps > -1./lim) & (eps < 1./lim)
+
+
+
 
 
 class GroupFourierIntegral:
@@ -141,7 +164,16 @@ class CurveSimulator():
         self.CPU = CPU
         self.C = C
         self.T = T
-    
+
+    def Pair(self):
+        M = self.M
+        while (True):
+            f = np.clip(np.random.random(), 0.5 / M, 1 - 0.5 / M)
+            pq = Fraction(f).limit_denominator(M)
+            if pq.denominator % 2 == M % 2:
+                break
+        return [pq.numerator, pq.denominator]
+
     def GetSamples(self, params):
         beg, end = params
         ar = np.zeros((end - beg) * 3, dtype=float).reshape(-1, 3)
@@ -150,7 +182,7 @@ class CurveSimulator():
         sigmas = np.ones(M, dtype=int)  # +30% speed
         for k in range(beg, end):
             sigmas.fill(1)
-            p, q = RandomFractions.Pair(M)
+            p, q = self.Pair()
             beta = (2 * pi * p) / float(q)
             N1, N2 = (M + q) // 2, (M - q) // 2
             if np.random.randint(2) == 1:
@@ -161,7 +193,7 @@ class CurveSimulator():
             sigmas[:N1].fill(-1)
             np.random.shuffle(sigmas)
             sigmas[:] = np.cumsum(sigmas)
-            dsabs = SS(n,m,M, sigmas, beta)
+            dsabs = DS(n, m, M, sigmas, beta)
             #################################################
             t = k - beg
             ar[t, 0] = beta
@@ -297,7 +329,7 @@ def test_Numba():
     alphas[:] = np.cumsum(sigmas).astype(float) * beta
     m = np.random.randint(1, M)
     n = np.random.randint(0, m)
-    Snm, Smn = SS(n, m, M, alphas, beta)
+    Snm, Smn = DS(n, m, M, alphas, beta)
     return Snm, Smn
 
 
