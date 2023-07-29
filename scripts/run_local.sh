@@ -18,7 +18,7 @@ source venv/bin/activate
 # module load anaconda3/2020.07
 #source /share/apps/NYUAD/miniconda/3-4.11.0/bin/activate
 # activate
-PYTHON=venv/bin/python3
+PYTHON=/opt/anaconda2/bin/python
 NODE=1
 #NODE=0
 ${PYTHON} -u VorticityCorrelation.py -M $M -T $T -CPU $CPU -C $NODE

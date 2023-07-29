@@ -1,5 +1,3 @@
-
-#define _GNU_SOURCE
 #include <math.h>
 #include <complex.h>
 
@@ -13,7 +11,7 @@ using comp = std::complex<double>;
 
 inline comp F( int sigma, double beta){
     beta *= sigma;
-    double x,y;https://nyu.zoom.us/j/91454885252
+    double x,y;
     __sincos(beta, &x, &y);
     return comp(x,y);
 }

@@ -2,3 +2,6 @@
 /.vscode/
 /plots/
 /CPP/CMakeFiles/
+/CPP/.idea/
+/CPP/cmake-build-debug/
+/CPP/cmake-build-release/
