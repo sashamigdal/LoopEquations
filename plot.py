@@ -944,7 +944,7 @@ def LogitRankHist(data,plotpath, name='LogitRankHist',var='x'):
     pylab.close()
 
 
-def RankHistPos(data,plotpath,name='RankHist',var_name='\eta',logx=False, logy=True):
+def RankHistPos(data,plotpath,name='RankHist',var_name='\eta',logx=False, logy=True, max_tail = 0.1, min_tail=0):
     import matplotlib as mpl
     mpl.use('Agg')
     from matplotlib import pylab
@@ -969,25 +969,44 @@ def RankHistPos(data,plotpath,name='RankHist',var_name='\eta',logx=False, logy=T
 
     x = np.sort(data[data>0])
     N = len(x)
+    if min_tail ==0:
+        min_tail = 5./N
     tail = (1-np.arange(1,N+1,dtype=float)/(N+1))
     m = x.mean()
     mean,err = data.mean(), data.std()
     gen_lab = '$%s;<%s>=%.4f\pm%.4f$; '%(name,var_name,mean,err)
     if logx:
-        ok = (tail < 0.1) &  (tail > 5./N)
+        ok = (tail < max_tail) &  (tail > min_tail)
         l = np.log(x[ok])
         t = np.log(tail[ok])
         p = np.polyfit(l,t,  1)
-        lab = '$\mu=%.2f$' % (p[0])
+        lab = '$\mu=%.2e$' % (p[0])
         pylab.loglog(x[ok],tail[ok], color="red", linewidth=1., linestyle="-",label="data")
         l01 = [np.exp(l[0]),np.exp(l[-1])]
         p01 = [np.exp(p[1] + p[0]*l[0]),np.exp(p[1] + p[0] *l[-1])]
         pylab.loglog(l01, p01, color="green", linestyle="--", label="fit "+lab)
     else:
         if logy:
+            ok = (tail <max_tail) & (tail > min_tail)
+            l = x[ok]
+            t = np.log(tail[ok])
+            p = np.polyfit(l, t, 1)
+            lab = '$\mu=%.2e$' % (p[0])
+            pylab.semilogy(x[ok], tail[ok], color="red", linewidth=1., linestyle="-", label="data")
+            l01 = [l[0],l[-1]]
+            p01 = [np.exp(p[1] + p[0] * l[0]), np.exp(p[1] + p[0] * l[-1])]
+            pylab.semilogy(l01, p01, color="green", linestyle="--", label="fit " + lab)
             pylab.semilogy(x,tail, color="red", linewidth=1., linestyle="-")
         else:
-            pylab.plot(x,tail, color="red", linewidth=1., linestyle="-")
+            ok = (tail < max_tail) & (tail > min_tail)
+            l = x[ok]
+            t = tail[ok]
+            p = np.polyfit(l, t, 1)
+            lab = '$\mu=%.2e$' % (p[0])
+            pylab.plot(x[ok], tail[ok], color="red", linewidth=1., linestyle="-", label="data")
+            l01 = [l[0], l[-1]]
+            p01 = [p[1] + p[0] * l[0], p[1] + p[0] * l[-1]]
+            pylab.plot(l01, p01, color="green", linestyle="--", label="fit " + lab)
 
 
     pass

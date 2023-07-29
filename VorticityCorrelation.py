@@ -4,7 +4,8 @@ import os, sys
 # here is a new line
 from SortedArrayIter import SortedArrayIter
 from Timer import MTimer as Timer
-from plot import MakeDir, MakeNewDir, XYPlot, SubSampleWithErr, PlotXYErrBars, MultiPlot, MultiRankHistPos, MultiXYPlot
+from plot import MakeDir, MakeNewDir, XYPlot, SubSampleWithErr, PlotXYErrBars, MultiPlot, MultiRankHistPos, MultiXYPlot, \
+    RankHistPos, RankHist2
 # from functools import reduce
 # from operator import add
 
@@ -21,7 +22,7 @@ from memory_profiler import profile
 import ctypes
 libDS_path = os.path.join("CPP/cmake-build-release", 'libDS.dylib')
 # sys.path.append("CPP/cmake-build-release")
-libDS = ctypes.cdll.LoadLibrary(libDS_path)
+# libDS = ctypes.cdll.LoadLibrary(libDS_path)
 c_double_p = ctypes.POINTER(ctypes.c_double)
 c_int64_p = ctypes.POINTER(ctypes.c_int64)
 c_uint64_p = ctypes.POINTER(ctypes.c_uint64)
@@ -60,18 +61,19 @@ def DS_CPP(n, m, M, sigmas, beta):
 
 
 def DS(n, m, M, sigmas, beta):
-    return DS_CPP(n, m, M, sigmas, beta)
+    return DS_Python(n, m, M, sigmas, beta)
 class RandomFractions():
     def Pairs(self, n):
         M = self.M
         pairs = np.zeros((n, 2), dtype=int)
-        l = 0;
+        l = 0
         while (l < n):
             f = np.clip(np.random.random(), 0.5 / M, 1 - 0.5 / M)
             pq = Fraction(f).limit_denominator(M)
             if pq.denominator % 2 == M % 2:
                 pairs[l, 0] = pq.numerator
                 pairs[l, 1] = pq.denominator
+                l+=1
         return pairs
     def __init__(self, M, T):
         self.M = M
@@ -82,10 +84,13 @@ class RandomFractions():
     def SaveDir(self):
         return os.path.join("plots", "RandomFractions")
 
-    def GetPathname(self):
-        return os.path.join(self.SaveDir(), str(self.M) + ".np")
+    def GetPairsPathname(self):
+        return os.path.join(self.SaveDir(),"Pairs."+ str(self.M) + ".np")
 
-    def GetStats(self):
+    def MakePairs(self):
+        if os.path.isfile(self.GetPairsPathname()):
+            print(" Pairs exist in " + self.GetPairsPathname())
+            return
         T = self.T
         M = self.M
         res = []
@@ -93,17 +98,55 @@ class RandomFractions():
         with fut.ProcessPoolExecutor(max_workers=self.CPU - 1) as exec:
             res = list(exec.map(self.Pairs, params))
         data = np.vstack(res)
-        data.tofile(self.GetPathname())
-        pairs = data.T
-        pp = pairs[0].astype(float)
-        qq = pairs[1].astype(float)
-        eps = pp/qq - 0.5
-        lim =  5. * sqrt(float(M))
-        ok = (qq < lim) & ( eps > -1./lim) & (eps < 1./lim)
+        data.tofile(self.GetPairsPathname())
+
+    def ReadPairsFile(self, params):
+        pathname, M = params
+        return np.fromfile(pathname,dtype = int).reshape(-1,2)
+
+    def GetAllStatsPathname(self, M):
+        return os.path.join(self.SaveDir(),"AllStats." + str(M) + ".np")
 
 
+    def MakePlots(self):
+        datas = dict()
+        for filename in os.listdir(self.SaveDir()):
+            if filename.endswith(".np") and filename.startswith("Pairs."):
+                try:
+                    splits = filename.split(".")
+                    M = int(splits[-2])
+                    if (M > 0):
+                        array = np.fromfile(os.path.join(self.SaveDir(), filename), dtype=int).reshape(-1,2)
+                        if M in datas:
+                            datas[M] = np.append(datas[M], array)
+                        else:
+                            datas[M] = array
+                except Exception as ex:
+                    pass
+                pass
+            pass
+        for M, data in datas.items():
+            pairs = data.T
+            pp = pairs[0].astype(float)
+            qq = pairs[1].astype(float)
+            eps = pp / qq - 0.5
+            scale = sqrt(float(M))
+            lim = float(M)
+            ok = (qq < lim) & (eps > -0.5) & (eps < 0.5)
+            xx = qq[ok]/scale
+            yy = eps[ok] * scale
+            RankHistPos(xx,os.path.join(self.SaveDir(),"qdata." + str(M) + ".png"),name='RankHist', var_name='\\eta',
+                        logx=False, logy=False, max_tail=0.9, min_tail=0.05)
+            RankHist2(yy, os.path.join(self.SaveDir(),"epsdata." + str(M) + ".png"), name='RankHist', var_name='\\eta', logx=False, logy=False)
+            ord = np.argsort(xx)
+            XYPlot([xx[ord],yy[ord]],os.path.join(self.SaveDir(),"eps_vs_q." + str(M) + ".png"), logx=False, logy=False)
 
-
+def test_RandomFractions():
+    M = 100000000
+    T = 100000
+    RF = RandomFractions(M,T)
+    RF.MakePairs()
+    RF.MakePlots()
 
 class GroupFourierIntegral:
     def __init__(self):
@@ -236,7 +279,7 @@ class CurveSimulator():
                     if (node_num >= 0 and T >0):
                         pathdata.append([os.path.join(CorrFuncDir(M), filename), T])
                 except Exception as ex:
-                    print_debug(ex)
+                    pass
                 pass
             pass
         res = []

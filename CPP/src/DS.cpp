@@ -1,4 +1,5 @@
 #include "DS.h"
+#include <omp.h>
 
 double DS( std::int64_t n, std::int64_t m, std::int64_t M, std::int64_t * sigmas, double beta ) {
     comp smn, snm;
