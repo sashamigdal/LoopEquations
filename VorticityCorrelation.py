@@ -321,10 +321,10 @@ class CurveSimulator():
             OdotO.append(stats[2])
         pass
         MaxM = Mlist[-1]
-        for X, name in zip([Betas, Dss, OdotO], ["beta", "DS", "OmOm"]):
+        for X, name in zip([Betas, Dss, OdotO, OdotO], ["beta", "DS", "OmOm", "-OmOm"]):
             data = []
             for k, m in enumerate(Mlist):
-                data.append([str(m), X[k]])
+                data.append([str(m), X[k]]) if name != "-OmOm" else data.append([str(m), -X[k]])
             plotpath = os.path.join(CorrFuncDir(MaxM), "multi " + name + ".png")
             try:
                 logx = (name in ("DS", "OmOm"))
