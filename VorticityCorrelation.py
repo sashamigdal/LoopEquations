@@ -39,7 +39,7 @@ def CorrFuncDir(M):
 
 @jit
 def F(sigma, beta):
-    return 1 / (2 * jnp.sin(beta / 2)) * jnp.array([jnp.cos(sigma * beta), jnp.sin(sigma * beta)], dtype=float)
+    return jax.lax.complex(jax.lax.cos(sigma * beta), jax.lax.sin(sigma * beta))
 
 # /-\frac{\sin (\beta  \sigma )}{2 (\cos (\beta )-1)}
 def Omega(k, sigmas, beta):
@@ -47,15 +47,17 @@ def Omega(k, sigmas, beta):
 
 @jit
 def DS_Python(mask_nm, M, sigmas, beta, prng_key):
+    sigmas = jax.random.permutation(prng_key,sigmas)
+    sigmas =jnp.cumsum(sigmas, axis=0)
     mask_mn = 1 - mask_nm
     FF = F(sigmas, beta)
-    Snm = jnp.sum(FF * mask_nm, axis=1)
-    Smn = jnp.sum(FF * mask_mn, axis=1)
+    Snm = jnp.sum(FF * mask_nm, axis=0)
+    Smn = jnp.sum(FF * mask_mn, axis=0)
     len_nm = jnp.sum(mask_nm)
     snm = Snm / len_nm
     smn = Smn / (M - len_nm)
     ds = snm - smn
-    return jnp.sqrt(ds.dot(ds))
+    return jnp.abs(ds/ (2 * jnp.sin(beta / 2)))
 
 def DS_CPP(n, m, M, sigmas, beta):
     libDS.DS.restype = ctypes.c_double
@@ -249,8 +251,7 @@ class CurveSimulator():
             mask_nm = mask_nm.at[n:m].set(1)
             #########to be parallemized on GPU
             sigmas[:N1].fill(-1)
-            np.random.shuffle(sigmas)
-            np.cumsum(sigmas, axis=0, out=sigmas)
+
             dsabs = DS_Python(mask_nm, M, sigmas, beta, prng_key)
             #################################################
             t = k - beg
