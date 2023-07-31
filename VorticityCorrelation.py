@@ -26,9 +26,9 @@ from memory_profiler import profile
 #jax.config.update('jax_platform_name', 'cpu')
 
 import ctypes
-libDS_path = os.path.join("CPP/cmake-build-release", 'libDS.dylib')
-# sys.path.append("CPP/cmake-build-release")
-# libDS = ctypes.cdll.LoadLibrary(libDS_path)
+libDS_path = os.path.join("CPP/cmake-build-release", 'libDS.so')
+sys.path.append("CPP/cmake-build-release")
+libDS = ctypes.cdll.LoadLibrary(libDS_path)
 c_double_p = ctypes.POINTER(ctypes.c_double)
 c_int64_p = ctypes.POINTER(ctypes.c_int64)
 c_uint64_p = ctypes.POINTER(ctypes.c_uint64)
@@ -41,9 +41,11 @@ def CorrFuncDir(M):
 def F(sigma, beta):
     return jax.lax.complex(jax.lax.cos(sigma * beta), jax.lax.sin(sigma * beta))
 
+
 # /-\frac{\sin (\beta  \sigma )}{2 (\cos (\beta )-1)}
 def Omega(k, sigmas, beta):
-    return sin(beta * sigmas[k])/(2*(1- cos(beta)))
+    return sin(beta * sigmas[k]) / (2 * (1 - cos(beta)))
+
 
 # @jit
 def DS_Python(mask_nm, M, sigmas, beta, prng_key):
@@ -59,13 +61,13 @@ def DS_Python(mask_nm, M, sigmas, beta, prng_key):
     ds = snm - smn
     return jnp.abs(ds/ (2 * jnp.sin(beta / 2)))
 
-def DS_CPP(n, m, M, sigmas, beta):
+def DS_CPP(n, m, N_pos, N_neg, beta):
+    INT64 = ctypes.c_int64
+    libDS.DS.argtypes = (INT64, INT64, INT64, INT64, ctypes.c_double, c_double_p)
     libDS.DS.restype = ctypes.c_double
-    return libDS.DS(ctypes.c_int64(n),
-                    ctypes.c_int64(m),
-                    ctypes.c_int64(M),
-                    sigmas.ctypes.data_as(c_int64_p),
-                    ctypes.c_double(beta))
+    np_o_o = np.zeros(1, dtype=float)
+    dsabs = libDS.DS(n, m, N_pos, N_neg, beta, np_o_o.ctypes.data_as(c_double_p))
+    return dsabs, np_o_o[0]
 
 
 def DS(n, m, M, sigmas, beta):
@@ -233,31 +235,28 @@ class CurveSimulator():
         beg, end = params
         ar = np.zeros((end - beg) * 3, dtype=float).reshape(-1, 3)
         np.random.seed(self.C + 1000 * beg)  # to make a unique seed for at least 1000 nodes
-        prng_key = jrandom.PRNGKey(self.C + 1000 * beg)
+        # prng_key = jrandom.PRNGKey(self.C + 1000 * beg)
         M = self.M
-        sigmas = np.ones(M, dtype=int)  # +30% speed
         for k in range(beg, end):
-            sigmas.fill(1)
             p, q = self.Pair()
             beta = (2 * pi * p) / float(q)
-            N1, N2 = (M + q) // 2, (M - q) // 2
+
+            N_pos = (M + q) // 2  # Number of 1's
+            N_neg = (M - q) // 2  # Number of -1's
             if np.random.randint(2) == 1:
-                N1, N2 = N2, N1
+                N_pos, N_neg = N_neg, N_pos
+
             n = np.random.randint(0, M)
             m = np.random.randint(n+1, M+n) % M
             if n > m:
                 n, m = m, n
-            mask_nm = jnp.zeros(M, dtype=int)
-            mask_nm = mask_nm.at[n:m].set(1)
-            #########to be parallemized on GPU
-            sigmas[:N1].fill(-1)
 
-            dsabs = DS_Python(mask_nm, M, sigmas, beta, prng_key)
-            #################################################
+            # mask_nm = jnp.zeros(M, dtype=int)
+            # mask_nm = mask_nm.at[n:m].set(1)
+
             t = k - beg
             ar[t, 0] = beta
-            ar[t, 1] = dsabs
-            ar[t, 2] = Omega(n, sigmas, beta) * Omega(m,sigmas, beta)
+            ar[t, 1], ar[t, 2] = DS_CPP(n, m, N_pos, N_neg, beta)
         return ar
 
 
@@ -377,6 +376,7 @@ def test_FDistribution(M, T, CPU, C, serial):
     with Timer("done FDistribution for M,T,C= " + str(M) + "," + str(T)+ "," + str(C)):
         fdp = CurveSimulator(M, T, CPU, C)
         fdp.FDistribution(serial)  # runs on each node, outputs placed in the plot dir of the main node
+
 
 def MakePlots(M=100000, T=20000, CPU=mp.cpu_count()):
     with Timer("done MakePlots for M,T= " + str(M) + "," + str(T)):
