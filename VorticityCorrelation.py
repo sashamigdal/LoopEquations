@@ -271,8 +271,8 @@ class CurveSimulator():
         if not os.path.isfile(self.FDistributionPathname()):
             res = []
             params = [(T * i // self.CPU, T * (i + 1) // self.CPU) for i in range(self.CPU)]
-            # with fut.ProcessPoolExecutor(max_workers=self.CPU - 1) as exec:
-            res = list(map(self.GetSamples, params))
+            with fut.ProcessPoolExecutor(max_workers=self.CPU - 1) as exec:
+                res = list(exec.map(self.GetSamples, params))
             data = np.vstack(res)
             data.tofile(self.FDistributionPathname())
         print("made FDistribution " + str(M))
