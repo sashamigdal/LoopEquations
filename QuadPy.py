@@ -1,7 +1,7 @@
 import quadpy
 import numpy as np
 from scipy.linalg import eigh
-from wolframclient.evaluation import WolframLanguageSession
+# from wolframclient.evaluation import WolframLanguageSession
 
 from Timer import MTimer as Timer
 from ScipyQuad import SphericalRestrictedIntegral as SciPySRI
