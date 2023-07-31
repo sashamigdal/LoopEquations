@@ -19,6 +19,12 @@ from fractions import Fraction
 from QuadPy import SphericalFourierIntegral
 from memory_profiler import profile
 
+import jax.numpy as jnp
+from jax import jit
+from jax import random as jrandom
+import jax
+#jax.config.update('jax_platform_name', 'cpu')
+
 import ctypes
 libDS_path = os.path.join("CPP/cmake-build-release", 'libDS.dylib')
 # sys.path.append("CPP/cmake-build-release")
@@ -31,22 +37,25 @@ def CorrFuncDir(M):
     return os.path.join("plots", "VorticityCorr." + str(M))
 
 
+@jit
 def F(sigma, beta):
-    return 1 / (2 * sin(beta / 2)) * np.array([cos(sigma * beta), sin(sigma * beta)],dtype= float)
+    return 1 / (2 * jnp.sin(beta / 2)) * jnp.array([jnp.cos(sigma * beta), jnp.sin(sigma * beta)], dtype=float)
 
 # /-\frac{\sin (\beta  \sigma )}{2 (\cos (\beta )-1)}
 def Omega(k, sigmas, beta):
     return sin(beta * sigmas[k])/(2*(1- cos(beta)))
 
-# @profile
-def DS_Python(n, m, M, sigmas, beta):
-    Snm = np.sum(F(sigmas[n:m], beta), axis=1)
-    Smn = np.sum(F(sigmas[m:M], beta), axis=1) + np.sum(F(sigmas[0:n], beta), axis=1)
-    snm = Snm / (m - n)
-    smn = Smn / (n + M - m)
+@jit
+def DS_Python(mask_nm, M, sigmas, beta, prng_key):
+    mask_mn = 1 - mask_nm
+    FF = F(sigmas, beta)
+    Snm = jnp.sum(FF * mask_nm, axis=1)
+    Smn = jnp.sum(FF * mask_mn, axis=1)
+    len_nm = jnp.sum(mask_nm)
+    snm = Snm / len_nm
+    smn = Smn / (M - len_nm)
     ds = snm - smn
-    return np.sqrt(ds.dot(ds))
-
+    return jnp.sqrt(ds.dot(ds))
 
 def DS_CPP(n, m, M, sigmas, beta):
     libDS.DS.restype = ctypes.c_double
@@ -222,6 +231,7 @@ class CurveSimulator():
         beg, end = params
         ar = np.zeros((end - beg) * 3, dtype=float).reshape(-1, 3)
         np.random.seed(self.C + 1000 * beg)  # to make a unique seed for at least 1000 nodes
+        prng_key = jrandom.PRNGKey(self.C + 1000 * beg)
         M = self.M
         sigmas = np.ones(M, dtype=int)  # +30% speed
         for k in range(beg, end):
@@ -231,13 +241,17 @@ class CurveSimulator():
             N1, N2 = (M + q) // 2, (M - q) // 2
             if np.random.randint(2) == 1:
                 N1, N2 = N2, N1
-            m = np.random.randint(1, M)
-            n = np.random.randint(0, m)
+            n = np.random.randint(0, M)
+            m = np.random.randint(n+1, M+n) % M
+            if n > m:
+                n, m = m, n
+            mask_nm = jnp.zeros(M, dtype=int)
+            mask_nm = mask_nm.at[n:m].set(1)
             #########to be parallemized on GPU
             sigmas[:N1].fill(-1)
             np.random.shuffle(sigmas)
-            sigmas[:] = np.cumsum(sigmas)
-            dsabs = DS(n, m, M, sigmas, beta)
+            np.cumsum(sigmas, axis=0, out=sigmas)
+            dsabs = DS_Python(mask_nm, M, sigmas, beta, prng_key)
             #################################################
             t = k - beg
             ar[t, 0] = beta
