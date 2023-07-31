@@ -1,6 +1,7 @@
-# Loop Equations
-
-![circular loop with beads, with LE written inside for loop equations](./logo.jpg)
+<div align="center">
+   <h1 align="center">Loop Equations</h1>
+   <img alt="circular loop with beads, with LE written inside for loop equations" src="https://raw.githubusercontent.com/sashamigdal/LoopEquations/master/logo.jpg" width="30%" />
+</div>
 
 This collection of Mathematica notebooks and Python scripts supports the enclosed paper  Notebooks/Microscopic_theory_of_Decaying_Turbulence_MDPI.pdf
 
