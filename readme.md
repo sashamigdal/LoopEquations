@@ -3,7 +3,7 @@
    <img alt="circular loop with beads, with LE written inside for loop equations" src="https://raw.githubusercontent.com/sashamigdal/LoopEquations/master/logo.jpg" width="30%" />
 </div>
 
-This collection of Mathematica notebooks and Python scripts supports the enclosed paper  Notebooks/Microscopic_theory_of_Decaying_Turbulence_MDPI.pdf
+This collection of Mathematica notebooks and Python scripts supports the enclosed paper [Microscopic theory of Decaying Turbulence MDPI](https://github.com/sashamigdal/LoopEquations/blob/master/Notebooks/Microscopic_Theory_of_Decaying_Turbulence_MDPI.pdf) ([download PDF](https://raw.githubusercontent.com/sashamigdal/LoopEquations/master/Notebooks/Microscopic_Theory_of_Decaying_Turbulence_MDPI.pdf)).
 
 Mathematica notebooks verify analytic solutions, and the Python code in VorticityCorrelation.py simulates the random complex curve with N   up to 2*10^8 points of a polygon
 
