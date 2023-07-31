@@ -1,4 +1,4 @@
-import quadpy
+# import quadpy
 import numpy as np
 from scipy.linalg import eigh
 # from wolframclient.evaluation import WolframLanguageSession

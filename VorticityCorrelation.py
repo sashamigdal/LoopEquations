@@ -19,10 +19,10 @@ from fractions import Fraction
 from QuadPy import SphericalFourierIntegral
 from memory_profiler import profile
 
-import jax.numpy as jnp
-from jax import jit
-from jax import random as jrandom
-import jax
+# import jax.numpy as jnp
+# from jax import jit
+# from jax import random as jrandom
+# import jax
 #jax.config.update('jax_platform_name', 'cpu')
 
 import ctypes
@@ -37,7 +37,7 @@ def CorrFuncDir(M):
     return os.path.join("plots", "VorticityCorr." + str(M))
 
 
-@jit
+# @jit
 def F(sigma, beta):
     return jax.lax.complex(jax.lax.cos(sigma * beta), jax.lax.sin(sigma * beta))
 
@@ -45,7 +45,7 @@ def F(sigma, beta):
 def Omega(k, sigmas, beta):
     return sin(beta * sigmas[k])/(2*(1- cos(beta)))
 
-@jit
+# @jit
 def DS_Python(mask_nm, M, sigmas, beta, prng_key):
     sigmas = jax.random.permutation(prng_key,sigmas)
     sigmas =jnp.cumsum(sigmas, axis=0)
@@ -265,15 +265,21 @@ class CurveSimulator():
         return os.path.join(CorrFuncDir(self.M), "Fdata." + str(self.T) + "." + str(self.C) + ".np")
 
     
-    def FDistribution(self):
+    def FDistribution(self, serial):
+        """
+        :param serial: Boolean If set, run jobs serially.
+        """
         M = self.M
         T = self.T
         MakeDir(CorrFuncDir(M))
         if not os.path.isfile(self.FDistributionPathname()):
-            res = []
+            res = None
             params = [(T * i // self.CPU, T * (i + 1) // self.CPU) for i in range(self.CPU)]
-            with fut.ProcessPoolExecutor(max_workers=self.CPU - 1) as exec:
-                res = list(exec.map(self.GetSamples, params))
+            if serial:
+                res = list(map(self.GetSamples, params))
+            else:
+                with fut.ProcessPoolExecutor(max_workers=self.CPU - 1) as exec:
+                    res = list(exec.map(self.GetSamples, params))
             data = np.vstack(res)
             data.tofile(self.FDistributionPathname())
         print("made FDistribution " + str(M))
@@ -364,10 +370,13 @@ class CurveSimulator():
             print(ex)
         print("made OtOvsDss " + str(MaxM))
 
-def test_FDistribution(M = 100000, T = 20000, CPU = mp.cpu_count(), C =0):
+def test_FDistribution(M, T, CPU, C, serial):
+    """
+    :param serial: Boolean If set, run serially.
+    """
     with Timer("done FDistribution for M,T,C= " + str(M) + "," + str(T)+ "," + str(C)):
         fdp = CurveSimulator(M, T, CPU, C)
-        fdp.FDistribution()# runs on each node, outputs placed in the plot dir of the main node
+        fdp.FDistribution(serial)  # runs on each node, outputs placed in the plot dir of the main node
 
 def MakePlots(M=100000, T=20000, CPU=mp.cpu_count()):
     with Timer("done MakePlots for M,T= " + str(M) + "," + str(T)):
@@ -404,10 +413,11 @@ if __name__ == '__main__':
     parser.add_argument('-T', type=int, default=1000)
     parser.add_argument('-CPU', type=int, default=mp.cpu_count())
     parser.add_argument('-C', type=int, default=1)
+    parser.add_argument('--serial', default=False, action="store_true")
     A = parser.parse_args()
     if A.C > 0:
         with Timer("done FDistribution for M,T= " + str(A.M) + "," + str(A.T)):
-            test_FDistribution(A.M, A.T, A.CPU, A.C)
+            test_FDistribution(A.M, A.T, A.CPU, A.C, A.serial)
     else:
         MakePlots(A.M, A.T, A.CPU)
 
