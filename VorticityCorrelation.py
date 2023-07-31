@@ -34,12 +34,9 @@ def CorrFuncDir(M):
 def F(sigma, beta):
     return 1 / (2 * sin(beta / 2)) * np.array([cos(sigma * beta), sin(sigma * beta)],dtype= float)
 
-
+# /-\frac{\sin (\beta  \sigma )}{2 (\cos (\beta )-1)}
 def Omega(k, sigmas, beta):
-    M = len(sigmas)
-    k1 = (k+1)%M
-    phi = (sigmas[k1] + sigmas[k]) * (beta / 2)
-    return (sigmas[k1]- sigmas[k]) / (2 * tan(beta / 2)) * np.array([cos(phi), sin(phi), 1j], complex)
+    return sin(beta * sigmas[k])/(2*(1- cos(beta)))
 
 # @profile
 def DS_Python(n, m, M, sigmas, beta):
@@ -63,12 +60,13 @@ def DS_CPP(n, m, M, sigmas, beta):
 def DS(n, m, M, sigmas, beta):
     return DS_Python(n, m, M, sigmas, beta)
 class RandomFractions():
-    def Pairs(self, n):
+    def Pairs(self,params):
+        n,f0,f1= params
         M = self.M
         pairs = np.zeros((n, 2), dtype=int)
         l = 0
         while (l < n):
-            f = np.clip(np.random.random(), 0.5 / M, 1 - 0.5 / M)
+            f = np.random.uniform(low=f0, high=f1)
             pq = Fraction(f).limit_denominator(M)
             if pq.denominator % 2 == M % 2:
                 pairs[l, 0] = pq.numerator
@@ -87,14 +85,14 @@ class RandomFractions():
     def GetPairsPathname(self):
         return os.path.join(self.SaveDir(),"Pairs."+ str(self.M) + ".np")
 
-    def MakePairs(self):
+    def MakePairs(self, f0, f1):
         if os.path.isfile(self.GetPairsPathname()):
             print(" Pairs exist in " + self.GetPairsPathname())
             return
         T = self.T
         M = self.M
         res = []
-        params = [(T * (i + 1) )// self.CPU - (T * i )// self.CPU for i in range(self.CPU)]
+        params = [((T * (i + 1) )// self.CPU - (T * i )// self.CPU, f0, f1) for i in range(self.CPU)]
         with fut.ProcessPoolExecutor(max_workers=self.CPU - 1) as exec:
             res = list(exec.map(self.Pairs, params))
         data = np.vstack(res)
@@ -142,11 +140,14 @@ class RandomFractions():
             XYPlot([xx[ord],yy[ord]],os.path.join(self.SaveDir(),"eps_vs_q." + str(M) + ".png"), logx=False, logy=False)
 
 def test_RandomFractions():
-    M = 100000000
-    T = 100000
+    M = 10_000_000_000
+    T = 10_000_000
+    gap= 10./sqrt(M)
+    f0 = 0.5 - gap
+    f1 = 0.5 + gap
     RF = RandomFractions(M,T)
-    RF.MakePairs()
-    RF.MakePlots()
+    RF.MakePairs(f0,f1)
+    # RF.MakePlots()
 
 class GroupFourierIntegral:
     def __init__(self):
@@ -241,7 +242,7 @@ class CurveSimulator():
             t = k - beg
             ar[t, 0] = beta
             ar[t, 1] = dsabs
-            ar[t, 2] = np.dot(Omega(n, sigmas, beta), Omega(m,sigmas, beta)).real
+            ar[t, 2] = Omega(n, sigmas, beta) * Omega(m,sigmas, beta)
         return ar
 
 
