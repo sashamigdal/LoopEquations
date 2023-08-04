@@ -14,16 +14,16 @@ from numpy.linalg import multi_dot as mdot
 import numpy as np
 import multiprocessing as mp
 import concurrent.futures as fut
-from fractions import Fraction
+from cfractions import Fraction
 #from numba import vectorize, guvectorize, float64, int64
 from QuadPy import SphericalFourierIntegral
 from memory_profiler import profile
-
+from scipy.special import betaln
 import jax.numpy as jnp
 from jax import jit
 from jax import random as jrandom
 import jax
-#jax.config.update('jax_platform_name', 'cpu')
+jax.config.update('jax_platform_name', 'cpu')
 
 import ctypes
 libDS_path = os.path.join("CPP/cmake-build-release", 'libDS.dylib')
@@ -39,38 +39,56 @@ def CorrFuncDir(M):
 
 @jit
 def F(sigma, beta):
-    return jax.lax.complex(jax.lax.cos(sigma * beta), jax.lax.sin(sigma * beta))
+    return 1 / (2 * jnp.sin(beta / 2)) * jnp.array([jnp.cos(sigma * beta), jnp.sin(sigma * beta)], dtype=float)
 
 # /-\frac{\sin (\beta  \sigma )}{2 (\cos (\beta )-1)}
-def Omega(k, sigmas, beta):
-    return sin(beta * sigmas[k])/(2*(1- cos(beta)))
+def Omega(sigma, beta):
+    return 1j * sigma* sin(beta * sigma)/(2*(1- cos(beta)))
 
 @jit
 def DS_Python(mask_nm, M, sigmas, beta, prng_key):
-    sigmas = jax.random.permutation(prng_key,sigmas)
-    sigmas =jnp.cumsum(sigmas, axis=0)
     mask_mn = 1 - mask_nm
     FF = F(sigmas, beta)
-    Snm = jnp.sum(FF * mask_nm, axis=0)
-    Smn = jnp.sum(FF * mask_mn, axis=0)
+    Snm = jnp.sum(FF * mask_nm, axis=1)
+    Smn = jnp.sum(FF * mask_mn, axis=1)
     len_nm = jnp.sum(mask_nm)
     snm = Snm / len_nm
     smn = Smn / (M - len_nm)
     ds = snm - smn
-    return jnp.abs(ds/ (2 * jnp.sin(beta / 2)))
+    return jnp.sqrt(ds.dot(ds))
 
-def DS_CPP(n, m, M, sigmas, beta):
-    libDS.DS.restype = ctypes.c_double
-    return libDS.DS(ctypes.c_int64(n),
-                    ctypes.c_int64(m),
-                    ctypes.c_int64(M),
-                    sigmas.ctypes.data_as(c_int64_p),
-                    ctypes.c_double(beta))
+# def DS_CPP(n, m, M, sigmas, beta):
+#     libDS.DS.restype = ctypes.c_double
+#     return libDS.DS(ctypes.c_int64(n),
+#                     ctypes.c_int64(m),
+#                     ctypes.c_int64(M),
+#                     sigmas.ctypes.data_as(c_int64_p),
+#                     ctypes.c_double(beta))
 
 
 def DS(n, m, M, sigmas, beta):
     return DS_Python(n, m, M, sigmas, beta)
 class RandomFractions():
+    '''
+  (2^(-3-N) (N-q^2)/(1+N) Cot[(p \pi/q]^2)/(  Beta[1+(N+q)/2,1+(N-q)/2])
+    '''
+    @staticmethod
+    def EF(p,q,N):
+        return -log(2)*(N+3) + log((N-q**2)/(N+1)) -2*log(abs(tan(pi* p/q))) -betaln(1+(N+ q)/2,1 +(N-q)/2 )
+    def MeanEnstrophy(self, n):
+        M = self.M
+        f0 = 0.5/M
+        f1 = 1- f0
+        max_den = int(sqrt(M))
+        res = np.zeros(n, dtype=float)
+        l = 0
+        while (l < n):
+            f = np.random.uniform(low=f0, high=f1)
+            pq = Fraction(f).limit_denominator(max_den)
+            if pq.denominator % 2 == M % 2:
+                res[l] = self.EF(pq.numerator, pq.denominator, M)
+                l += 1
+        return res
     def Pairs(self,params):
         n,f0,f1= params
         M = self.M
@@ -95,7 +113,8 @@ class RandomFractions():
 
     def GetPairsPathname(self):
         return os.path.join(self.SaveDir(),"Pairs."+ str(self.M) + ".np")
-
+    def GetEnstrophyPathname(self):
+        return os.path.join(self.SaveDir(),"Enstrophy."+ str(self.M) + ".np")
     def MakePairs(self, f0, f1):
         if os.path.isfile(self.GetPairsPathname()):
             print(" Pairs exist in " + self.GetPairsPathname())
@@ -108,7 +127,15 @@ class RandomFractions():
             res = list(exec.map(self.Pairs, params))
         data = np.vstack(res)
         data.tofile(self.GetPairsPathname())
-
+    def MakeEnstrophy(self):
+        T = self.T
+        M = self.M
+        res = []
+        params = [((T * (i + 1)) // self.CPU - (T * i) // self.CPU) for i in range(self.CPU)]
+        with fut.ProcessPoolExecutor(max_workers=self.CPU - 1) as exec:
+            res = list(exec.map(self.MeanEnstrophy, params))
+        data = np.vstack(res)
+        data.tofile(self.GetEnstrophyPathname())
     def ReadPairsFile(self, params):
         pathname, M = params
         return np.fromfile(pathname,dtype = int).reshape(-1,2)
@@ -151,12 +178,12 @@ class RandomFractions():
             XYPlot([xx[ord],yy[ord]],os.path.join(self.SaveDir(),"eps_vs_q." + str(M) + ".png"), logx=False, logy=False)
 
 def test_RandomFractions():
-    M = 10_000_000_000
-    T = 10_000_000
-    gap= 10./sqrt(M)
-    f0 = 0.5 - gap
-    f1 = 0.5 + gap
+    M = 2_000_000_0003
+    T = 1_000_000_00
     RF = RandomFractions(M,T)
+    # RF.MakeEnstrophy()
+    f0 = 0.5/M
+    f1 = 1.-f0
     RF.MakePairs(f0,f1)
     # RF.MakePlots()
 
@@ -251,13 +278,14 @@ class CurveSimulator():
             mask_nm = mask_nm.at[n:m].set(1)
             #########to be parallemized on GPU
             sigmas[:N1].fill(-1)
-
+            np.random.shuffle(sigmas)
+            np.cumsum(sigmas, axis=0, out=sigmas)
             dsabs = DS_Python(mask_nm, M, sigmas, beta, prng_key)
             #################################################
             t = k - beg
             ar[t, 0] = beta
             ar[t, 1] = dsabs
-            ar[t, 2] = Omega(n, sigmas, beta) * Omega(m,sigmas, beta)
+            ar[t, 2] = Omega(sigmas[n], beta) * Omega(sigmas[m], beta)
         return ar
 
 
@@ -391,6 +419,43 @@ def test_Numba():
     Snm, Smn = DS(n, m, M, alphas, beta)
     return Snm, Smn
 
+#from euler_maths import euler_totients
+#from primefac import factorint
+
+# @jit
+def euler_totients(N: int) -> list:
+    """Returns list with phi(i) at index i for i < N."""
+    phi = np.zeros(N, int)
+    for i in range(2, N):
+        if phi[i] == 0:
+            phi[i] = i - 1
+            for j in range(2 * i, N, i):
+                if phi[j] == 0:
+                    phi[j] = j
+                phi[j] = (i - 1) * phi[j] // i
+    return phi
+
+class EulerPhi():
+    def __init__(self):
+        MakeDir(self.SaveDir())
+        pass
+
+    def SaveDir(self):
+        return os.path.join("plots", "EulerPhi")
+
+    def GetProbPathname(self, N):
+        return os.path.join(self.SaveDir(),"Probs."+ str(N) + ".np")
+
+    def Probability(self,N):
+        phis = euler_totients(N)
+        ww = np.cumsum(phis).astype(float)
+        prob= (ww[-1] -ww)/ww[-1]
+        prob.tofile(self.GetProbPathname(N))
+
+def test_EulerPhi():
+    N = 10_000_000
+    ep =EulerPhi()
+    ep.Probability(N)
 
 if __name__ == '__main__':
     # test_Numba()
