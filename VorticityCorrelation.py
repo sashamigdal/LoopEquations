@@ -26,9 +26,9 @@ import jax
 jax.config.update('jax_platform_name', 'cpu')
 
 import ctypes
-libDS_path = os.path.join("CPP/cmake-build-release", 'libDS.dylib')
-# sys.path.append("CPP/cmake-build-release")
-# libDS = ctypes.cdll.LoadLibrary(libDS_path)
+libDS_path = os.path.join("CPP/cmake-build-release", 'libDS.so')
+sys.path.append("CPP/cmake-build-release")
+libDS = ctypes.cdll.LoadLibrary(libDS_path)
 c_double_p = ctypes.POINTER(ctypes.c_double)
 c_int64_p = ctypes.POINTER(ctypes.c_int64)
 c_uint64_p = ctypes.POINTER(ctypes.c_uint64)
@@ -37,11 +37,12 @@ def CorrFuncDir(M):
     return os.path.join("plots", "VorticityCorr." + str(M))
 
 
-@jit
+# @jit
 def F(sigma, beta):
-    return 1 / (2 * jnp.sin(beta / 2)) * jnp.array([jnp.cos(sigma * beta), jnp.sin(sigma * beta)], dtype=float)
+    return jax.lax.complex(jax.lax.cos(sigma * beta), jax.lax.sin(sigma * beta))
 
-@jit
+
+# @jit
 def DS_Python(mask_nm, M, sigmas, beta, prng_key):
     mask_mn = 1 - mask_nm
     FF = F(sigmas, beta)
@@ -51,40 +52,20 @@ def DS_Python(mask_nm, M, sigmas, beta, prng_key):
     snm = Snm / len_nm
     smn = Smn / (M - len_nm)
     ds = snm - smn
-    return jnp.sqrt(ds.dot(ds))
+    return jnp.abs(ds/ (2 * jnp.sin(beta / 2)))
 
-# def DS_CPP(n, m, M, sigmas, beta):
-#     libDS.DS.restype = ctypes.c_double
-#     return libDS.DS(ctypes.c_int64(n),
-#                     ctypes.c_int64(m),
-#                     ctypes.c_int64(M),
-#                     sigmas.ctypes.data_as(c_int64_p),
-#                     ctypes.c_double(beta))
+def DS_CPP(n, m, N_pos, N_neg, beta):
+    INT64 = ctypes.c_int64
+    libDS.DS.argtypes = (INT64, INT64, INT64, INT64, ctypes.c_double, c_double_p)
+    libDS.DS.restype = ctypes.c_double
+    np_o_o = np.zeros(1, dtype=float)
+    dsabs = libDS.DS(n, m, N_pos, N_neg, beta, np_o_o.ctypes.data_as(c_double_p))
+    return dsabs, np_o_o[0]
 
 
 def DS(n, m, M, sigmas, beta):
     return DS_Python(n, m, M, sigmas, beta)
 class RandomFractions():
-    '''
-  (2^(-3-N) (N-q^2)/(1+N) Cot[(p \pi/q]^2)/(  Beta[1+(N+q)/2,1+(N-q)/2])
-    '''
-    @staticmethod
-    def EF(p,q,N):
-        return -log(2)*(N+3) + log((N-q**2)/(N+1)) -2*log(abs(tan(pi* p/q))) -betaln(1+(N+ q)/2,1 +(N-q)/2 )
-    def MeanEnstrophy(self, n):
-        M = self.M
-        f0 = 0.5/M
-        f1 = 1- f0
-        max_den = int(sqrt(M))
-        res = np.zeros(n, dtype=float)
-        l = 0
-        while (l < n):
-            f = np.random.uniform(low=f0, high=f1)
-            pq = Fraction(f).limit_denominator(max_den)
-            if pq.denominator % 2 == M % 2:
-                res[l] = self.EF(pq.numerator, pq.denominator, M)
-                l += 1
-        return res
     def Pairs(self,params):
         n,f0,f1= params
         M = self.M
@@ -258,30 +239,26 @@ class CurveSimulator():
         np.random.seed(self.C + 1000 * beg)  # to make a unique seed for at least 1000 nodes
         prng_key = jrandom.PRNGKey(self.C + 1000 * beg)
         M = self.M
-        sigmas = np.ones(M, dtype=int)  # +30% speed
         for k in range(beg, end):
-            sigmas.fill(1)
             p, q = self.Pair()
             beta = (2 * pi * p) / float(q)
-            N1, N2 = (M + q) // 2, (M - q) // 2
+
+            N_pos = (M + q) // 2  # Number of 1's
+            N_neg = (M - q) // 2  # Number of -1's
             if np.random.randint(2) == 1:
-                N1, N2 = N2, N1
+                N_pos, N_neg = N_neg, N_pos
+
             n = np.random.randint(0, M)
             m = np.random.randint(n+1, M+n) % M
             if n > m:
                 n, m = m, n
-            mask_nm = jnp.zeros(M, dtype=int)
-            mask_nm = mask_nm.at[n:m].set(1)
-            #########to be parallemized on GPU
-            sigmas[:N1].fill(-1)
-            np.random.shuffle(sigmas)
+
+            # mask_nm = jnp.zeros(M, dtype=int)
+            # mask_nm = mask_nm.at[n:m].set(1)
+
             t = k - beg
             ar[t, 0] = beta
-            ar[t, 2] = -sigmas[n] * sigmas[m]
-            np.cumsum(sigmas, axis=0, out=sigmas)
-            #################################################
-            ar[t, 1] = DS_Python(mask_nm, M, sigmas, beta, prng_key)
-        ar[:, 2] *=  (sin(beta)/(2*(1- cos(beta))))**2
+            ar[t, 1], ar[t, 2] = DS_CPP(n, m, N_pos, N_neg, beta)
         return ar
 
 
@@ -289,15 +266,21 @@ class CurveSimulator():
         return os.path.join(CorrFuncDir(self.M), "Fdata." + str(self.T) + "." + str(self.C) + ".np")
 
     
-    def FDistribution(self):
+    def FDistribution(self, serial):
+        """
+        :param serial: Boolean If set, run jobs serially.
+        """
         M = self.M
         T = self.T
         MakeDir(CorrFuncDir(M))
         if not os.path.isfile(self.FDistributionPathname()):
-            res = []
+            res = None
             params = [(T * i // self.CPU, T * (i + 1) // self.CPU) for i in range(self.CPU)]
-            with fut.ProcessPoolExecutor(max_workers=self.CPU - 1) as exec:
-                res = list(exec.map(self.GetSamples, params))
+            if serial:
+                res = list(map(self.GetSamples, params))
+            else:
+                with fut.ProcessPoolExecutor(max_workers=self.CPU - 1) as exec:
+                    res = list(exec.map(self.GetSamples, params))
             data = np.vstack(res)
             data.tofile(self.FDistributionPathname())
         print("made FDistribution " + str(M))
@@ -388,10 +371,14 @@ class CurveSimulator():
             print(ex)
         print("made OtOvsDss " + str(MaxM))
 
-def test_FDistribution(M = 100000, T = 20000, CPU = mp.cpu_count(), C =0):
+def test_FDistribution(M, T, CPU, C, serial):
+    """
+    :param serial: Boolean If set, run serially.
+    """
     with Timer("done FDistribution for M,T,C= " + str(M) + "," + str(T)+ "," + str(C)):
         fdp = CurveSimulator(M, T, CPU, C)
-        fdp.FDistribution()# runs on each node, outputs placed in the plot dir of the main node
+        fdp.FDistribution(serial)  # runs on each node, outputs placed in the plot dir of the main node
+
 
 def MakePlots(M=100000, T=20000, CPU=mp.cpu_count()):
     with Timer("done MakePlots for M,T= " + str(M) + "," + str(T)):
@@ -463,10 +450,11 @@ if __name__ == '__main__':
     parser.add_argument('-T', type=int, default=1000)
     parser.add_argument('-CPU', type=int, default=mp.cpu_count())
     parser.add_argument('-C', type=int, default=1)
+    parser.add_argument('--serial', default=False, action="store_true")
     A = parser.parse_args()
     if A.C > 0:
         with Timer("done FDistribution for M,T= " + str(A.M) + "," + str(A.T)):
-            test_FDistribution(A.M, A.T, A.CPU, A.C)
+            test_FDistribution(A.M, A.T, A.CPU, A.C, A.serial)
     else:
         MakePlots(A.M, A.T, A.CPU)
 

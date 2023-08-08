@@ -7,14 +7,7 @@
 #   define EXPORT __attribute__((visibility("default")))
 #endif
 
-using comp = std::complex<double>;
-
-inline comp F( int sigma, double beta){
-    beta *= sigma;
-    double x,y;
-    __sincos(beta, &x, &y);
-    return comp(x,y);
-}
+using complex = std::complex<double>;
 
 // '''
 // def SS(n, m, M, sigmas, beta):
@@ -27,6 +20,6 @@ inline comp F( int sigma, double beta){
 // '''
 
 extern "C"{
-    EXPORT double DS(std::int64_t n, std::int64_t m, std::int64_t M, std::int64_t * sigmas, double beta);
+    EXPORT double DS( std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_neg, double beta, /*OUT*/ double* o_o );
 }
 
