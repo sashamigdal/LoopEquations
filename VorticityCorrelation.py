@@ -237,7 +237,7 @@ class CurveSimulator():
         beg, end = params
         ar = np.zeros((end - beg) * 3, dtype=float).reshape(-1, 3)
         np.random.seed(self.C + 1000 * beg)  # to make a unique seed for at least 1000 nodes
-        prng_key = jrandom.PRNGKey(self.C + 1000 * beg)
+
         M = self.M
         for k in range(beg, end):
             p, q = self.Pair()
@@ -252,9 +252,6 @@ class CurveSimulator():
             m = np.random.randint(n+1, M+n) % M
             if n > m:
                 n, m = m, n
-
-            # mask_nm = jnp.zeros(M, dtype=int)
-            # mask_nm = mask_nm.at[n:m].set(1)
 
             t = k - beg
             ar[t, 0] = beta
