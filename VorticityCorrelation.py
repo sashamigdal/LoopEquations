@@ -19,11 +19,11 @@ from cfractions import Fraction
 from QuadPy import SphericalFourierIntegral
 from memory_profiler import profile
 from scipy.special import betaln
-import jax.numpy as jnp
-from jax import jit
-from jax import random as jrandom
-import jax
-jax.config.update('jax_platform_name', 'cpu')
+# import jax.numpy as jnp
+# from jax import jit
+# from jax import random as jrandom
+# import jax
+# jax.config.update('jax_platform_name', 'cpu')
 
 import ctypes
 libDS_path = os.path.join("CPP/cmake-build-release", 'libDS.so')
@@ -39,20 +39,20 @@ def CorrFuncDir(M):
 
 # @jit
 def F(sigma, beta):
-    return jax.lax.complex(jax.lax.cos(sigma * beta), jax.lax.sin(sigma * beta))
+    return np.complex(np.cos(sigma * beta), np.sin(sigma * beta))
 
 
 # @jit
 def DS_Python(mask_nm, M, sigmas, beta, prng_key):
     mask_mn = 1 - mask_nm
     FF = F(sigmas, beta)
-    Snm = jnp.sum(FF * mask_nm, axis=1)
-    Smn = jnp.sum(FF * mask_mn, axis=1)
-    len_nm = jnp.sum(mask_nm)
+    Snm = np.sum(FF * mask_nm, axis=1)
+    Smn = np.sum(FF * mask_mn, axis=1)
+    len_nm = np.sum(mask_nm)
     snm = Snm / len_nm
     smn = Smn / (M - len_nm)
     ds = snm - smn
-    return jnp.abs(ds/ (2 * jnp.sin(beta / 2)))
+    return np.abs(ds/ (2 * np.sin(beta / 2)))
 
 def DS_CPP(n, m, N_pos, N_neg, beta):
     INT64 = ctypes.c_int64
