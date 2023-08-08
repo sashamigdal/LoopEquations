@@ -41,10 +41,6 @@ def CorrFuncDir(M):
 def F(sigma, beta):
     return 1 / (2 * jnp.sin(beta / 2)) * jnp.array([jnp.cos(sigma * beta), jnp.sin(sigma * beta)], dtype=float)
 
-# /-\frac{\sin (\beta  \sigma )}{2 (\cos (\beta )-1)}
-def Omega(sigma, beta):
-    return 1j * sigma* sin(beta * sigma)/(2*(1- cos(beta)))
-
 @jit
 def DS_Python(mask_nm, M, sigmas, beta, prng_key):
     mask_mn = 1 - mask_nm
@@ -279,13 +275,13 @@ class CurveSimulator():
             #########to be parallemized on GPU
             sigmas[:N1].fill(-1)
             np.random.shuffle(sigmas)
-            np.cumsum(sigmas, axis=0, out=sigmas)
-            dsabs = DS_Python(mask_nm, M, sigmas, beta, prng_key)
-            #################################################
             t = k - beg
             ar[t, 0] = beta
-            ar[t, 1] = dsabs
-            ar[t, 2] = Omega(sigmas[n], beta) * Omega(sigmas[m], beta)
+            ar[t, 2] = -sigmas[n] * sigmas[m]
+            np.cumsum(sigmas, axis=0, out=sigmas)
+            #################################################
+            ar[t, 1] = DS_Python(mask_nm, M, sigmas, beta, prng_key)
+        ar[:, 2] *=  (sin(beta)/(2*(1- cos(beta))))**2
         return ar
 
 
@@ -448,9 +444,7 @@ class EulerPhi():
 
     def Probability(self,N):
         phis = euler_totients(N)
-        ww = np.cumsum(phis).astype(float)
-        prob= (ww[-1] -ww)/ww[-1]
-        prob.tofile(self.GetProbPathname(N))
+        phis.tofile(self.GetProbPathname(N))
 
 def test_EulerPhi():
     N = 10_000_000
