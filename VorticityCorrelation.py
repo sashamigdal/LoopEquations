@@ -42,17 +42,6 @@ def F(sigma, beta):
     return np.complex(np.cos(sigma * beta), np.sin(sigma * beta))
 
 
-# @jit
-def DS_Python(mask_nm, M, sigmas, beta, prng_key):
-    mask_mn = 1 - mask_nm
-    FF = F(sigmas, beta)
-    Snm = np.sum(FF * mask_nm, axis=1)
-    Smn = np.sum(FF * mask_mn, axis=1)
-    len_nm = np.sum(mask_nm)
-    snm = Snm / len_nm
-    smn = Smn / (M - len_nm)
-    ds = snm - smn
-    return np.abs(ds/ (2 * np.sin(beta / 2)))
 
 def DS_CPP(n, m, N_pos, N_neg, beta):
     INT64 = ctypes.c_int64
@@ -63,8 +52,17 @@ def DS_CPP(n, m, N_pos, N_neg, beta):
     return dsabs, np_o_o[0]
 
 
-def DS(n, m, M, sigmas, beta):
-    return DS_Python(n, m, M, sigmas, beta)
+def DS(n, m, M, beta):
+    C = cos(beta/2)
+    nm = m-n
+    mn = m+ M-n
+    factor = pow(C,4)/(2 * sin(beta/2))
+    if nm < mn:
+        return (pow(C, nm) / nm *(1. - (nm * pow(C,mn-nm))/mn),factor )
+    else:
+        return (-pow(C, mn) / mn * (1. - (mn * pow(C, nm - mn)) / mn),factor )
+
+    return
 class RandomFractions():
     def Pairs(self,params):
         n,f0,f1= params
@@ -242,20 +240,13 @@ class CurveSimulator():
         for k in range(beg, end):
             p, q = self.Pair()
             beta = (2 * pi * p) / float(q)
-
-            N_pos = (M + q) // 2  # Number of 1's
-            N_neg = (M - q) // 2  # Number of -1's
-            if np.random.randint(2) == 1:
-                N_pos, N_neg = N_neg, N_pos
-
             n = np.random.randint(0, M)
             m = np.random.randint(n+1, M+n) % M
             if n > m:
                 n, m = m, n
-
             t = k - beg
             ar[t, 0] = beta
-            ar[t, 1], ar[t, 2] = DS_CPP(n, m, N_pos, N_neg, beta)
+            ar[t, 1], ar[t, 2] = DS(n, m, M, beta)
         return ar
 
 
