@@ -52,17 +52,16 @@ def DS_CPP(n, m, N_pos, N_neg, beta):
     return dsabs, np_o_o[0]
 
 
-def DS(n, m, M, beta):
-    C = cos(beta/2)
-    nm = m-n
-    mn = m+ M-n
-    factor = pow(C,4)/(2 * sin(beta/2))
-    if nm < mn:
-        return (pow(C, nm) / nm *(1. - (nm * pow(C,mn-nm))/mn),factor )
-    else:
-        return (-pow(C, mn) / mn * (1. - (mn * pow(C, nm - mn)) / mn),factor )
+# def DS(n, m, M, beta):#m > n
+#     C = cos(beta/2)
+#     nm = m-n
+#     mn = n+ M-m
+#     factor = pow(C,4)/(2 * sin(beta/2))
+#     if nm < mn:
+#         return (pow(C, nm) / nm *(1. - (nm * pow(C,mn-nm))/mn),factor )
+#     else:
+#         return (-pow(C, mn) / mn * (1. - (mn * pow(C, nm - mn)) / mn),factor )
 
-    return
 class RandomFractions():
     def Pairs(self,params):
         n,f0,f1= params
@@ -240,15 +239,21 @@ class CurveSimulator():
         for k in range(beg, end):
             p, q = self.Pair()
             beta = (2 * pi * p) / float(q)
+
+            N_pos = (M + q) // 2  # Number of 1's
+            N_neg = (M - q) // 2  # Number of -1's
+            if np.random.randint(2) == 1:
+                N_pos, N_neg = N_neg, N_pos
+
             n = np.random.randint(0, M)
-            m = np.random.randint(n+1, M+n) % M
+            m = np.random.randint(n + 1, M + n) % M
             if n > m:
                 n, m = m, n
+
             t = k - beg
             ar[t, 0] = beta
-            ar[t, 1], ar[t, 2] = DS(n, m, M, beta)
+            ar[t, 1], ar[t, 2] = DS_CPP(n, m, N_pos, N_neg, beta)
         return ar
-
 
     def FDistributionPathname(self):
         return os.path.join(CorrFuncDir(self.M), "Fdata." + str(self.T) + "." + str(self.C) + ".np")
@@ -373,22 +378,7 @@ def MakePlots(M=100000, T=20000, CPU=mp.cpu_count()):
         fdp = CurveSimulator(M, T, CPU, 0)
         fdp.MakePlots([M])  # runs on main node, pools tata if not yet done so,  subsamples data and makes plots
 
-def test_Numba():
-    M = 1000
-    sigmas = np.ones(M,dtype=int)
-    alphas = np.zeros(M, dtype=float)
-    p, q = RandomFractions.Pair(M)
-    beta = (2 * pi * p) / float(q)
-    N1, N2 = (M + q) // 2, (M - q) // 2
-    if np.random.randint(2) == 1:
-        N1, N2 = N2, N1
-    sigmas[:N1].fill(-1)
-    np.random.shuffle(sigmas)
-    alphas[:] = np.cumsum(sigmas).astype(float) * beta
-    m = np.random.randint(1, M)
-    n = np.random.randint(0, m)
-    Snm, Smn = DS(n, m, M, alphas, beta)
-    return Snm, Smn
+
 
 #from euler_maths import euler_totients
 #from primefac import factorint
