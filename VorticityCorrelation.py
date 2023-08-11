@@ -1,4 +1,5 @@
 import os, sys
+from fractions import gcd
 
 # from mpmath import rational
 # here is a new line
@@ -221,7 +222,7 @@ class CurveSimulator():
         self.C = C
         self.T = T
 
-    def Pair(self):
+    def GaussPair(self):
         M = self.M
         while (True):
             f = np.clip(np.random.random(), 0.5 / M, 1 - 0.5 / M)
@@ -238,7 +239,7 @@ class CurveSimulator():
                 p = np.random.randint(1, q)
                 if gcd(p,q) ==1:
                     break
-        return [pq.numerator, pq.denominator]
+        return [p, q]
     def GetSamples(self, params):
         beg, end = params
         ar = np.zeros((end - beg) * 3, dtype=float).reshape(-1, 3)
@@ -246,7 +247,7 @@ class CurveSimulator():
 
         M = self.M
         for k in range(beg, end):
-            p, q = self.Pair()
+            p, q = self.EulerPair()
             beta = (2 * pi * p) / float(q)
 
             N_pos = (M + q) // 2  # Number of 1's
