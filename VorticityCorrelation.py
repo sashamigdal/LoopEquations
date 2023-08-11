@@ -230,6 +230,15 @@ class CurveSimulator():
                 break
         return [pq.numerator, pq.denominator]
 
+    def EulerPair(self):
+        M = self.M
+        while (True):
+            q = np.random.randint(2,M)
+            if q % 2 == M % 2:
+                p = np.random.randint(1, q)
+                if gcd(p,q) ==1:
+                    break
+        return [pq.numerator, pq.denominator]
     def GetSamples(self, params):
         beg, end = params
         ar = np.zeros((end - beg) * 3, dtype=float).reshape(-1, 3)
