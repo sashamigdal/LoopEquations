@@ -10,6 +10,7 @@ export M=100000000
 export T=100000
 
 jobid=$(sbatch --array=1-${NJOBS} --cpus-per-task=${NCPUS} --mem=${MEM_SIZE}GB --parsable run.sh)
+echo Submitted jobs ${jobid}
 
 SBATCH -p preempt
 SBATCH -C dalmac

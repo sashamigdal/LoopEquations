@@ -1,5 +1,5 @@
 import os, sys
-from fractions import gcd
+from math import gcd
 
 # from mpmath import rational
 # here is a new line
@@ -77,10 +77,11 @@ class RandomFractions():
                 pairs[l, 1] = pq.denominator
                 l+=1
         return pairs
-    def __init__(self, M, T):
+    def __init__(self, M, T, EG):
         self.M = M
         self.T = T
         self.CPU = mp.cpu_count()
+        self.EG = EG
         MakeDir(self.SaveDir())
 
     def SaveDir(self):
@@ -215,18 +216,20 @@ def test_GroupFourierIntegral():
 
 
 class CurveSimulator():
-    def __init__(self, M, T, CPU, C):
+    def __init__(self, M, EG, T, CPU, C ):
         MakeDir(CorrFuncDir(M))
         self.M = M
         self.CPU = CPU
         self.C = C
         self.T = T
+        self.EG = EG
 
     def GaussPair(self):
         M = self.M
         while (True):
-            f = np.clip(np.random.random(), 0.5 / M, 1 - 0.5 / M)
+            f = np.clip(np.random.random(),1./M,1.-1./ M)
             pq = Fraction(f).limit_denominator(M)
+            if pq.numerator == 0: continue
             if pq.denominator % 2 == M % 2:
                 break
         return [pq.numerator, pq.denominator]
@@ -234,11 +237,15 @@ class CurveSimulator():
     def EulerPair(self):
         M = self.M
         while (True):
-            q = np.random.randint(2,M)
+            q = np.random.randint(3,M)
             if q % 2 == M % 2:
                 p = np.random.randint(1, q)
                 if gcd(p,q) ==1:
-                    break
+                    if np.random.randint(0,M) < q:
+                        break
+                    pass
+                pass
+            pass
         return [p, q]
     def GetSamples(self, params):
         beg, end = params
@@ -247,7 +254,7 @@ class CurveSimulator():
 
         M = self.M
         for k in range(beg, end):
-            p, q = self.EulerPair()
+            p, q = self.GaussPair() if self.EG == 'G' else self.EulerPair()
             beta = (2 * pi * p) / float(q)
 
             N_pos = (M + q) // 2  # Number of 1's
@@ -261,12 +268,12 @@ class CurveSimulator():
                 n, m = m, n
 
             t = k - beg
-            ar[t, 0] = beta
+            ar[t, 0] = 1/tan(beta/2)**2
             ar[t, 1], ar[t, 2] = DS_CPP(n, m, N_pos, N_neg, beta)
         return ar
 
     def FDistributionPathname(self):
-        return os.path.join(CorrFuncDir(self.M), "Fdata." + str(self.T) + "." + str(self.C) + ".np")
+        return os.path.join(CorrFuncDir(self.M), "Fdata." + str(self.EG)+ "."+ str(self.T) + "." + str(self.C) + ".np")
 
     
     def FDistribution(self, serial):
@@ -297,7 +304,7 @@ class CurveSimulator():
         pathdata= []
         T = None
         for filename in os.listdir(CorrFuncDir(M)):
-            if filename.endswith(".np") and filename.startswith("Fdata."):
+            if filename.endswith(".np") and filename.startswith("Fdata." + str(self.EG)):
                 try:
                     splits = filename.split(".")
                     T = int(splits[-3])
@@ -314,7 +321,7 @@ class CurveSimulator():
         if res ==[]:
             raise Exception("no stats to collect!!!!")
         data = np.vstack(res).reshape(-1, T, 3)
-        pathname = os.path.join(CorrFuncDir(self.M), 'AllStats.' + str(T) + '.np')
+        pathname = os.path.join(CorrFuncDir(self.M), 'AllStats.' + str(self.EG)+ "." + str(T) + '.np')
         data.tofile(pathname)
         return pathname, T
         
@@ -327,7 +334,7 @@ class CurveSimulator():
             pathname = None
             T = None
             for filename in os.listdir(CorrFuncDir(M)):
-                if filename.endswith(".np") and filename.startswith("AllStats."):
+                if filename.endswith(".np") and filename.startswith("AllStats." + str(self.EG)):
                     try:
                         splits = filename.split(".")
                         T = int(splits[-2])
@@ -346,14 +353,14 @@ class CurveSimulator():
             OdotO.append(stats[2])
         pass
         MaxM = Mlist[-1]
-        for X, name in zip([Betas, Dss, OdotO, OdotO], ["beta", "DS", "OmOm", "-OmOm"]):
+        for X, name in zip([Betas, Dss, OdotO, OdotO], ["logTanbeta", "DS", "OmOm", "-OmOm"]):
             data = []
             for k, m in enumerate(Mlist):
                 data.append([str(m), X[k]]) if name != "-OmOm" else data.append([str(m), -X[k]])
-            plotpath = os.path.join(CorrFuncDir(MaxM), "multi " + name + ".png")
+            plotpath = os.path.join(CorrFuncDir(MaxM), str(self.EG)+ "."  + name + ".png")
             try:
-                logx = (name in ("DS", "OmOm"))
-                logy = (name != "beta")
+                logx = True 
+                logy = True
                 MultiRankHistPos(data, plotpath, name, logx=logx, logy=logy, num_subsamples=1000)
             except Exception as ex:
                 print(ex)
@@ -367,25 +374,25 @@ class CurveSimulator():
             data.append([str(m), dss[pos], oto[pos]])
             data.append([str(-m), dss[neg], -oto[neg]])
         try:
-            plotpath = os.path.join(CorrFuncDir(MaxM), "multi OtOvsDss.png")
+            plotpath = os.path.join(CorrFuncDir(MaxM), str(self.EG)+ ".OtOvsDss.png")
             MultiXYPlot(data, plotpath, logx=True, logy=True, title='OtoOVsDss', scatter=False, xlabel='log(dss)',
-                        ylabel='log(oto)', frac_last=0.95, num_subsamples=1000)
+                        ylabel='log(oto)', frac_last=0.9, num_subsamples=1000)
         except Exception as ex:
             print(ex)
         print("made OtOvsDss " + str(MaxM))
 
-def test_FDistribution(M, T, CPU, C, serial):
+def test_FDistribution(M,EG, T, CPU, C, serial):
     """
     :param serial: Boolean If set, run serially.
     """
     with Timer("done FDistribution for M,T,C= " + str(M) + "," + str(T)+ "," + str(C)):
-        fdp = CurveSimulator(M, T, CPU, C)
+        fdp = CurveSimulator(M, EG, T, CPU, C)
         fdp.FDistribution(serial)  # runs on each node, outputs placed in the plot dir of the main node
 
 
-def MakePlots(M=100000, T=20000, CPU=mp.cpu_count()):
+def MakePlots(M, EG, T, CPU):
     with Timer("done MakePlots for M,T= " + str(M) + "," + str(T)):
-        fdp = CurveSimulator(M, T, CPU, 0)
+        fdp = CurveSimulator(M, EG, T, CPU, 0)
         fdp.MakePlots([M])  # runs on main node, pools tata if not yet done so,  subsamples data and makes plots
 
 
@@ -435,6 +442,7 @@ if __name__ == '__main__':
     logger = logging.getLogger()
     parser = argparse.ArgumentParser()
     parser.add_argument('-M', type=int, default=50000)
+    parser.add_argument('-EG', type=str, default='G')
     parser.add_argument('-T', type=int, default=1000)
     parser.add_argument('-CPU', type=int, default=mp.cpu_count())
     parser.add_argument('-C', type=int, default=1)
@@ -442,7 +450,7 @@ if __name__ == '__main__':
     A = parser.parse_args()
     if A.C > 0:
         with Timer("done FDistribution for M,T= " + str(A.M) + "," + str(A.T)):
-            test_FDistribution(A.M, A.T, A.CPU, A.C, A.serial)
+            test_FDistribution(A.M, A.EG, A.T, A.CPU, A.C, A.serial)
     else:
-        MakePlots(A.M, A.T, A.CPU)
+        MakePlots(A.M, A.EG, A.T, A.CPU)
 

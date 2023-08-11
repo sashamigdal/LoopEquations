@@ -18,4 +18,5 @@ conda activate py39
 
 echo "Starting plotting script on node . . . "
 
-python -u VorticityCorrelation.py -M ${M} -T ${T} -CPU ${SLURM_CPUS_PER_TASK} -C 0
+python -u VorticityCorrelation.py -M ${M} -T ${T} -CPU ${SLURM_CPUS_PER_TASK} -C 0 -EG E
+python -u VorticityCorrelation.py -M ${M} -T ${T} -CPU ${SLURM_CPUS_PER_TASK} -C 0 -EG G
