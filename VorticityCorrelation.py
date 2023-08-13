@@ -310,6 +310,8 @@ class CurveSimulator():
     def FDistributionPathname(self):
         return os.path.join(CorrFuncDir(self.M), "Fdata." + str(self.EG)+ "."+ str(self.T) + "." + str(self.C) + ".np")
 
+    def CorDistributionPathname(self):
+        return os.path.join(CorrFuncDir(self.M), "Cor_data." + str(self.EG)+ "."+ str(self.T) + "." + str(self.C) + ".np")
     
     def FDistribution(self, serial):
         """
@@ -447,7 +449,7 @@ def test_FDistribution(M,EG, T, CPU, C, serial):
     :param serial: Boolean If set, run serially.
     """
     with Timer("done FDistribution for M,T,C= " + str(M) + "," + str(T)+ "," + str(C)):
-        fdp = CurveSimulator(M, EG, T, CPU,0,0,0 C)
+        fdp = CurveSimulator(M, EG, T, CPU,0,0,0, C)
         fdp.FDistribution(serial)  # runs on each node, outputs placed in the plot dir of the main node
 
 def test_CorDistribution(M,EG, T, CPU, C, R0, R1, STP, serial):
@@ -466,7 +468,7 @@ def MakePlots(M, EG, T, CPU):
 
 def MakeCorPlots(M, EG, T, CPU, R0, R1, STP):
     with Timer("done MakePlots for M,T= " + str(M) + "," + str(T)):
-        fdp = CurveSimulator(M, EG, T, CPU,R0, R1, STP 0)
+        fdp = CurveSimulator(M, EG, T, CPU,R0, R1, STP, 0)
         fdp.MakeCorPlots([M])  # runs on main node, pools tata if not yet done so,  subsamples data and makes plots
 
 #from euler_maths import euler_totients
