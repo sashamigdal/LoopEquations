@@ -23,4 +23,5 @@ conda activate py39
 echo "Starting script on node ${NODE} . . . "
 # python -u VorticityCorrelation.py -M ${M} -T ${T} -CPU ${SLURM_CPUS_PER_TASK} -C ${NODE}
 
-python -u VorticityCorrelation.py -M ${M} -T ${T} -CPU 80 -C ${NODE}
+python -u VorticityCorrelation.py -M ${M} -T ${T} -CPU $((2 * ${SLURM_CPUS_PER_TASK})) -C ${NODE} -EG E
+python -u VorticityCorrelation.py -M ${M} -T ${T} -CPU $((2 * ${SLURM_CPUS_PER_TASK})) -C ${NODE} -EG G
