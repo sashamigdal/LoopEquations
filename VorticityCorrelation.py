@@ -55,20 +55,13 @@ def DS_CPP(n, m, N_pos, N_neg, beta):
 # void Corr( std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_neg, std::int64_t N_cor, double beta, /*IN*/ double* rho ,/*OUT*/ double* cor ) 
 def CORR_CPP(n, m, N_pos, N_neg, beta, rho_data):
     INT64 = ctypes.c_int64
-    libDS.CORR.argtypes = (INT64, INT64, INT64, INT64, INT64, ctypes.c_double, c_double_p, c_double_p)
-    cor = np.zeros(len(rho_data), dtype=float)
-    libDS.CORR(n, m, N_pos, N_neg,len(rho_data), beta, rho_data.ctypes.data_as(c_double_p),cor.ctypes.data_as(c_double_p))
-    return cor
+    libDS.DS.argtypes = (INT64, INT64, INT64, INT64, ctypes.c_double, c_double_p)
+    libDS.DS.restype = ctypes.c_double
+    np_o_o = np.zeros(1, dtype=float)
+    dsabs = libDS.DS(n, m, N_pos, N_neg, beta, np_o_o.ctypes.data_as(c_double_p))
+    rdx = rho_data * dsabs
+    return np_o_o[0] * sin(rdx)/rdx
 
-# def DS(n, m, M, beta):#m > n
-#     C = cos(beta/2)
-#     nm = m-n
-#     mn = n+ M-m
-#     factor = pow(C,4)/(2 * sin(beta/2))
-#     if nm < mn:
-#         return (pow(C, nm) / nm *(1. - (nm * pow(C,mn-nm))/mn),factor )
-#     else:
-#         return (-pow(C, mn) / mn * (1. - (mn * pow(C, nm - mn)) / mn),factor )
 
 class RandomFractions():
     def Pairs(self,params):
@@ -283,7 +276,7 @@ class CurveSimulator():
             ar[t, 1], ar[t, 2] = DS_CPP(n, m, N_pos, N_neg, beta)
         return ar
     
-    def GetSampleCorr(self, params):
+    def GetCorSamples(self, params):
         beg, end, r0, r1, steps = params
         ar = np.zeros((end - beg) * steps, dtype=float).reshape(-1, steps)
         np.random.seed(self.C + 1000 * beg)  # to make a unique seed for at least 1000 nodes
@@ -326,7 +319,7 @@ class CurveSimulator():
             if serial:
                 res = list(map(self.GetSamples, params))
             else:
-                with fut.ProcessPoolExecutor(max_workers=self.CPU - 1) as exec:
+                with fut.ProcessPoolExecutor(max_workers=self.CPU) as exec:
                     res = list(exec.map(self.GetSamples, params))
             data = np.vstack(res)
             data.tofile(self.FDistributionPathname())
@@ -341,26 +334,28 @@ class CurveSimulator():
         r0 = self.R0
         r1 = self.R1
         steps = self.STP
+        CPU = self.CPU
         MakeDir(CorrFuncDir(M))
         if not os.path.isfile(self.CorDistributionPathname()):
             res = None
-            params = [(T * i // self.CPU, T * (i + 1) // self.CPU, r0,r1,steps) for i in range(self.CPU)]
+            params = [((T * i) // CPU, (T * (i + 1)) // CPU, r0,r1,steps) for i in range(CPU)]
             if serial:
                 res = list(map(self.GetCorSamples, params))
             else:
-                with fut.ProcessPoolExecutor(max_workers=self.CPU - 1) as exec:
+                with fut.ProcessPoolExecutor(max_workers=CPU) as exec:
                     res = list(exec.map(self.GetCorSamples, params))
+                print("All subprocesses completed")
             data = np.vstack(res)
             data.tofile(self.CorDistributionPathname())
         print("made CorDistribution " + str(M))
-        
-    def ReadStatsFile(self, pathdata):
-        pathname, T = pathdata
-        return np.fromfile(pathname, float).reshape(T, 3)
+    @staticmethod
+    def ReadStatsFile(params):
+        pathname, T , dim= params
+        return np.fromfile(pathname, float).reshape(T, dim)
 
     
-    def GetAllStats(self,M):
-        pathdata= []
+    def GetFDStats(self,M):
+        params= []
         T = None
         for filename in os.listdir(CorrFuncDir(M)):
             if filename.endswith(".np") and filename.startswith("Fdata." + str(self.EG)):
@@ -370,22 +365,22 @@ class CurveSimulator():
                     # node_num = int(splits[-2])
                     # if (node_num >= 0 and T >0):
                     if T > 0:
-                        pathdata.append([os.path.join(CorrFuncDir(M), filename), T])
+                        params.append([os.path.join(CorrFuncDir(M), filename), T,3])
                 except Exception as ex:
                     pass
                 pass
             pass
         res = []
         with fut.ProcessPoolExecutor(max_workers=mp.cpu_count() -1) as exec:
-            res = list(exec.map(self.ReadStatsFile, pathdata))
+            res = list(exec.map(self.ReadStatsFile, params))
         if res ==[]:
             raise Exception("no stats to collect!!!!")
         data = np.vstack(res).reshape(-1, T, 3)
-        pathname = os.path.join(CorrFuncDir(self.M), 'AllStats.' + str(self.EG)+ "." + str(T) + '.np')
+        pathname = os.path.join(CorrFuncDir(self.M), 'FDStats.' + str(self.EG)+ "." + str(T) + '.np')
         data.tofile(pathname)
         return pathname, T
         
-    def MakePlots(self, Mlist):
+    def MakeFDPlots(self, Mlist):
         Betas =[]
         Dss = []
         OdotO = []
@@ -394,7 +389,7 @@ class CurveSimulator():
             pathname = None
             T = None
             for filename in os.listdir(CorrFuncDir(M)):
-                if filename.endswith(".np") and filename.startswith("AllStats." + str(self.EG)):
+                if filename.endswith(".np") and filename.startswith("FDStats." + str(self.EG)):
                     try:
                         splits = filename.split(".")
                         T = int(splits[-2])
@@ -405,7 +400,7 @@ class CurveSimulator():
                         break
                     pass
             if pathname is None:
-                pathname, T = self.GetAllStats(M)
+                pathname, T = self.GetFDStats(M)
             stats = np.fromfile(pathname).reshape(-1, T, 3)
             stats = np.transpose(stats, (2, 1, 0)).reshape(3,-1)
             Betas.append(stats[0])
@@ -440,9 +435,68 @@ class CurveSimulator():
         except Exception as ex:
             print(ex)
         print("made OtOvsDss " + str(MaxM))
+    
+    def GetCorrStats(self,M):
+        pathdata= []
+        T = None
+        steps = self.STP
+        for filename in os.listdir(CorrFuncDir(M)):
+            if filename.endswith(".np") and filename.startswith("Cor_data." + str(self.EG)):
+                try:
+                    splits = filename.split(".")
+                    T = int(splits[-3])
+                    if T > 0:
+                        pathdata.append([os.path.join(CorrFuncDir(M), filename), T,steps])
+                except Exception as ex:
+                    pass
+                pass
+            pass
+        res = []
+        with fut.ProcessPoolExecutor(max_workers=mp.cpu_count() -1) as exec:
+            res = list(exec.map(self.ReadStatsFile, pathdata))
+        if res ==[]:
+            raise Exception("no corr stats to collect!!!!")
+        data = np.vstack(res).reshape(-1, T, steps)
+        pathname = os.path.join(CorrFuncDir(self.M), 'CorStats.' + str(self.EG)+ "." + str(T) + '.np')
+        data.tofile(pathname)
+        return pathname, T
         
     def MakeCorPlots(self, Mlist):
+        np.sort(Mlist)
+        steps = self.STP
+        corrs = []
+        for M in Mlist:
+            pathname = None
+            T = None
+            for filename in os.listdir(CorrFuncDir(M)):
+                if filename.endswith(".np") and filename.startswith("CorStats." + str(self.EG)):
+                    try:
+                        splits = filename.split(".")
+                        T = int(splits[-2])
+                        if (T > 0): 
+                            pathname = os.path.join(CorrFuncDir(self.M), filename)
+                            break
+                    except Exception as ex:
+                        break
+                    pass
+            if pathname is None:
+                pathname, T = self.GetCorrStats(M)
+            stats = np.fromfile(pathname).reshape(-1, T, steps)
+            stats = np.transpose(stats, (2, 1, 0)).reshape(steps,-1)
+            corrs.append(np.mean(stats,axis=1))
         pass
+        data = []
+        MaxM = Mlist[-1]
+        rho_data = np.linspace(self.R0, self.R1, steps)
+        for k, m in enumerate(Mlist):
+            data.append((str(m), rho_data,corrs[k]))
+        try:
+            plotpath = os.path.join(CorrFuncDir(MaxM), str(self.EG)+ ".CorrFunction.png")
+            MultiXYPlot(data, plotpath, logx=False, logy=False, title='CorrFunction', scatter=False, xlabel='rho',
+                        ylabel='cor', frac_last=0.9, num_subsamples=1000)
+        except Exception as ex:
+            print(ex)
+        print("made CorrFunction " + str(MaxM))
 
 def test_FDistribution(M,EG, T, CPU, C, serial):
     """
@@ -456,7 +510,7 @@ def test_CorDistribution(M,EG, T, CPU, C, R0, R1, STP, serial):
     """
     :param serial: Boolean If set, run serially.
     """
-    with Timer("done FDistribution for M,T,C= " + str(M) + "," + str(T)+ "," + str(C)):
+    with Timer("done CorDistribution for M,T,C= " + str(M) + "," + str(T)+ "," + str(C)):
         fdp = CurveSimulator(M, EG, T, CPU,R0, R1, STP, C)
         fdp.CorDistribution(serial)  # runs on each node, outputs placed in the plot dir of the main node
 
@@ -532,9 +586,8 @@ if __name__ == '__main__':
                 test_FDistribution(A.M, A.EG, A.T, A.CPU, A.C, A.serial)
             else:
                 test_CorDistribution(A.M, A.EG, A.T, A.CPU, A.C, A.R0, A.R1, A.STP, A.serial)
+    if A.STP ==0:
+        MakePlots(A.M, A.EG, A.T, A.CPU)
     else:
-        if A.STP ==0:
-            MakePlots(A.M, A.EG, A.T, A.CPU)
-        else:
-            MakeCorPlots(A.M, A.EG, A.T, A.CPU, A.R0, A.R1, A.STP)
+        MakeCorPlots(A.M, A.EG, A.T, A.CPU, A.R0, A.R1, A.STP)
 
