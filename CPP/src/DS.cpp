@@ -35,9 +35,9 @@ private:
 /*
 TODO: replace formulas by these
 
-&&\vec \omega_m \cdot \vec \omega_n = \frac{\csc ^2\left(\frac{\beta }{2}\right)}{16}  \left(\cot ^2\left(\frac{\beta }{2}\right) R_{n m}-\sigma_m \sigma_n\right);\\
-    && R_{n m} = \cos (\alpha_m-\alpha_n)-\cos (\alpha_{m+1}-\alpha_n)\nonumber\\
-    &&-\cos (\alpha_m-\alpha_{n+1})+\cos (\alpha_{m+1}-\alpha_{n+1})  
+\vec \omega_m \cdot \vec \omega_n =
+ -\frac{1}{2} \cot ^2\left(\frac{\beta }{2}\right) \sigma _m \sigma _n \sin ^2\left(\frac{1}{4} \left(2 \alpha _m+\beta  \left(\sigma _m-\sigma _n\right)-2 \alpha _n\right)\right)
+
 */
 double DS( std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_neg, double beta, /*OUT*/ double* o_o ) {
     assert(n < m);
@@ -54,28 +54,25 @@ double DS( std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_ne
     }
 
     sigma_n = walker.Advance(); // i = n
-    alpha_n =  walker.get_alpha();
+    alpha_n = walker.get_alpha();
     S_nm += expi( alpha_n * beta );
-
     for ( i++; i != m; i++ ) { // i = (n, m)
         walker.Advance();
         S_nm += expi( walker.get_alpha() * beta );
     }
 
     sigma_m = walker.Advance(); // i = m
-    alpha_m =  walker.get_alpha();
+    alpha_m = walker.get_alpha();
     S_mn += expi(alpha_m * beta );
-
     for ( i++; i != M; i++ ) { // i = (m, M)
         walker.Advance();
         S_mn += expi( walker.get_alpha() * beta );
     }
-    R_nm = cos((alpha_m - alpha_n)*beta) -cos((alpha_m + sigma_m - alpha_n)*beta) 
-    - cos((alpha_n  + sigma_n- alpha_m)*beta) +cos((alpha_n  + sigma_n- alpha_m - sigma_m)*beta);
+
 /*
-\frac{\csc ^2\left(\frac{\beta }{2}\right)}{16}  \left(\cot ^2\left(\frac{\beta }{2}\right) R_{n m}-\sigma_m \sigma_n\right)
+-\frac{1}{2} \cot ^2\left(\frac{\beta }{2}\right) \sigma _m \sigma _n \sin ^2\left(\frac{1}{4} \left(2 \alpha _m+\beta  \left(\sigma _m-\sigma _n\right)-2 \alpha _n\right)\right)
 */
-    *o_o = 1/(16*pow(sin(beta/2),2)) *( R_nm/pow(tan(beta/2),2) - sigma_n*sigma_m);
+    *o_o = - sigma_n*sigma_m/(2*pow(tan(beta/2),2))* pow(sin(beta/4* (2 * (alpha_m -alpha_m)+  sigma_m-sigma_n )),2);
 
     S_nm /= double(m-n);
     S_mn /= double(n + M - m);
