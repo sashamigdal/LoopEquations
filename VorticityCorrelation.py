@@ -59,8 +59,9 @@ def CORR_CPP(n, m, N_pos, N_neg, beta, rho_data):
     libDS.DS.restype = ctypes.c_double
     np_o_o = np.zeros(1, dtype=float)
     dsabs = libDS.DS(n, m, N_pos, N_neg, beta, np_o_o.ctypes.data_as(c_double_p))
-    rdx = rho_data * dsabs
-    return np_o_o[0] * sin(rdx)/rdx
+    ans = np.ones_like(rho_data)
+    ans[1:] = sin(rho_data[1:]* dsabs)/(rho_data[1:]* dsabs)
+    return np_o_o[0] * ans
 
 
 class RandomFractions():
@@ -278,7 +279,8 @@ class CurveSimulator():
     
     def GetCorSamples(self, params):
         beg, end, r0, r1, steps = params
-        ar = np.zeros((end - beg) * steps, dtype=float).reshape(-1, steps)
+        ar = np.zeros(steps+1, dtype=float)
+        ar[steps] = beg- end
         np.random.seed(self.C + 1000 * beg)  # to make a unique seed for at least 1000 nodes
         rho_data = np.linspace(r0,r1,steps)
         M = self.M
@@ -297,7 +299,7 @@ class CurveSimulator():
                 n, m = m, n
 
             t = k - beg
-            ar[t, :] =  CORR_CPP(n, m, N_pos, N_neg, beta, rho_data)
+            ar[:steps] +=  CORR_CPP(n, m, N_pos, N_neg, beta, rho_data)
         return ar
     
     def FDistributionPathname(self):
@@ -437,26 +439,22 @@ class CurveSimulator():
         print("made OtOvsDss " + str(MaxM))
     
     def GetCorrStats(self,M):
-        pathdata= []
+        res= []
         T = None
         steps = self.STP
         for filename in os.listdir(CorrFuncDir(M)):
             if filename.endswith(".np") and filename.startswith("Cor_data." + str(self.EG)):
                 try:
-                    splits = filename.split(".")
-                    T = int(splits[-3])
-                    if T > 0:
-                        pathdata.append([os.path.join(CorrFuncDir(M), filename), T,steps])
+                    res.append(np.fromfile(os.path.join(CorrFuncDir(M), filename), float))
                 except Exception as ex:
                     pass
                 pass
             pass
-        res = []
-        with fut.ProcessPoolExecutor(max_workers=mp.cpu_count() -1) as exec:
-            res = list(exec.map(self.ReadStatsFile, pathdata))
         if res ==[]:
             raise Exception("no corr stats to collect!!!!")
-        data = np.vstack(res).reshape(-1, T, steps)
+        data = np.vstack(res).reshape(-1, steps+1)
+        data = np.sum(data,axis=0)
+        data = data[:steps]/data[steps]
         pathname = os.path.join(CorrFuncDir(self.M), 'CorStats.' + str(self.EG)+ "." + str(T) + '.np')
         data.tofile(pathname)
         return pathname, T
@@ -470,20 +468,12 @@ class CurveSimulator():
             T = None
             for filename in os.listdir(CorrFuncDir(M)):
                 if filename.endswith(".np") and filename.startswith("CorStats." + str(self.EG)):
-                    try:
-                        splits = filename.split(".")
-                        T = int(splits[-2])
-                        if (T > 0): 
-                            pathname = os.path.join(CorrFuncDir(self.M), filename)
-                            break
-                    except Exception as ex:
-                        break
-                    pass
+                    pathname = os.path.join(CorrFuncDir(self.M), filename)
+                    break
             if pathname is None:
                 pathname, T = self.GetCorrStats(M)
-            stats = np.fromfile(pathname).reshape(-1, T, steps)
-            stats = np.transpose(stats, (2, 1, 0)).reshape(steps,-1)
-            corrs.append(np.mean(stats,axis=1))
+            stats = np.fromfile(pathname,dtype=float)
+            corrs.append(stats)
         pass
         data = []
         MaxM = Mlist[-1]
@@ -569,15 +559,15 @@ if __name__ == '__main__':
 
     logger = logging.getLogger()
     parser = argparse.ArgumentParser()
-    parser.add_argument('-M', type=int, default=50000)
-    parser.add_argument('-EG', type=str, default='G')
-    parser.add_argument('-T', type=int, default=1000)
+    parser.add_argument('-M', type=int, default=10_000_000)
+    parser.add_argument('-EG', type=str, default='E')
+    parser.add_argument('-T', type=int, default=10000)
     parser.add_argument('-CPU', type=int, default=mp.cpu_count())
     parser.add_argument('-C', type=int, default=1)
     parser.add_argument('--serial', default=False, action="store_true")
-    parser.add_argument('-R0', type=float, default=1.)
-    parser.add_argument('-R1', type=float, default=10.)
-    parser.add_argument('-STP', type=int, default=1000)
+    parser.add_argument('-R0', type=float, default=0.0)
+    parser.add_argument('-R1', type=float, default=0.01)
+    parser.add_argument('-STP', type=int, default=0)
     
     A = parser.parse_args()
     if A.C > 0:
