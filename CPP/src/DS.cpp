@@ -67,8 +67,8 @@ double DS( std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_ne
     S_mn += expi(alpha_m * beta );
     sigma_m = walker.Advance(); // i = m
     for ( i++; i != M; i++ ) { // i = (m, M)
-        walker.Advance();
         S_mn += expi( walker.get_alpha() * beta );
+        walker.Advance();
     }
 
 /*
