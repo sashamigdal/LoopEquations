@@ -245,8 +245,8 @@ class CurveSimulator():
             q = np.random.randint(3,M)
             if q % 2 == M % 2:
                 p = np.random.randint(1, q)
-                if gcd(p,q) ==1:
-                    if np.random.randint(0,M) < q:
+                if gcd(p,q) ==1:  # P( (p,q)=1 ) = phi(q)/q
+                    if np.random.randint(0,M) < q:  # P( break ) = q/M * phi(q)/q = phi(q)/M ~ phi(q)
                         break
                     pass
                 pass
