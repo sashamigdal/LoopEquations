@@ -53,14 +53,15 @@ def DS_CPP(n, m, N_pos, N_neg, beta):
     return dsabs, np_o_o[0]
 
 # void Corr( std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_neg, std::int64_t N_cor, double beta, /*IN*/ double* rho ,/*OUT*/ double* cor ) 
-def CORR_CPP(n, m, N_pos, N_neg, beta, rho_data):
-    INT64 = ctypes.c_int64
-    libDS.DS.argtypes = (INT64, INT64, INT64, INT64, ctypes.c_double, c_double_p)
-    libDS.DS.restype = ctypes.c_double
-    np_o_o = np.zeros(1, dtype=float)
-    dsabs = libDS.DS(n, m, N_pos, N_neg, beta, np_o_o.ctypes.data_as(c_double_p))
-    rdx = rho_data * dsabs
-    return np_o_o[0] * sin(rdx)/rdx
+# def CORR_CPP(n, m, N_pos, N_neg, beta, rho_data):
+#     INT64 = ctypes.c_int64
+#     libDS.DS.argtypes = (INT64, INT64, INT64, INT64, ctypes.c_double, c_double_p)
+#     libDS.DS.restype = ctypes.c_double
+#     np_o_o = np.zeros(1, dtype=float)
+#     dsabs = libDS.DS(n, m, N_pos, N_neg, beta, np_o_o.ctypes.data_as(c_double_p))
+#     ans = np.ones_like(rho_data)
+#     ans[1:] = sin(rho_data[1:]* dsabs)/(rho_data[1:]* dsabs)
+#     return np_o_o[0] * ans
 
 
 class RandomFractions():
@@ -280,37 +281,10 @@ class CurveSimulator():
             ar[t, 0] = 1/tan(beta/2)**2
             ar[t, 1], ar[t, 2] = DS_CPP(n, m, N_pos, N_neg, beta)
         return ar
-    
-    def GetCorSamples(self, params):
-        beg, end, r0, r1, steps = params
-        ar = np.zeros((end - beg) * steps, dtype=float).reshape(-1, steps)
-        np.random.seed(self.C + 1000 * beg)  # to make a unique seed for at least 1000 nodes
-        rho_data = np.linspace(r0,r1,steps)
-        M = self.M
-        for k in range(beg, end):
-            p, q = self.GaussPair() if self.EG == 'G' else self.EulerPair()
-            beta = (2 * pi * p) / float(q)
-
-            N_pos = (M + q) // 2  # Number of 1's
-            N_neg = (M - q) // 2  # Number of -1's
-            if np.random.randint(2) == 1:
-                N_pos, N_neg = N_neg, N_pos
-
-            n = np.random.randint(0, M)
-            m = np.random.randint(n + 1, M + n) % M
-            if n > m:
-                n, m = m, n
-
-            t = k - beg
-            ar[t, :] =  CORR_CPP(n, m, N_pos, N_neg, beta, rho_data)
-        return ar
-    
+  
     def FDistributionPathname(self):
         return os.path.join(CorrFuncDir(self.M), "Fdata." + str(self.EG)+ "."+ str(self.T) + "." + str(self.C) + ".np")
-
-    def CorDistributionPathname(self):
-        return os.path.join(CorrFuncDir(self.M), "Cor_data." + str(self.EG)+ "."+ str(self.T) + "." + str(self.C) + ".np")
-    
+   
     def FDistribution(self, serial):
         """
         :param serial: Boolean If set, run jobs serially.
@@ -330,29 +304,6 @@ class CurveSimulator():
             data.tofile(self.FDistributionPathname())
         print("made FDistribution " + str(M))
 
-    def CorDistribution(self, serial):
-        """
-        :param serial: Boolean If set, run jobs serially.
-        """
-        M = self.M
-        T = self.T
-        r0 = self.R0
-        r1 = self.R1
-        steps = self.STP
-        CPU = self.CPU
-        MakeDir(CorrFuncDir(M))
-        if not os.path.isfile(self.CorDistributionPathname()):
-            res = None
-            params = [((T * i) // CPU, (T * (i + 1)) // CPU, r0,r1,steps) for i in range(CPU)]
-            if serial:
-                res = list(map(self.GetCorSamples, params))
-            else:
-                with fut.ProcessPoolExecutor(max_workers=CPU) as exec:
-                    res = list(exec.map(self.GetCorSamples, params))
-                print("All subprocesses completed")
-            data = np.vstack(res)
-            data.tofile(self.CorDistributionPathname())
-        print("made CorDistribution " + str(M))
     @staticmethod
     def ReadStatsFile(params):
         pathname, T , dim= params
@@ -385,7 +336,7 @@ class CurveSimulator():
         data.tofile(pathname)
         return pathname, T
         
-    def MakeFDPlots(self, Mlist):
+    def MakePlots(self, Mlist):
         Betas =[]
         Dss = []
         OdotO = []
@@ -433,102 +384,75 @@ class CurveSimulator():
             neg = oto < 0
             data.append([str(m), dss[pos], oto[pos]])
             data.append([str(-m), dss[neg], -oto[neg]])
-        try:
-            plotpath = os.path.join(CorrFuncDir(MaxM), str(self.EG)+ ".OtOvsDss.png")
-            MultiXYPlot(data, plotpath, logx=True, logy=True, title='OtoOVsDss', scatter=False, xlabel='log(dss)',
-                        ylabel='log(oto)', frac_last=0.9, num_subsamples=1000)
-        except Exception as ex:
-            print(ex)
-        print("made OtOvsDss " + str(MaxM))
+            try:
+                plotpath = os.path.join(CorrFuncDir(MaxM), str(self.EG)+ ".OtOvsDss.png")
+                MultiXYPlot(data, plotpath, logx=True, logy=True, title='OtoOVsDss', scatter=False, xlabel='log(dss)',
+                            ylabel='log(oto)', frac_last=0.9, num_subsamples=1000)
+            except Exception as ex:
+                print(ex)
+        print("plotted otovsds " + str(MaxM))
     
-    def GetCorrStats(self,M):
-        pathdata= []
-        T = None
-        steps = self.STP
-        for filename in os.listdir(CorrFuncDir(M)):
-            if filename.endswith(".np") and filename.startswith("Cor_data." + str(self.EG)):
-                try:
-                    splits = filename.split(".")
-                    T = int(splits[-3])
-                    if T > 0:
-                        pathdata.append([os.path.join(CorrFuncDir(M), filename), T,steps])
-                except Exception as ex:
-                    pass
-                pass
-            pass
-        res = []
-        with fut.ProcessPoolExecutor(max_workers=mp.cpu_count() -1) as exec:
-            res = list(exec.map(self.ReadStatsFile, pathdata))
-        if res ==[]:
-            raise Exception("no corr stats to collect!!!!")
-        data = np.vstack(res).reshape(-1, T, steps)
-        pathname = os.path.join(CorrFuncDir(self.M), 'CorStats.' + str(self.EG)+ "." + str(T) + '.np')
-        data.tofile(pathname)
-        return pathname, T
-        
-    def MakeCorPlots(self, Mlist):
-        np.sort(Mlist)
-        steps = self.STP
-        corrs = []
-        for M in Mlist:
-            pathname = None
-            T = None
-            for filename in os.listdir(CorrFuncDir(M)):
-                if filename.endswith(".np") and filename.startswith("CorStats." + str(self.EG)):
-                    try:
-                        splits = filename.split(".")
-                        T = int(splits[-2])
-                        if (T > 0): 
-                            pathname = os.path.join(CorrFuncDir(self.M), filename)
-                            break
-                    except Exception as ex:
-                        break
-                    pass
-            if pathname is None:
-                pathname, T = self.GetCorrStats(M)
-            stats = np.fromfile(pathname).reshape(-1, T, steps)
-            stats = np.transpose(stats, (2, 1, 0)).reshape(steps,-1)
-            corrs.append(np.mean(stats,axis=1))
-        pass
-        data = []
-        MaxM = Mlist[-1]
-        rho_data = np.linspace(self.R0, self.R1, steps)
+        if self.STP<=0: return
+        data =[]
+        rho_data = np.linspace(self.R0,self.R1,self.STP)
         for k, m in enumerate(Mlist):
-            data.append((str(m), rho_data,corrs[k]))
+            oto = OdotO[k]
+            dss =Dss[k]
+            corr = np.zeros_like(rho_data)
+            rdx = rho_data[1:,np.newaxis]* dss[np.newaxis,:]
+            otX = oto[np.newaxis,:]
+            corr[1:] = np.mean(otX * sin(rdx)/rdx,axis=1)
+            corr[0] = np.mean(oto)
+            data.append([str(m), rho_data, corr])
         try:
             plotpath = os.path.join(CorrFuncDir(MaxM), str(self.EG)+ ".CorrFunction.png")
             MultiXYPlot(data, plotpath, logx=False, logy=False, title='CorrFunction', scatter=False, xlabel='rho',
                         ylabel='cor', frac_last=0.9, num_subsamples=1000)
         except Exception as ex:
             print(ex)
-        print("made CorrFunction " + str(MaxM))
+        print("plotted CorrFunction " + str(MaxM))
+            
+    #     np.sort(Mlist)
+    #     steps = self.STP
+    #     corrs = []
+    #     for M in Mlist:
+    #         pathname = None
+    #         T = None
+    #         for filename in os.listdir(CorrFuncDir(M)):
+    #             if filename.endswith(".np") and filename.startswith("CorStats." + str(self.EG)):
+    #                 pathname = os.path.join(CorrFuncDir(self.M), filename)
+    #                 break
+    #         if pathname is None:
+    #             pathname, T = self.GetCorrStats(M)
+    #         stats = np.fromfile(pathname,dtype=float)
+    #         corrs.append(stats)
+    #     pass
+    #     data = []
+    #     MaxM = Mlist[-1]
+    #     rho_data = np.linspace(self.R0, self.R1, steps)
+    #     for k, m in enumerate(Mlist):
+    #         data.append((str(m), rho_data,corrs[k]))
+    #     try:
+    #         plotpath = os.path.join(CorrFuncDir(MaxM), str(self.EG)+ ".CorrFunction.png")
+    #         MultiXYPlot(data, plotpath, logx=False, logy=False, title='CorrFunction', scatter=False, xlabel='rho',
+    #                     ylabel='cor', frac_last=0.9, num_subsamples=1000)
+    #     except Exception as ex:
+    #         print(ex)
+    #     print("made CorrFunction " + str(MaxM))
 
 def test_FDistribution(M,EG, T, CPU, C, serial):
     """
     :param serial: Boolean If set, run serially.
     """
     with Timer("done FDistribution for M,T,C= " + str(M) + "," + str(T)+ "," + str(C)):
-        fdp = CurveSimulator(M, EG, T, CPU,0,0,0, C)
+        fdp = CurveSimulator(M, EG, T, CPU, 0, 0, 0, C)
         fdp.FDistribution(serial)  # runs on each node, outputs placed in the plot dir of the main node
 
-def test_CorDistribution(M,EG, T, CPU, C, R0, R1, STP, serial):
-    """
-    :param serial: Boolean If set, run serially.
-    """
-    with Timer("done CorDistribution for M,T,C= " + str(M) + "," + str(T)+ "," + str(C)):
-        fdp = CurveSimulator(M, EG, T, CPU,R0, R1, STP, C)
-        fdp.CorDistribution(serial)  # runs on each node, outputs placed in the plot dir of the main node
-
-
-def MakePlots(M, EG, T, CPU):
+    
+def MakePlots(M, EG, T, CPU, R0, R1, STP):
     with Timer("done MakePlots for M,T= " + str(M) + "," + str(T)):
-        fdp = CurveSimulator(M, EG, T, CPU, 0)
+        fdp = CurveSimulator(M, EG, T, CPU, R0, R1, STP, 0)
         fdp.MakePlots([M])  # runs on main node, pools tata if not yet done so,  subsamples data and makes plots
-
-def MakeCorPlots(M, EG, T, CPU, R0, R1, STP):
-    with Timer("done MakePlots for M,T= " + str(M) + "," + str(T)):
-        fdp = CurveSimulator(M, EG, T, CPU,R0, R1, STP, 0)
-        fdp.MakeCorPlots([M])  # runs on main node, pools tata if not yet done so,  subsamples data and makes plots
 
 #from euler_maths import euler_totients
 #from primefac import factorint
@@ -574,25 +498,21 @@ if __name__ == '__main__':
 
     logger = logging.getLogger()
     parser = argparse.ArgumentParser()
-    parser.add_argument('-M', type=int, default=50000)
-    parser.add_argument('-EG', type=str, default='G')
-    parser.add_argument('-T', type=int, default=1000)
+    parser.add_argument('-M', type=int, default=10_000_001)
+    parser.add_argument('-EG', type=str, default='E')
+    parser.add_argument('-T', type=int, default=10000)
     parser.add_argument('-CPU', type=int, default=mp.cpu_count())
     parser.add_argument('-C', type=int, default=1)
     parser.add_argument('--serial', default=False, action="store_true")
-    parser.add_argument('-R0', type=float, default=1.)
-    parser.add_argument('-R1', type=float, default=10.)
-    parser.add_argument('-STP', type=int, default=1000)
+    parser.add_argument('-R0', type=float, default=0.0)
+    parser.add_argument('-R1', type=float, default=0.01)
+    parser.add_argument('-STP', type=int, default=100000)
     
     A = parser.parse_args()
     if A.C > 0:
         with Timer("done Distribution for M,T= " + str(A.M) + "," + str(A.T)):
-            if A.STP ==0:
-                test_FDistribution(A.M, A.EG, A.T, A.CPU, A.C, A.serial)
-            else:
-                test_CorDistribution(A.M, A.EG, A.T, A.CPU, A.C, A.R0, A.R1, A.STP, A.serial)
-    if A.STP ==0:
-        MakePlots(A.M, A.EG, A.T, A.CPU)
-    else:
-        MakeCorPlots(A.M, A.EG, A.T, A.CPU, A.R0, A.R1, A.STP)
+            test_FDistribution(A.M, A.EG, A.T, A.CPU, A.C, A.serial)
+
+    MakePlots(A.M, A.EG, A.T, A.CPU, A.R0, A.R1, A.STP)
+   
 
