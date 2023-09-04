@@ -20,7 +20,7 @@ def RationalRandom(M):
     a,b = (0,1)
     while True:
         den = a + b
-        if den >= M: 
+        if den >= M && a >0 : 
             break
         if np.random.randint(2) ==1:
             b = den
