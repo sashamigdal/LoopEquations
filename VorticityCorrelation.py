@@ -9,7 +9,7 @@ from plot import MakeDir, MakeNewDir, XYPlot, SubSampleWithErr, PlotXYErrBars, M
     RankHistPos, RankHist2
 # from functools import reduce
 # from operator import add
-
+from RationalNumberGenerator import RationalRandom
 from numpy import pi, sin, cos, tan, sqrt, exp, log
 from numpy.linalg import multi_dot as mdot
 import numpy as np
@@ -251,6 +251,9 @@ class CurveSimulator():
                 pass
             pass
         return [p, q]
+    def GalkinPair(self):
+        return RationalRandom( np.random.randint(3,self.M))
+        
     def GetSamples(self, params):
         beg, end = params
         ar = np.zeros((end - beg) * 3, dtype=float).reshape(-1, 3)
@@ -258,13 +261,15 @@ class CurveSimulator():
 
         M = self.M
         for k in range(beg, end):
-            p, q = self.GaussPair() if self.EG == 'G' else self.EulerPair()
+            p, q = self.GalkinPair() if self.EG == 'G' else self.EulerPair()
             beta = (2 * pi * p) / float(q)
-
-            N_pos = (M + q) // 2  # Number of 1's
-            N_neg = (M - q) // 2  # Number of -1's
-            if np.random.randint(2) == 1:
-                N_pos, N_neg = N_neg, N_pos
+            rmax = np.floor(M/q)
+            while True:
+                r = np.random.randint(-rmax,rmax )
+                if np.mod((M- q*r),2) ==0:
+                    break
+            N_pos = (M + q*r) // 2  # Number of 1's
+            N_neg = M - N_pos  # Number of -1's
 
             n = np.random.randint(0, M)
             m = np.random.randint(n + 1, M + n) % M
