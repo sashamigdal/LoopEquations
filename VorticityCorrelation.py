@@ -464,7 +464,7 @@ if __name__ == '__main__':
 
     logger = logging.getLogger()
     parser = argparse.ArgumentParser()
-    parser.add_argument('-M', type=int, default=10_000_001)
+    parser.add_argument('-Mu', type=int, default=1/10_000_000)
     parser.add_argument('-EG', type=str, default='E')
     parser.add_argument('-T', type=int, default=10000)
     parser.add_argument('-CPU', type=int, default=mp.cpu_count())
@@ -476,9 +476,9 @@ if __name__ == '__main__':
     
     A = parser.parse_args()
     if A.C > 0:
-        with Timer("done Distribution for M,T= " + str(A.M) + "," + str(A.T)):
-            test_FDistribution(A.M, A.EG, A.T, A.CPU, A.C, A.serial)
+        with Timer("done Distribution for Mu,T= " + str(A.Mu) + "," + str(A.T)):
+            test_FDistribution(A.Mu, A.EG, A.T, A.CPU, A.C, A.serial)
 
-    MakePlots(A.M, A.EG, A.T, A.CPU, A.R0, A.R1, A.STP)
+    MakePlots(A.Mu, A.EG, A.T, A.CPU, A.R0, A.R1, A.STP)
    
 
