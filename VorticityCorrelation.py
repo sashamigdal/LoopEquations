@@ -9,7 +9,7 @@ from plot import MakeDir, MakeNewDir, XYPlot, SubSampleWithErr, PlotXYErrBars, M
     RankHistPos, RankHist2
 # from functools import reduce
 # from operator import add
-from RationalNumberGenerator import RationalRandom
+#from RationalNumberGenerator import RationalRandom
 from numpy import pi, sin, cos, tan, sqrt, exp, log
 from numpy.linalg import multi_dot as mdot
 import numpy as np
@@ -34,8 +34,8 @@ c_double_p = ctypes.POINTER(ctypes.c_double)
 c_int64_p = ctypes.POINTER(ctypes.c_int64)
 c_uint64_p = ctypes.POINTER(ctypes.c_uint64)
 c_size_t_p = ctypes.POINTER(ctypes.c_size_t)
-def CorrFuncDir(M):
-    return os.path.join("plots", "VorticityCorr." + str(M))
+def CorrFuncDir(Mu):
+    return os.path.join("plots", "VorticityCorr." + str(Mu))
 
 
 # @jit
@@ -218,9 +218,9 @@ def test_GroupFourierIntegral():
 
 
 class CurveSimulator():
-    def __init__(self, M, EG, T, CPU, R0, R1, STP, C ):
-        MakeDir(CorrFuncDir(M))
-        self.mu = M
+    def __init__(self, Mu, EG, T, CPU, R0, R1, STP, C ):
+        MakeDir(CorrFuncDir(Mu))
+        self.mu = Mu
         self.CPU = CPU
         self.C = C
         self.T = T
@@ -229,18 +229,9 @@ class CurveSimulator():
         self.R1 = R1
         self.STP = STP
 
-    def GaussPair(self):
-        M = self.mu
-        while (True):
-            f = np.clip(np.random.random(),1./M,1.-1./ M)
-            pq = Fraction(f).limit_denominator(M)
-            if pq.numerator == 0: continue
-            if pq.denominator % 2 == M % 2:
-                break
-        return [pq.numerator, pq.denominator]
 
     def EulerPair(self):
-        M = int(np.floor(0.5*np.random.exponential(1./self.muu)))*2
+        M = int(min(np.floor(0.5*np.random.exponential(1./self.mu))*2, 5e9))
         while (True):
             q = np.random.randint(3,M)
             if q % 2 == M % 2:
@@ -355,12 +346,12 @@ class CurveSimulator():
             Dss.append(stats[1])
             OdotO.append(stats[2])
         pass
-        MaxMuu = Mulist[-1]
+        MaxMu = Mulist[-1]
         for X, name in zip([Betas, Dss, OdotO, OdotO], ["logTanbeta", "DS", "OmOm", "-OmOm"]):
             data = []
             for k, mu in enumerate(Mulist):
                 data.append([str(mu), X[k]]) if name != "-OmOm" else data.append([str(mu), -X[k]])
-            plotpath = os.path.join(CorrFuncDir(MaxMuu), str(self.EG)+ "."  + name + ".png")
+            plotpath = os.path.join(CorrFuncDir(MaxMu), str(self.EG)+ "."  + name + ".png")
             try:
                 logx = True 
                 logy = True
@@ -377,12 +368,12 @@ class CurveSimulator():
             data.append([str(mu), dss[pos], oto[pos]])
             data.append([str(-mu), dss[neg], -oto[neg]])
             try:
-                plotpath = os.path.join(CorrFuncDir(MaxMuu), str(self.EG)+ ".OtOvsDss.png")
+                plotpath = os.path.join(CorrFuncDir(MaxMu), str(self.EG)+ ".OtOvsDss.png")
                 MultiXYPlot(data, plotpath, logx=True, logy=True, title='OtoOVsDss', scatter=False, xlabel='log(dss)',
                             ylabel='log(oto)', frac_last=0.9, num_subsamples=1000)
             except Exception as ex:
                 print(ex)
-        print("plotted otovsds " + str(MaxMuu))
+        print("plotted otovsds " + str(MaxMu))
     
         if self.STP<=0: return
         data =[]
@@ -395,7 +386,7 @@ class CurveSimulator():
             otX = oto[np.newaxis,:]
             corr[1:] = np.mean(otX * sin(rdx)/rdx,axis=1)
             corr[0] = np.mean(oto)
-            data.append([str(m), rho_data, corr])
+            data.append([str(mu), rho_data, corr])
         try:
             plotpath = os.path.join(CorrFuncDir(MaxMu), str(self.EG)+ ".CorrFunction.png")
             MultiXYPlot(data, plotpath, logx=False, logy=False, title='CorrFunction', scatter=False, xlabel='rho',
@@ -464,9 +455,9 @@ if __name__ == '__main__':
 
     logger = logging.getLogger()
     parser = argparse.ArgumentParser()
-    parser.add_argument('-Mu', type=int, default=1/10_000_000)
+    parser.add_argument('-Mu', type=int, default=1e-7)
     parser.add_argument('-EG', type=str, default='E')
-    parser.add_argument('-T', type=int, default=10000)
+    parser.add_argument('-T', type=int, default=100000)
     parser.add_argument('-CPU', type=int, default=mp.cpu_count())
     parser.add_argument('-C', type=int, default=1)
     parser.add_argument('--serial', default=False, action="store_true")

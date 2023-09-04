@@ -49,21 +49,23 @@ double DS( std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_ne
     RandomWalker walker( N_pos, N_neg );
     std::int64_t i = 0;
     for ( ; i != n; i++ ) { // i = [0; n)
-        walker.Advance();
         S_mn += expi( walker.get_alpha() * beta );
+        walker.Advance();
     }
 
-    sigma_n = walker.Advance(); // i = n
+    
     alpha_n = walker.get_alpha();
     S_nm += expi( alpha_n * beta );
+    sigma_n = walker.Advance(); // i = n
     for ( i++; i != m; i++ ) { // i = (n, m)
-        walker.Advance();
         S_nm += expi( walker.get_alpha() * beta );
+        walker.Advance();
+        
     }
 
-    sigma_m = walker.Advance(); // i = m
     alpha_m = walker.get_alpha();
     S_mn += expi(alpha_m * beta );
+    sigma_m = walker.Advance(); // i = m
     for ( i++; i != M; i++ ) { // i = (m, M)
         walker.Advance();
         S_mn += expi( walker.get_alpha() * beta );
@@ -72,7 +74,7 @@ double DS( std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_ne
 /*
 -\frac{1}{2} \cot ^2\left(\frac{\beta }{2}\right) \sigma _m \sigma _n \sin ^2\left(\frac{1}{4} \left(2 \alpha _m+\beta  \left(\sigma _m-\sigma _n\right)-2 \alpha _n\right)\right)
 */
-    *o_o = - M*(M-1)/2 *sigma_n*sigma_m/(2*pow(tan(beta/2),2))* pow(sin(beta/4* (2 * (alpha_m -alpha_m)+  sigma_m-sigma_n )),2);
+    *o_o = - M*(M-1)/2 *sigma_n*sigma_m/(2*pow(tan(beta/2),2))* pow(sin(beta/4* (2 * (alpha_m -alpha_n)+  sigma_m-sigma_n )),2);
 
     S_nm /= double(m-n);
     S_mn /= double(n + M - m);
