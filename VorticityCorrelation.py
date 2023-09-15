@@ -467,7 +467,7 @@ if __name__ == '__main__':
     if A.C > 0:
         with Timer("done Distribution for Mu,T= " + str(A.Mu) + "," + str(A.T)):
             test_FDistribution(A.Mu, A.EG, A.T, A.CPU, A.C, A.serial)
-
-    MakePlots(A.Mu, A.EG, A.T, A.CPU, A.R0, A.R1, A.STP)
+    else:
+        MakePlots(A.Mu, A.EG, A.T, A.CPU, A.R0, A.R1, A.STP)
    
 
