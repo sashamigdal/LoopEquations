@@ -231,15 +231,13 @@ class CurveSimulator():
 
 
     def EulerPair(self):
-        M = int(min(np.floor(0.5*np.random.exponential(1./self.mu))*2, 5e9))
+        M = int(np.clip(np.floor(0.5*np.random.exponential(1./self.mu)),3,5e9))*2
         while (True):
-            q = np.random.randint(3,M)
-            if q % 2 == M % 2:
-                p = np.random.randint(1, q)
-                if gcd(p,q) ==1:  # P( (p,q)=1 ) = phi(q)/q
-                    if np.random.randint(0,M) < q:  # P( break ) = q/M * phi(q)/q = phi(q)/M ~ phi(q)
-                        break
-                    pass
+            q = 2 * np.random.randint(2,M//2)
+            p = np.random.randint(1, q)
+            if gcd(p,q) ==1:  # P( (p,q)=1 ) = phi(q)/q
+                if np.random.randint(0,M) < q:  # P( break ) = q/M * phi(q)/q = phi(q)/M ~ phi(q)
+                    break
                 pass
             pass
         return [M, p, q]
@@ -455,7 +453,7 @@ if __name__ == '__main__':
 
     logger = logging.getLogger()
     parser = argparse.ArgumentParser()
-    parser.add_argument('-Mu', type=int, default=1e-7)
+    parser.add_argument('-Mu', type=float, default=1e-7)
     parser.add_argument('-EG', type=str, default='E')
     parser.add_argument('-T', type=int, default=100000)
     parser.add_argument('-CPU', type=int, default=mp.cpu_count())
