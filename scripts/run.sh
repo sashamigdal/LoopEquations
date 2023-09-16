@@ -12,5 +12,5 @@ echo PROJECT_DIR = ${PROJECT_DIR}
 cd ${PROJECT_DIR}
 
 source /share/apps/NYUAD/miniconda/3-4.11.0/bin/activate py39
-# conda activate py39
+
 python -u VorticityCorrelation.py -Mu ${MU} -EG E -T ${T} -CPU 1 -C ${JOB_ID} -R0 0.0 -R1 0.01 --serial -STP 1000000
