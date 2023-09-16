@@ -345,34 +345,35 @@ class CurveSimulator():
             OdotO.append(stats[2])
         pass
         MaxMu = Mulist[-1]
-        for X, name in zip([Betas, Dss, OdotO, OdotO], ["logTanbeta", "DS", "OmOm", "-OmOm"]):
+        if True:
+            for X, name in zip([Betas, Dss, OdotO, OdotO], ["logTanbeta", "DS", "OmOm", "-OmOm"]):
+                data = []
+                for k, mu in enumerate(Mulist):
+                    data.append([str(mu), X[k]]) if name != "-OmOm" else data.append([str(mu), -X[k]])
+                plotpath = os.path.join(CorrFuncDir(MaxMu), str(self.EG)+ "."  + name + ".png")
+                try:
+                    logx = True
+                    logy = True
+                    MultiRankHistPos(data, plotpath, name, logx=logx, logy=logy, num_subsamples=1000)
+                except Exception as ex:
+                    print(ex)
+            pass
             data = []
             for k, mu in enumerate(Mulist):
-                data.append([str(mu), X[k]]) if name != "-OmOm" else data.append([str(mu), -X[k]])
-            plotpath = os.path.join(CorrFuncDir(MaxMu), str(self.EG)+ "."  + name + ".png")
-            try:
-                logx = True 
-                logy = True
-                MultiRankHistPos(data, plotpath, name, logx=logx, logy=logy, num_subsamples=1000)
-            except Exception as ex:
-                print(ex)
-        pass
-        data = []
-        for k, mu in enumerate(Mulist):
-            oto = OdotO[k]
-            dss =Dss[k]
-            pos = oto > 0
-            neg = oto < 0
-            data.append([str(mu), dss[pos], oto[pos]])
-            data.append([str(-mu), dss[neg], -oto[neg]])
-            try:
-                plotpath = os.path.join(CorrFuncDir(MaxMu), str(self.EG)+ ".OtOvsDss.png")
-                MultiXYPlot(data, plotpath, logx=True, logy=True, title='OtoOVsDss', scatter=False, xlabel='log(dss)',
-                            ylabel='log(oto)', frac_last=0.9, num_subsamples=1000)
-            except Exception as ex:
-                print(ex)
-        print("plotted otovsds " + str(MaxMu))
-    
+                oto = OdotO[k]
+                dss =Dss[k]
+                pos = oto > 0
+                neg = oto < 0
+                data.append([str(mu), dss[pos], oto[pos]])
+                data.append([str(-mu), dss[neg], -oto[neg]])
+                try:
+                    plotpath = os.path.join(CorrFuncDir(MaxMu), str(self.EG)+ ".OtOvsDss.png")
+                    MultiXYPlot(data, plotpath, logx=True, logy=True, title='OtoOVsDss', scatter=False, xlabel='log(dss)',
+                                ylabel='log(oto)', frac_last=0.9, num_subsamples=1000)
+                except Exception as ex:
+                    print(ex)
+            print("plotted otovsds " + str(MaxMu))
+
         if self.STP<=0: return
         data =[]
         rho_data = np.linspace(self.R0,self.R1,self.STP)
@@ -387,7 +388,7 @@ class CurveSimulator():
             data.append([str(mu), rho_data, corr])
         try:
             plotpath = os.path.join(CorrFuncDir(MaxMu), str(self.EG)+ ".CorrFunction.png")
-            MultiXYPlot(data, plotpath, logx=False, logy=False, title='CorrFunction', scatter=False, xlabel='rho',
+            MultiXYPlot(data, plotpath, logx=True, logy=True, title='CorrFunction', scatter=False, xlabel='rho',
                         ylabel='cor', frac_last=0.9, num_subsamples=1000)
         except Exception as ex:
             print(ex)
@@ -409,6 +410,8 @@ def MakePlots(Mu, EG, T, CPU, R0, R1, STP):
         fdp = CurveSimulator(Mu, EG, T, CPU, R0, R1, STP, 0)
         fdp.MakePlots([Mu])  # runs on main node, pools tata if not yet done so,  subsamples data and makes plots
 
+def test_makePlots(Mu=1e-7, EG="E", T=1000, CPU=0, R0=0.001, R1=0.003, STP=1000):
+    MakePlots(Mu, EG, T, CPU, R0, R1, STP)
 #from euler_maths import euler_totients
 #from primefac import factorint
 
@@ -455,12 +458,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-Mu', type=float, default=1e-7)
     parser.add_argument('-EG', type=str, default='E')
-    parser.add_argument('-T', type=int, default=100000)
+    parser.add_argument('-T', type=int, default=1000)
     parser.add_argument('-CPU', type=int, default=mp.cpu_count())
-    parser.add_argument('-C', type=int, default=1)
+    parser.add_argument('-C', type=int, default=0)
     parser.add_argument('--serial', default=False, action="store_true")
-    parser.add_argument('-R0', type=float, default=0.0)
-    parser.add_argument('-R1', type=float, default=0.01)
+    parser.add_argument('-R0', type=float, default=0.001)
+    parser.add_argument('-R1', type=float, default=0.003)
     parser.add_argument('-STP', type=int, default=100000)
     
     A = parser.parse_args()
