@@ -90,6 +90,7 @@ double DS(std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_neg
 
 class MatrixMaker
 {
+    using Eigen::MatrixX3cd, Eigen::VectorX3cd;
 private:
     std::vector<Matrix3Xcd> A, B;
     Matrix3Xcd I3;
@@ -161,19 +162,21 @@ public:
     {
         // using prepared A, B, compute R(lambda) and return Tr(R'(lambda)/(R(lambda)-1))
         //    \prod_{i=k}^{i=0} (\hat I*(2\lambda) -\hat A_k )^{-1}(\hat I*(2\lambda) -\hat B_k )
-        Matrix3Xcd Lam, R1, Tmp2, R, RP;
-        Lam = I3 * (2. * lambda);
-        R = I3;
+        Matrix3Xcd Lam, R, RP, I3;
+        Lam.setIdentity();
+        Lam *= (2. * lambda);
+        R.setIdentity();
+        I3.setIdentity();
         RP.setZero();
         for (std::int64_t k = 0; k < M; k++)
         { // k = [0; M)
-            Tmp = (Lam - A[k]).inverse();
-            Tmp2 = Tmp.dot(Lam - B[k]);
-            R1 = Tmp2.dot(R);
-            RP = 2 * Tmp.dot(R - R1) + Tmp2.dot(RP);
+            Matrix3Xcd Tmp = (Lam - A[k]).inverse();
+            Matrix3Xcd Tmp2 = Tmp * (Lam - B[k]);
+            Matrix3Xcd R1 = Tmp2 * R;
+            RP = 2. * Tmp * (R - R1) + Tmp2 * RP;
             R = R1;
         }
-        return (R - I3).inverse().dot(RP).trace()/3;
+        return ((R - I3).inverse()* RP).trace()/3;
     };
     
     complex GetScale() const{
