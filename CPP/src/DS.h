@@ -21,6 +21,7 @@ using complex = std::complex<double>;
 
 extern "C"{
     EXPORT double DS( std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_neg, double beta, /*OUT*/ double* o_o );
+    EXPORT void FindSpectrum(std::int64_t N_pos, std::int64_t N_neg, double beta, complex gamma, /*OUT*/complex * lambdas, bool cold_start);
 }
 '''
 && \vec G_{k+1} =  \hat M_k(\lambda) \cdot \vec G_0;\\
