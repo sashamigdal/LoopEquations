@@ -1,6 +1,6 @@
 #include <random>
 #include <cassert>
-#include "Eigen/Core"
+#include "Eigen/Dense"
 #include "DS.h"
 
 inline complex expi(double a)
@@ -91,6 +91,7 @@ double DS(std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_neg
 class MatrixMaker
 {
     using Eigen::MatrixX3cd, Eigen::VectorX3cd;
+    using complex<double> as complex;
 private:
     std::vector<Matrix3Xcd> A, B;
     Matrix3Xcd I3;
@@ -162,7 +163,7 @@ public:
     {
         // using prepared A, B, compute R(lambda) and return Tr(R'(lambda)/(R(lambda)-1))
         //    \prod_{i=k}^{i=0} (\hat I*(2\lambda) -\hat A_k )^{-1}(\hat I*(2\lambda) -\hat B_k )
-        Matrix3Xcd Lam, R, RP, I3;
+        Matrix3Xcd Lam, R, RP, I3,Tmp,Tmp2, R1;
         Lam.setIdentity();
         Lam *= (2. * lambda);
         R.setIdentity();
@@ -170,9 +171,9 @@ public:
         RP.setZero();
         for (std::int64_t k = 0; k < M; k++)
         { // k = [0; M)
-            Matrix3Xcd Tmp = (Lam - A[k]).inverse();
-            Matrix3Xcd Tmp2 = Tmp * (Lam - B[k]);
-            Matrix3Xcd R1 = Tmp2 * R;
+            Tmp = (Lam - A[k]).inverse();
+            Tmp2 = Tmp * (Lam - B[k]);
+            R1 = Tmp2 * R;
             RP = 2. * Tmp * (R - R1) + Tmp2 * RP;
             R = R1;
         }
