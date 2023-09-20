@@ -1,7 +1,13 @@
+#include <complex>
 #include <random>
 #include <cassert>
 #include "Eigen/Dense"
 #include "DS.h"
+
+using Eigen::MatrixX3cd;
+using Eigen::Vector3cd;
+using complex = std::complex<double>;
+using namespace std::complex_literals;
 
 inline complex expi(double a)
 {
@@ -90,12 +96,10 @@ double DS(std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_neg
 
 class MatrixMaker
 {
-    using Eigen::MatrixX3cd, Eigen::VectorX3cd;
-    using complex<double> as complex;
 private:
-    std::vector<Matrix3Xcd> A, B;
-    Matrix3Xcd I3;
-    std::vector<Vector3Xcd> F;
+    std::vector<MatrixX3cd> A, B;
+    MatrixX3cd I3;
+    std::vector<Vector3cd> F;
     complex ABscale;
     size_t M;
 
@@ -124,22 +128,22 @@ public:
         B.resize(M);
         F.resize(M);
         RandomWalker walker(N_pos, N_neg);
-        
+
         complex cs;
         complex eb2 = expi(beta / 2);
-        double csb = 1 / (2 * eb2.imag);
-        complex fz = (0, eb2.real * csb);
+        double csb = 1 / (2 * eb2.imag());
+        complex fz = (0, eb2.real() * csb);
         I3.setIdentity();
 
         std::int64_t k = 0;
         for (; k < M; k++)
         { // k = [0; M)
             cs = expi(walker.get_alpha() * beta) * csb;
-            F[k] << cs.real, cs.imag, fz;
+            F[k] << cs.real(), cs.imag(), fz;
             walker.Advance();
         }
-        Matrix3Xcd TensP;
-        Vector3Xcd DF;
+        MatrixX3cd TensP;
+        Vector3cd DF;
         ABscale = complex(0,0);
         for (; k < M; k++)
         { // k = [0; M)
@@ -147,15 +151,15 @@ public:
             DF = F[(k + 1) % M] - F[k];
             TensP = DF * F[k].transpose();
             complex FDF = F[k].dot(DF);
-            A[k] = gamma * I3 + (2. * gamma - 4_i * FDF + 1_i) * TensP;
-            B[k] = -gamma * I3 + (2. * gamma - 4_i * FDF - 1_i) * TensP;
+            A[k] = gamma * I3 + (2. * gamma - (4.0i * FDF) + 1i) * TensP;
+            B[k] = -gamma * I3 + (2. * gamma - 4.0i * FDF - 1i) * TensP;
             TensP = DF * DF.transpose();
             //-\gamma +2 i FDF (2 FDF-1)
-            A[k] += (-gamma + 2_i FDF * (2. * FDF - 1)) * TensP;
-            B[k] += (+gamma + 2_i FDF * (2. * FDF + 1)) * TensP;
+            A[k] += (-gamma + 2.0i * FDF * (2. * FDF - 1.0)) * TensP;
+            B[k] += (+gamma + 2.0i * FDF * (2. * FDF + 1.0)) * TensP;
             TensP = F[k] * DF.transpose();
-            A[k] += 1_i * TensP;
-            B[k] -= 1_i * TensP;
+            A[k] += 1.0i * TensP;
+            B[k] -= 1.0i * TensP;
             ABscale += (B[k]-A[k]).trace()/6.;
         }
     };
@@ -163,7 +167,7 @@ public:
     {
         // using prepared A, B, compute R(lambda) and return Tr(R'(lambda)/(R(lambda)-1))
         //    \prod_{i=k}^{i=0} (\hat I*(2\lambda) -\hat A_k )^{-1}(\hat I*(2\lambda) -\hat B_k )
-        Matrix3Xcd Lam, R, RP, I3,Tmp,Tmp2, R1;
+        MatrixX3cd Lam, R, RP, I3,Tmp,Tmp2, R1;
         Lam.setIdentity();
         Lam *= (2. * lambda);
         R.setIdentity();
@@ -177,9 +181,9 @@ public:
             RP = 2. * Tmp * (R - R1) + Tmp2 * RP;
             R = R1;
         }
-        return ((R - I3).inverse()* RP).trace()/3;
+        return ((R - I3).inverse()* RP).trace() / 3.0;
     };
-    
+
     complex GetScale() const{
         return ABscale;
     }
@@ -201,7 +205,7 @@ void FindSpectrum(std::int64_t N_pos, std::int64_t N_neg, double beta, complex g
             lambdas[k] = lambda0 + r * expi(2 * M_PI * k/L);
         }
     }
-    
+
     std::vector<double> errs(L);
     #pragma omp parallel for
     for(size_t k =0; k < L; k++){

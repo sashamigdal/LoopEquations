@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.17)
 project("DS")
-set (CMAKE_CXX_STANDARD 11)
+set (CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_EXTENSIONS OFF)  # This disables GCC extension for complex numbers
 find_package(OpenMP)
 
 # if(OpenMP_CXX_FOUND)

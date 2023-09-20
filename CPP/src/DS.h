@@ -7,8 +7,6 @@
 #   define EXPORT __attribute__((visibility("default")))
 #endif
 
-using complex = std::complex<double>;
-
 // '''
 // def SS(n, m, M, sigmas, beta):
 //     Snm = np.sum(F(sigmas[n:m], beta), axis=1)
@@ -21,5 +19,5 @@ using complex = std::complex<double>;
 
 extern "C"{
     EXPORT double DS( std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_neg, double beta, /*OUT*/ double* o_o );
-    EXPORT void FindSpectrum(std::int64_t N_pos, std::int64_t N_neg, double beta, complex gamma, /*OUT*/complex * lambdas, bool cold_start);
+    EXPORT void FindSpectrum(std::int64_t N_pos, std::int64_t N_neg, double beta, std::complex<double> gamma, /*OUT*/std::complex<double> * lambdas, bool cold_start);
 }
