@@ -1,5 +1,11 @@
 #include <math.h>
 #include <complex.h>
+#include "Eigen/Dense"
+
+using Eigen::Matrix3cd;
+using Eigen::Vector3cd;
+using complex = std::complex<double>;
+using namespace std::complex_literals;
 
 #if defined(_MSC_VER)
 #   define EXPORT __declspec(dllexport)

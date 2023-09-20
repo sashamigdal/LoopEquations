@@ -1,7 +1,6 @@
 #include <complex>
 #include <random>
 #include <cassert>
-#include "Eigen/Dense"
 #include "DS.h"
 
 using Eigen::Matrix3cd;
