@@ -339,7 +339,8 @@ class CurveSimulator():
                     pass
             if pathname is None:
                 pathname, T = self.GetFDStats(mu)
-            stats = np.fromfile(pathname).reshape(-1, T, 3)
+            array = np.fromfile(pathname,dtype=float)
+            stats = array.reshape(-1, T, 3)
             stats = np.transpose(stats, (2, 1, 0)).reshape(3,-1)
             Betas.append(stats[0])
             Dss.append(stats[1])
@@ -466,8 +467,8 @@ if __name__ == '__main__':
     parser.add_argument('-C', type=int, default=0)
     parser.add_argument('--serial', default=False, action="store_true")
     parser.add_argument('-R0', type=float, default=0.001)
-    parser.add_argument('-R1', type=float, default=0.003)
-    parser.add_argument('-STP', type=int, default=100000)
+    parser.add_argument('-R1', type=float, default=0.0035)
+    parser.add_argument('-STP', type=int, default=10000)
     
     A = parser.parse_args()
     if A.C > 0:
