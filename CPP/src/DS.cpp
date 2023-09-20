@@ -15,34 +15,6 @@ inline complex expi(double a)
     sincos(a, &sin_a, &cos_a);
     return {cos_a, sin_a};
 }
-
-class RandomWalker
-{
-public:
-    RandomWalker(std::int64_t N_pos, std::int64_t N_neg) : N_pos(N_pos), N_neg(N_neg), alpha(), gen(std::random_device{}()), unif(0, 1) {}
-
-    int Advance()
-    {
-        int sigma = RandomSign();
-        (sigma == 1 ? N_pos : N_neg)--;
-        alpha += sigma;
-        return sigma;
-    }
-
-    std::int64_t get_alpha() const { return alpha; }
-
-private:
-    int RandomSign()
-    {
-        return (unif(gen) * double(N_pos + N_neg) <= N_neg) ? -1 : 1;
-    }
-
-    std::int64_t N_pos;
-    std::int64_t N_neg;
-    std::int64_t alpha; // alpha[i]
-    std::minstd_rand gen;
-    std::uniform_real_distribution<double> unif;
-};
 /*
 TODO: replace formulas by these
 
@@ -94,17 +66,45 @@ double DS(std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_neg
     return abs((S_nm - S_mn) / (2 * sin(beta / 2)));
 }
 
-class MatrixMaker
-{
-private:
-    std::vector<Matrix3cd> A, B;
-    Matrix3cd I3;
-    std::vector<Vector3cd> F;
-    complex ABscale;
-    size_t M;
+void FindSpectrum(std::int64_t N_pos, std::int64_t N_neg, double beta, complex gamma, complex * lambdas, bool cold_start){
+    MatrixMaker mm(N_pos, N_neg, beta,gamma);
+    size_t M = N_pos + N_neg;
+    size_t L = 3*M;
+    size_t maxiter=10;
+    if(cold_start){
+        //det(R -1) -> det(a/lambda + b/lambda^2) ~ det(a/lambda) det(1 + a^(-1) b/lambda)~ (lambda + tr(a^-1 b))
+        // lambda0 = - tr(b/a)
+        // a_k = A_k - B_k
+        // b_k = A_k^2 - A_k B_k
+        // a = Sum{a_k}
+        // b = Sum{b_k} + Sum_{k<l}{a_k a_l}
+        // Prod = (I + a0 x + b0 x^2) *
+        //      . . . . .
+        //      * (I + ak x + bk x^2) *
+        //      . . . . .
+        //      * (I + al x + bl x^2) *
+        //       . . . . .
+        //      * (I + am x + bm x^2)
+        complex lambda0 = mm.GetScale();
+        double r = 10*abs(lambda0);
+        for(size_t k=0; k < L; k++){
+            lambdas[k] = lambda0 + r * expi(2 * M_PI * k/L);
+        }
+    }
 
-public:
-    MatrixMaker(std::int64_t N_pos, std::int64_t N_neg, double beta, complex gamma)
+    std::vector<double> errs(L);
+    #pragma omp parallel for
+    for(size_t k =0; k < L; k++){
+        for(size_t iter =0; iter < maxiter; iter++){
+            complex dlam= 1./mm.Resolvent(lambdas[k]);
+            lambdas[k] -= dlam;
+            errs[k] = abs(dlam);
+        }
+    }
+    
+}
+
+MatrixMaker::MatrixMaker(std::int64_t N_pos, std::int64_t N_neg, double beta, complex gamma)
     {
         //     '''
         //     && \hat M_k(\lambda) =
@@ -171,71 +171,47 @@ public:
         // b = Sum{b_k}/4 + Sum_{k<l}{a_k a_l}/4
         ABscale = -0.5 * (sumak.inverse()* sumbk).trace();
     };
-    complex Resolvent(complex lambda) const
-    {
-        // using prepared A, B, compute R(lambda) and return Tr(R'(lambda)/(R(lambda)-1))
-        //    \prod_{i=k}^{i=0} (\hat I*(2\lambda) -\hat A_k )^{-1}(\hat I*(2\lambda) -\hat B_k )
-        //1/(X+ eps) = 1/X - 1/X eps 1/X + ...
-        Matrix3cd Lam, R, RP, I3,Tmp,Tmp2, R1;
-        Lam.setIdentity();
-        Lam *= (2. * lambda);
-        R.setIdentity();
-        I3.setIdentity();
-        RP.setZero();
-        for (std::int64_t k = 0; k < M; k++)
-        { // k = [0; M)
-            Tmp = (Lam - A[k]).inverse();
-            Tmp2 = Tmp * (Lam - B[k]);
-            R1 = Tmp2 * R;
-            RP = 2. * Tmp * (R - R1) + Tmp2 * RP;
-            R = R1;
-        }
-        return ((R - I3).inverse()* RP).trace() / 3.0;
-    };
 
-    complex GetScale() const{
-        return ABscale;
-    }
-
-    std::int64_t GetSize(){
-        return M;
-    }
-
-};
-void FindSpectrum(std::int64_t N_pos, std::int64_t N_neg, double beta, complex gamma, complex * lambdas, bool cold_start){
-    MatrixMaker mm(N_pos, N_neg, beta,gamma);
-    size_t M = N_pos + N_neg;
-    size_t L = 3*M;
-    size_t maxiter=10;
-    if(cold_start){
-        //det(R -1) -> det(a/lambda + b/lambda^2) ~ det(a/lambda) det(1 + a^(-1) b/lambda)~ (lambda + tr(a^-1 b))
-        // lambda0 = - tr(b/a)
-        // a_k = A_k - B_k
-        // b_k = A_k^2 - A_k B_k
-        // a = Sum{a_k}
-        // b = Sum{b_k} + Sum_{k<l}{a_k a_l}
-        // Prod = (I + a0 x + b0 x^2) *
-        //      . . . . .
-        //      * (I + ak x + bk x^2) *
-        //      . . . . .
-        //      * (I + al x + bl x^2) *
-        //       . . . . .
-        //      * (I + am x + bm x^2)
-        complex lambda0 = mm.GetScale();
-        double r = 10*abs(lambda0);
-        for(size_t k=0; k < L; k++){
-            lambdas[k] = lambda0 + r * expi(2 * M_PI * k/L);
-        }
-    }
-
-    std::vector<double> errs(L);
-    #pragma omp parallel for
-    for(size_t k =0; k < L; k++){
-        for(size_t iter =0; iter < maxiter; iter++){
-            complex dlam= 1./mm.Resolvent(lambdas[k]);
-            lambdas[k] -= dlam;
-            errs[k] = abs(dlam);
-        }
-    }
+void MatrixMaker::MultMv( complex* v, complex* w ){
+    //(M *G)_k =  -B[k]/2 \cdot G_k - A[k]/2 \cdot G_{k+1}
+    std::int64_t k = 0, L = 3* M;
     
+    // #pragma omp_parallel for
+    for(; k < M; k++){
+        Vector3cd G, MG;
+        MG.setZero();
+        std::int64_t i,j,l;
+        i=3 * k;
+        G << v[i],v[i+1],v[i+2];
+        MG = B[k] * G;
+        j = (i+3)%L;
+        G << v[j],v[j+1],v[j+2];
+        MG += A[k]* G;
+        MG *= -0.5;
+        for(l=0;l < 3; l++){
+            w[i+l] = MG[l];
+        }
+    }
 }
+
+complex MatrixMaker::MatrixMaker::Resolvent(complex lambda) const
+{
+    // using prepared A, B, compute R(lambda) and return Tr(R'(lambda)/(R(lambda)-1))
+    //    \prod_{i=k}^{i=0} (\hat I*(2\lambda) -\hat A_k )^{-1}(\hat I*(2\lambda) -\hat B_k )
+    //1/(X+ eps) = 1/X - 1/X eps 1/X + ...
+    Matrix3cd Lam, R, RP, I3,Tmp,Tmp2, R1;
+    Lam.setIdentity();
+    Lam *= (2. * lambda);
+    R.setIdentity();
+    I3.setIdentity();
+    RP.setZero();
+    for (std::int64_t k = 0; k < M; k++)
+    { // k = [0; M)
+        Tmp = (Lam - A[k]).inverse();
+        Tmp2 = Tmp * (Lam - B[k]);
+        R1 = Tmp2 * R;
+        RP = 2. * Tmp * (R - R1) + Tmp2 * RP;
+        R = R1;
+    }
+    return ((R - I3).inverse()* RP).trace() / 3.0;
+};
