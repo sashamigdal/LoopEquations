@@ -175,7 +175,7 @@ void MatrixMaker::MultMv( complex* v, complex* w ){
     //(M *G)_k =  -B[k]/2 \cdot G_k - A[k]/2 \cdot G_{k+1}
     std::int64_t k = 0, L = 3* M;
     
-    // #pragma omp_parallel for
+#pragma omp_parallel for
     for(; k < M; k++){
         Vector3cd G, MG;
         MG.setZero();
