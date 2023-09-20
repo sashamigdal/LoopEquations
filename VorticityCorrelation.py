@@ -29,7 +29,8 @@ from scipy.special import betaln
 import ctypes
 libDS_path = os.path.join("CPP/cmake-build-release", 'libDS.so')
 sys.path.append("CPP/cmake-build-release")
-libDS = ctypes.cdll.LoadLibrary(libDS_path)
+if sys.platform == 'linux':
+    libDS = ctypes.cdll.LoadLibrary(libDS_path)
 c_double_p = ctypes.POINTER(ctypes.c_double)
 c_int64_p = ctypes.POINTER(ctypes.c_int64)
 c_uint64_p = ctypes.POINTER(ctypes.c_uint64)
@@ -53,15 +54,15 @@ def DS_CPP(n, m, N_pos, N_neg, beta):
     return dsabs, np_o_o[0]
 
 # void Corr( std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_neg, std::int64_t N_cor, double beta, /*IN*/ double* rho ,/*OUT*/ double* cor ) 
-# def CORR_CPP(n, m, N_pos, N_neg, beta, rho_data):
-#     INT64 = ctypes.c_int64
-#     libDS.DS.argtypes = (INT64, INT64, INT64, INT64, ctypes.c_double, c_double_p)
-#     libDS.DS.restype = ctypes.c_double
-#     np_o_o = np.zeros(1, dtype=float)
-#     dsabs = libDS.DS(n, m, N_pos, N_neg, beta, np_o_o.ctypes.data_as(c_double_p))
-#     ans = np.ones_like(rho_data)
-#     ans[1:] = sin(rho_data[1:]* dsabs)/(rho_data[1:]* dsabs)
-#     return np_o_o[0] * ans
+def CORR_CPP(n, m, N_pos, N_neg, beta, rho_data):
+    INT64 = ctypes.c_int64
+    libDS.DS.argtypes = (INT64, INT64, INT64, INT64, ctypes.c_double, c_double_p)
+    libDS.DS.restype = ctypes.c_double
+    np_o_o = np.zeros(1, dtype=float)
+    dsabs = libDS.DS(n, m, N_pos, N_neg, beta, np_o_o.ctypes.data_as(c_double_p))
+    ans = np.ones_like(rho_data)
+    ans[1:] = sin(rho_data[1:]* dsabs)/(rho_data[1:]* dsabs)
+    return np_o_o[0] * ans
 
 
 class RandomFractions():
@@ -345,7 +346,7 @@ class CurveSimulator():
             OdotO.append(stats[2])
         pass
         MaxMu = Mulist[-1]
-        if True:
+        if sys.platform == 'linux':
             for X, name in zip([Betas, Dss, OdotO, OdotO], ["logTanbeta", "DS", "OmOm", "-OmOm"]):
                 data = []
                 for k, mu in enumerate(Mulist):
@@ -400,10 +401,12 @@ def test_FDistribution(Mu, EG, T, CPU, C, serial):
     """
     :param serial: Boolean If set, run serially.
     """
-    with Timer("done FDistribution for M,T,C= " + str(Mu) + "," + str(T)+ "," + str(C)):
-        fdp = CurveSimulator(Mu, EG, T, CPU, 0, 0, 0, C)
-        fdp.FDistribution(serial)  # runs on each node, outputs placed in the plot dir of the main node
-
+    if sys.platform == 'linux':
+        with Timer("done FDistribution for M,T,C= " + str(Mu) + "," + str(T)+ "," + str(C)):
+            fdp = CurveSimulator(Mu, EG, T, CPU, 0, 0, 0, C)
+            fdp.FDistribution(serial)  # runs on each node, outputs placed in the plot dir of the main node
+    else:
+        print(f"not implemented on {sys.platform}")
     
 def MakePlots(Mu, EG, T, CPU, R0, R1, STP):
     with Timer("done MakePlots for Mu,T= " + str(Mu) + "," + str(T)):
