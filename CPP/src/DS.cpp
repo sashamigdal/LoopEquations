@@ -4,7 +4,7 @@
 #include "Eigen/Dense"
 #include "DS.h"
 
-using Eigen::MatrixX3cd;
+using Eigen::Matrix3cd;
 using Eigen::Vector3cd;
 using complex = std::complex<double>;
 using namespace std::complex_literals;
@@ -97,8 +97,8 @@ double DS(std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_neg
 class MatrixMaker
 {
 private:
-    std::vector<MatrixX3cd> A, B;
-    MatrixX3cd I3;
+    std::vector<Matrix3cd> A, B;
+    Matrix3cd I3;
     std::vector<Vector3cd> F;
     complex ABscale;
     size_t M;
@@ -142,9 +142,12 @@ public:
             F[k] << cs.real(), cs.imag(), fz;
             walker.Advance();
         }
-        MatrixX3cd TensP;
+        Matrix3cd TensP;
         Vector3cd DF;
-        ABscale = complex(0,0);
+        Matrix3cd  sumak,sumbk,sumakl;
+        sumak.setZero();
+        sumbk.setZero();
+        sumakl.setZero();
         for (; k < M; k++)
         { // k = [0; M)
             //\vec F_k\otimes \vec F_k
@@ -160,14 +163,20 @@ public:
             TensP = F[k] * DF.transpose();
             A[k] += 1.0i * TensP;
             B[k] -= 1.0i * TensP;
-            ABscale += (B[k]-A[k]).trace()/6.;
+            Matrix3cd a =A[k] - B[k];
+            sumbk += (sumak +A[k])* a;
+            sumak += a;
         }
+         // a = Sum{a_k}/2
+        // b = Sum{b_k}/4 + Sum_{k<l}{a_k a_l}/4
+        ABscale = -0.5 * (sumak.inverse()* sumbk).trace();
     };
     complex Resolvent(complex lambda) const
     {
         // using prepared A, B, compute R(lambda) and return Tr(R'(lambda)/(R(lambda)-1))
         //    \prod_{i=k}^{i=0} (\hat I*(2\lambda) -\hat A_k )^{-1}(\hat I*(2\lambda) -\hat B_k )
-        MatrixX3cd Lam, R, RP, I3,Tmp,Tmp2, R1;
+        //1/(X+ eps) = 1/X - 1/X eps 1/X + ...
+        Matrix3cd Lam, R, RP, I3,Tmp,Tmp2, R1;
         Lam.setIdentity();
         Lam *= (2. * lambda);
         R.setIdentity();
@@ -199,6 +208,19 @@ void FindSpectrum(std::int64_t N_pos, std::int64_t N_neg, double beta, complex g
     size_t L = 3*M;
     size_t maxiter=10;
     if(cold_start){
+        //det(R -1) -> det(a/lambda + b/lambda^2) ~ det(a/lambda) det(1 + a^(-1) b/lambda)~ (lambda + tr(a^-1 b))
+        // lambda0 = - tr(b/a)
+        // a_k = A_k - B_k
+        // b_k = A_k^2 - A_k B_k
+        // a = Sum{a_k}
+        // b = Sum{b_k} + Sum_{k<l}{a_k a_l}
+        // Prod = (I + a0 x + b0 x^2) *
+        //      . . . . .
+        //      * (I + ak x + bk x^2) *
+        //      . . . . .
+        //      * (I + al x + bl x^2) *
+        //       . . . . .
+        //      * (I + am x + bm x^2)
         complex lambda0 = mm.GetScale();
         double r = 10*abs(lambda0);
         for(size_t k=0; k < L; k++){
@@ -210,9 +232,9 @@ void FindSpectrum(std::int64_t N_pos, std::int64_t N_neg, double beta, complex g
     #pragma omp parallel for
     for(size_t k =0; k < L; k++){
         for(size_t iter =0; iter < maxiter; iter++){
-            complex f= 1./mm.Resolvent(lambdas[k]);
-            lambdas[k] -= f;
-            errs[k] = abs(f);
+            complex dlam= 1./mm.Resolvent(lambdas[k]);
+            lambdas[k] -= dlam;
+            errs[k] = abs(dlam);
         }
     }
     
