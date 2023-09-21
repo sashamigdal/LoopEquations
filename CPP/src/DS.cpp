@@ -65,7 +65,7 @@ double DS(std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_neg
     return abs((S_nm - S_mn) / (2 * sin(beta / 2)));
 }
 
-void FindSpectrum(std::int64_t N_pos, std::int64_t N_neg, double beta, complex gamma, complex * lambdas, bool cold_start){
+void FindSpectrumFronmResolvent(std::int64_t N_pos, std::int64_t N_neg, double beta, complex gamma, complex * lambdas, bool cold_start){
     MatrixMaker mm(N_pos, N_neg, beta,gamma);
     size_t M = N_pos + N_neg;
     size_t L = 3*M;
@@ -104,94 +104,104 @@ void FindSpectrum(std::int64_t N_pos, std::int64_t N_neg, double beta, complex g
 }
 
 MatrixMaker::MatrixMaker(std::int64_t N_pos, std::int64_t N_neg, double beta, complex gamma)
-    {
-        //     '''
-        //     && \hat M_k(\lambda) =
-        //    \prod_{i=k}^{i=0} (\hat I -\hat A_k/(2\lambda) )^{-1}(\hat I -\hat B_k /(2\lambda))
+{
+    //     '''
+    //     && \hat M_k(\lambda) =
+    //    \prod_{i=k}^{i=0} (\hat I -\hat A_k/(2\lambda) )^{-1}(\hat I -\hat B_k /(2\lambda))
 
-        //      &&\hat A_k  =
-        //  \gamma  \hat I +(2 \gamma -4 i \vec F_k \cdot\Delta \vec F_k+i) \Delta \vec F_k\otimes \vec F_k\nonumber\\
+    //      &&\hat A_k  =
+    //  \gamma  \hat I +(2 \gamma -4 i \vec F_k \cdot\Delta \vec F_k+i) \Delta \vec F_k\otimes \vec F_k\nonumber\\
 //     &&\left(-\gamma +2 i (\vec F_k \cdot\Delta \vec F_k) (2 \vec F_k \cdot\Delta \vec F_k-1)\right)\Delta \vec F_k\otimes \Delta \vec F_k +
-        //     i \vec F_k \otimes \Delta \vec F_k;\\
+    //     i \vec F_k \otimes \Delta \vec F_k;\\
 //     && \hat B_k =
-        //     -\gamma\hat I  +\left(2 \gamma -4 i \vec F_k \cdot\Delta \vec F_k-i\right) \Delta \vec F_k\otimes \vec F_k+\nonumber\\
+    //     -\gamma\hat I  +\left(2 \gamma -4 i \vec F_k \cdot\Delta \vec F_k-i\right) \Delta \vec F_k\otimes \vec F_k+\nonumber\\
 //     &&\left(\gamma +2 i (\vec F_k \cdot\Delta \vec F_k)(2  \vec F_k \cdot\Delta \vec F_k + 1)\right)\Delta \vec F_k\otimes \Delta \vec F_k
-        //     -i \vec F_k \otimes\Delta \vec F_k
+    //     -i \vec F_k \otimes\Delta \vec F_k
 
-        //     \vec F_k =  \frac{1}{2} \csc \left(\frac{\beta }{2}\right) \
+    //     \vec F_k =  \frac{1}{2} \csc \left(\frac{\beta }{2}\right) \
 // \left\{\cos (\alpha_k), \sin (\alpha_k) \vec w, i \cos \
 // \left(\frac{\beta }{2}\right)\right\};
-        //     '''
-        M = N_pos + N_neg;
-        A.resize(M);
-        B.resize(M);
-        F.resize(M);
-        RandomWalker walker(N_pos, N_neg);
+    //     '''
+    M = N_pos + N_neg;
+    A.resize(M);
+    B.resize(M);
+    F.resize(M);
+    RandomWalker walker(N_pos, N_neg);
 
-        complex cs;
-        complex eb2 = expi(beta / 2);
-        double csb = 1 / (2 * eb2.imag());
-        complex fz = (0, eb2.real() * csb);
-        I3.setIdentity();
+    complex cs;
+    complex eb2 = expi(beta / 2);
+    double csb = 1 / (2 * eb2.imag());
+    complex fz = (0, eb2.real() * csb);
+    I3.setIdentity();
 
-        std::int64_t k = 0;
-        for (; k < M; k++)
-        { // k = [0; M)
-            cs = expi(walker.get_alpha() * beta) * csb;
-            F[k] << cs.real(), cs.imag(), fz;
-            walker.Advance();
-        }
-        Matrix3cd TensP;
-        Vector3cd DF;
-        Matrix3cd  sumak,sumbk,sumakl;
-        sumak.setZero();
-        sumbk.setZero();
-        sumakl.setZero();
-        for (; k < M; k++)
-        { // k = [0; M)
-            //\vec F_k\otimes \vec F_k
-            DF = F[(k + 1) % M] - F[k];
-            TensP = DF * F[k].transpose();
-            complex FDF = F[k].dot(DF);
-            A[k] = gamma * I3 + (2. * gamma - (4.0i * FDF) + 1i) * TensP;
-            B[k] = -gamma * I3 + (2. * gamma - 4.0i * FDF - 1i) * TensP;
-            TensP = DF * DF.transpose();
-            //-\gamma +2 i FDF (2 FDF-1)
-            A[k] += (-gamma + 2.0i * FDF * (2. * FDF - 1.0)) * TensP;
-            B[k] += (+gamma + 2.0i * FDF * (2. * FDF + 1.0)) * TensP;
-            TensP = F[k] * DF.transpose();
-            A[k] += 1.0i * TensP;
-            B[k] -= 1.0i * TensP;
-            Matrix3cd a =A[k] - B[k];
-            sumbk += (sumak +A[k])* a;
-            sumak += a;
-        }
-         // a = Sum{a_k}/2
-        // b = Sum{b_k}/4 + Sum_{k<l}{a_k a_l}/4
-        ABscale = -0.5 * (sumak.inverse()* sumbk).trace();
-    };
+    std::int64_t k = 0;
+    for (; k < M; k++)
+    { // k = [0; M)
+        cs = expi(walker.get_alpha() * beta) * csb;
+        F[k] << cs.real(), cs.imag(), fz;
+        walker.Advance();
+    }
+    Matrix3cd TensP;
+    Vector3cd DF;
+    Matrix3cd  sumak,sumbk,sumakl;
+    sumak.setZero();
+    sumbk.setZero();
+    sumakl.setZero();
+    for (k=0; k < M; k++)
+    { // k = [0; M)
+        //\vec F_k\otimes \vec F_k
+        DF = F[(k + 1) % M] - F[k];
+        TensP = DF * F[k].transpose();
+        complex FDF = F[k].dot(DF);
+        A[k] = gamma * I3 + (2. * gamma - (4.0i * FDF) + 1i) * TensP;
+        B[k] = -gamma * I3 + (2. * gamma - 4.0i * FDF - 1i) * TensP;
+        TensP = DF * DF.transpose();
+        //-\gamma +2 i FDF (2 FDF-1)
+        A[k] += (-gamma + 2.0i * FDF * (2. * FDF - 1.0)) * TensP;
+        B[k] += (+gamma + 2.0i * FDF * (2. * FDF + 1.0)) * TensP;
+        TensP = F[k] * DF.transpose();
+        A[k] += 1.0i * TensP;
+        B[k] -= 1.0i * TensP;
+        Matrix3cd a =-A[k] - B[k];
+        sumbk += (sumak -A[k])* a;
+        sumak += a;
+    }
+        // a = Sum{a_k}/2
+    // b = Sum{b_k}/4 + Sum_{k<l}{a_k a_l}/4
+    ABscale = -0.5 * (sumak.inverse()* sumbk).trace();
+};
 
-void MatrixMaker::MultMv( complex* v, complex* w ){
-    //(M *G)_k =  -B[k]/2 \cdot G_k - A[k]/2 \cdot G_{k+1}
+
+void MatrixMaker::MultMv( complex* v, complex* w )
+{
+    //(M *G)_k =  -B[k] \cdot G_k - A[k] \cdot G_{k+1}
     std::int64_t k = 0, L = 3* M;
-    
-#pragma omp_parallel for
+    std::vector<Vector3cd> X(M);
+   
+// #pragma omp_parallel for
     for(; k < M; k++){
-        Vector3cd G, MG;
-        MG.setZero();
-        std::int64_t i,j,l;
+        Vector3cd G;
+        X[k].setZero();
+        std::int64_t i,j;
         i=3 * k;
         G << v[i],v[i+1],v[i+2];
-        MG = B[k] * G;
+        X[k] = -B[k] * G;
         j = (i+3)%L;
         G << v[j],v[j+1],v[j+2];
-        MG += A[k]* G;
-        MG *= -0.5;
-        for(l=0;l < 3; l++){
-            w[i+l] = MG[l];
-        }
+        X[k] += A[k]* G;
     }
-}
+    std::vector<Vector3cd> Y(M);
+    Y[0].setZero();
+    // #pragma omp_parallel for
+    for(k=0; k < M; k++){
+        std::int64_t i,j,l;
+        i = 3 * k;
+        for(l=0; l < 3; l++){
+            w[i+l] = Y[k][l];
+        }
+        if(k +1 <M) Y[k+1] = X[k] - Y[k];
+    }
+};
 
 complex MatrixMaker::MatrixMaker::Resolvent(complex lambda) const
 {
