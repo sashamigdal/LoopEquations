@@ -1,68 +1,19 @@
 import os, sys
-from math import gcd
-
-# from mpmath import rational
-# here is a new line
-from SortedArrayIter import SortedArrayIter
 from Timer import MTimer as Timer
-from plot import MakeDir, MakeNewDir, XYPlot, SubSampleWithErr, PlotXYErrBars, MultiPlot, MultiRankHistPos, MultiXYPlot, \
-    RankHistPos, RankHist2
-# from functools import reduce
-# from operator import add
-#from RationalNumberGenerator import RationalRandom
-from numpy import pi, sin, cos, tan, sqrt, exp, log
+from plot import MakeDir, XYPlot, RankHistPos, RankHist2
+from numpy import sqrt
 from numpy.linalg import multi_dot as mdot
 import numpy as np
 import multiprocessing as mp
 import concurrent.futures as fut
 from cfractions import Fraction
-#from numba import vectorize, guvectorize, float64, int64
 from QuadPy import SphericalFourierIntegral
-from memory_profiler import profile
-from scipy.special import betaln
-# import jax.numpy as jnp
-# from jax import jit
-# from jax import random as jrandom
-# import jax
-# jax.config.update('jax_platform_name', 'cpu')
-
-import ctypes
-libDS_path = os.path.join("CPP/cmake-build-release", 'libDS.so')
-sys.path.append("CPP/cmake-build-release")
-if sys.platform == 'linux':
-    libDS = ctypes.cdll.LoadLibrary(libDS_path)
-c_double_p = ctypes.POINTER(ctypes.c_double)
-c_int64_p = ctypes.POINTER(ctypes.c_int64)
-c_uint64_p = ctypes.POINTER(ctypes.c_uint64)
-c_size_t_p = ctypes.POINTER(ctypes.c_size_t)
-def CorrFuncDir(Mu):
-    return os.path.join("plots", "VorticityCorr." + str(Mu))
+from CurveSimulator import CurveSimulator
 
 
 # @jit
 def F(sigma, beta):
     return np.complex(np.cos(sigma * beta), np.sin(sigma * beta))
-
-
-
-def DS_CPP(n, m, N_pos, N_neg, beta):
-    INT64 = ctypes.c_int64
-    libDS.DS.argtypes = (INT64, INT64, INT64, INT64, ctypes.c_double, c_double_p)
-    libDS.DS.restype = ctypes.c_double
-    np_o_o = np.zeros(1, dtype=float)
-    dsabs = libDS.DS(n, m, N_pos, N_neg, beta, np_o_o.ctypes.data_as(c_double_p))
-    return dsabs, np_o_o[0]
-
-# void Corr( std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_neg, std::int64_t N_cor, double beta, /*IN*/ double* rho ,/*OUT*/ double* cor ) 
-def CORR_CPP(n, m, N_pos, N_neg, beta, rho_data):
-    INT64 = ctypes.c_int64
-    libDS.DS.argtypes = (INT64, INT64, INT64, INT64, ctypes.c_double, c_double_p)
-    libDS.DS.restype = ctypes.c_double
-    np_o_o = np.zeros(1, dtype=float)
-    dsabs = libDS.DS(n, m, N_pos, N_neg, beta, np_o_o.ctypes.data_as(c_double_p))
-    ans = np.ones_like(rho_data)
-    ans[1:] = sin(rho_data[1:]* dsabs)/(rho_data[1:]* dsabs)
-    return np_o_o[0] * ans
 
 
 class RandomFractions():
@@ -218,184 +169,6 @@ def test_GroupFourierIntegral():
 
 
 
-class CurveSimulator():
-    def __init__(self, Mu, EG, T, CPU, R0, R1, STP, C ):
-        MakeDir(CorrFuncDir(Mu))
-        self.mu = Mu
-        self.CPU = CPU
-        self.C = C
-        self.T = T
-        self.EG = EG
-        self.R0 = R0
-        self.R1 = R1
-        self.STP = STP
-
-
-    def EulerPair(self):
-        M = int(np.clip(np.floor(0.5*np.random.exponential(1./self.mu)),3,5e9))*2
-        while (True):
-            q = 2 * np.random.randint(2,M//2)
-            p = np.random.randint(1, q)
-            if gcd(p,q) ==1:  # P( (p,q)=1 ) = phi(q)/q
-                if np.random.randint(0,M) < q:  # P( break ) = q/M * phi(q)/q = phi(q)/M ~ phi(q)
-                    break
-                pass
-            pass
-        return [M, p, q]
-
-        
-    def GetSamples(self, params):
-        beg, end = params
-        ar = np.zeros((end - beg) * 3, dtype=float).reshape(-1, 3)
-        np.random.seed(self.C + 1000 * beg)  # to make a unique seed for at least 1000 nodes
-
-        for k in range(beg, end):
-            M, p, q = self.EulerPair()
-            beta = (2 * pi * p) / float(q)
-            r =0
-            N_pos = (M + q*r) // 2  # Number of 1's
-            N_neg = M - N_pos  # Number of -1's
-
-            n = np.random.randint(0, M)
-            m = np.random.randint(n + 1, M + n) % M
-            if n > m:
-                n, m = m, n
-
-            t = k - beg
-            ar[t, 0] = 1/tan(beta/2)**2
-            ar[t, 1], ar[t, 2] = DS_CPP(n, m, N_pos, N_neg, beta)
-        return ar
-    
-    def FDistributionPathname(self):
-        return os.path.join(CorrFuncDir(self.mu), "Fdata." + str(self.EG)+ "."+ str(self.T) + "." + str(self.C) + ".np")
-    
-    def FDistribution(self, serial):
-        """
-        :param serial: Boolean If set, run jobs serially.
-        """
-        mu = self.mu
-        T = self.T
-        MakeDir(CorrFuncDir(mu))
-        if not os.path.isfile(self.FDistributionPathname()):
-            res = None
-            params = [(T * i // self.CPU, T * (i + 1) // self.CPU) for i in range(self.CPU)]
-            if serial:
-                res = list(map(self.GetSamples, params))
-            else:
-                with fut.ProcessPoolExecutor(max_workers=self.CPU) as exec:
-                    res = list(exec.map(self.GetSamples, params))
-            data = np.vstack(res)
-            data.tofile(self.FDistributionPathname())
-        print("made FDistribution " + str(mu))
-
-    @staticmethod
-    def ReadStatsFile(params):
-        pathname, T , dim= params
-        return np.fromfile(pathname, float).reshape(T, dim)
-
-    
-    def GetFDStats(self,mu):
-        params= []
-        T = None
-        for filename in os.listdir(CorrFuncDir(mu)):
-            if filename.endswith(".np") and filename.startswith("Fdata." + str(self.EG)):
-                try:
-                    splits = filename.split(".")
-                    T = int(splits[-3])
-                    if T > 0:
-                        params.append([os.path.join(CorrFuncDir(mu), filename), T,3])
-                except Exception as ex:
-                    pass
-                pass
-            pass
-        res = []
-        with fut.ProcessPoolExecutor(max_workers=mp.cpu_count() -1) as exec:
-            res = list(exec.map(self.ReadStatsFile, params))
-        if res ==[]:
-            raise Exception("no stats to collect!!!!")
-        data = np.vstack(res).reshape(-1, T, 3)
-        pathname = os.path.join(CorrFuncDir(self.mu), 'FDStats.' + str(self.EG)+ "." + str(T) + '.np')
-        data.tofile(pathname)
-        return pathname, T
-        
-    def MakePlots(self, Mulist):
-        Betas =[]
-        Dss = []
-        OdotO = []
-        np.sort(Mulist)
-        for mu in Mulist:
-            pathname = None
-            T = None
-            for filename in os.listdir(CorrFuncDir(mu)):
-                if filename.endswith(".np") and filename.startswith("FDStats." + str(self.EG)):
-                    try:
-                        splits = filename.split(".")
-                        T = int(splits[-2])
-                        if (T > 0): 
-                            pathname = os.path.join(CorrFuncDir(self.mu), filename)
-                            break
-                    except Exception as ex:
-                        break
-                    pass
-            if pathname is None:
-                pathname, T = self.GetFDStats(mu)
-            array = np.fromfile(pathname,dtype=float)
-            stats = array.reshape(-1, T, 3)
-            stats = np.transpose(stats, (2, 1, 0)).reshape(3,-1)
-            Betas.append(stats[0])
-            Dss.append(stats[1])
-            OdotO.append(stats[2])
-        pass
-        MaxMu = Mulist[-1]
-        if sys.platform == 'linux':
-            for X, name in zip([Betas, Dss, OdotO, OdotO], ["logTanbeta", "DS", "OmOm", "-OmOm"]):
-                data = []
-                for k, mu in enumerate(Mulist):
-                    data.append([str(mu), X[k]]) if name != "-OmOm" else data.append([str(mu), -X[k]])
-                plotpath = os.path.join(CorrFuncDir(MaxMu), str(self.EG)+ "."  + name + ".png")
-                try:
-                    logx = True
-                    logy = True
-                    MultiRankHistPos(data, plotpath, name, logx=logx, logy=logy, num_subsamples=1000)
-                except Exception as ex:
-                    print(ex)
-            pass
-            data = []
-            for k, mu in enumerate(Mulist):
-                oto = OdotO[k]
-                dss =Dss[k]
-                pos = oto > 0
-                neg = oto < 0
-                data.append([str(mu), dss[pos], oto[pos]])
-                data.append([str(-mu), dss[neg], -oto[neg]])
-                try:
-                    plotpath = os.path.join(CorrFuncDir(MaxMu), str(self.EG)+ ".OtOvsDss.png")
-                    MultiXYPlot(data, plotpath, logx=True, logy=True, title='OtoOVsDss', scatter=False, xlabel='log(dss)',
-                                ylabel='log(oto)', frac_last=0.9, num_subsamples=1000)
-                except Exception as ex:
-                    print(ex)
-            print("plotted otovsds " + str(MaxMu))
-
-        if self.STP<=0: return
-        data =[]
-        rho_data = np.linspace(self.R0,self.R1,self.STP)
-        for k, mu in enumerate(Mulist):
-            oto = OdotO[k]
-            dss =Dss[k]
-            corr = np.zeros_like(rho_data)
-            rdx = rho_data[1:,np.newaxis]* dss[np.newaxis,:]
-            otX = oto[np.newaxis,:]
-            corr[1:] = np.mean(otX * sin(rdx)/rdx,axis=1)
-            corr[0] = np.mean(oto)
-            data.append([str(mu), rho_data, corr])
-        try:
-            plotpath = os.path.join(CorrFuncDir(MaxMu), str(self.EG)+ ".CorrFunction.png")
-            MultiXYPlot(data, plotpath, logx=True, logy=True, title='CorrFunction', scatter=False, xlabel='rho',
-                        ylabel='cor', frac_last=0.9, num_subsamples=1000)
-        except Exception as ex:
-            print(ex)
-        print("plotted CorrFunction " + str(MaxMu))
-            
 
 
 def test_FDistribution(Mu, EG, T, CPU, C, serial):
@@ -408,7 +181,17 @@ def test_FDistribution(Mu, EG, T, CPU, C, serial):
             fdp.FDistribution(serial)  # runs on each node, outputs placed in the plot dir of the main node
     else:
         print(f"not implemented on {sys.platform}")
-    
+
+def test_Spectrum(Mu, EG, T, CPU, C, serial, Nlam, gamma):
+    """
+    :param serial: Boolean If set, run serially.
+    """
+    if sys.platform == 'linux':
+        with Timer("done Spectrum for M,T,C= " + str(Mu) + "," + str(T)+ "," + str(C)):
+            fdp = CurveSimulator(Mu, EG, T, CPU, 0, 0, 0, C, Nlam, gamma)
+            fdp.PrepareSpectrum(serial)  # runs on each node, outputs placed in the plot dir of the main node
+    else:
+        print(f"not implemented on {sys.platform}")
 def MakePlots(Mu, EG, T, CPU, R0, R1, STP):
     with Timer("done MakePlots for Mu,T= " + str(Mu) + "," + str(T)):
         fdp = CurveSimulator(Mu, EG, T, CPU, R0, R1, STP, 0)
@@ -460,20 +243,27 @@ if __name__ == '__main__':
 
     logger = logging.getLogger()
     parser = argparse.ArgumentParser()
-    parser.add_argument('-Mu', type=float, default=1e-7)
+    parser.add_argument('-Mu', type=float, default=1e-4)
     parser.add_argument('-EG', type=str, default='E')
-    parser.add_argument('-T', type=int, default=1000)
+    parser.add_argument('-T', type=int, default=100000)
     parser.add_argument('-CPU', type=int, default=mp.cpu_count())
-    parser.add_argument('-C', type=int, default=0)
+    parser.add_argument('-C', type=int, default=1)
     parser.add_argument('--serial', default=False, action="store_true")
     parser.add_argument('-R0', type=float, default=0.001)
     parser.add_argument('-R1', type=float, default=0.0035)
     parser.add_argument('-STP', type=int, default=10000)
+    parser.add_argument('-NLAM', type=int, default=1)
+    parser.add_argument('-GAMMA', type=float, default=-100.)
+    #, Nlam, gamma
     
     A = parser.parse_args()
     if A.C > 0:
-        with Timer("done Distribution for Mu,T= " + str(A.Mu) + "," + str(A.T)):
-            test_FDistribution(A.Mu, A.EG, A.T, A.CPU, A.C, A.serial)
+        if A.NLAM >0:
+            with Timer("done Spectrum for Mu,T= "   + str(A.Mu) + "," + str(A.T)+"," +  str(A.NLAM) + "," + str(A.GAMMA)):
+                test_Spectrum(A.Mu, A.EG, A.T, A.CPU, A.C, A.serial, A.NLAM, A.GAMMA)
+        else:
+            with Timer("done Distribution for Mu,T= " + str(A.Mu) + "," + str(A.T)):
+                test_FDistribution(A.Mu, A.EG, A.T, A.CPU, A.C, A.serial)
     else:
         MakePlots(A.Mu, A.EG, A.T, A.CPU, A.R0, A.R1, A.STP)
    

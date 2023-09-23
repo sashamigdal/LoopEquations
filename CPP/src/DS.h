@@ -25,10 +25,10 @@ using namespace std::complex_literals;
 
 extern "C"{
     EXPORT double DS( std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_neg, double beta, /*OUT*/ double* o_o );
-    EXPORT void FindSpectrumFronmResolvent(std::int64_t N_pos, std::int64_t N_neg, double beta, std::complex<double> gamma, 
-    /*OUT*/std::complex<double> * lambdas, bool cold_start);
-    EXPORT void FindSpectrumFromSparsematrix(int64_t N_pos, std::int64_t N_neg, double beta, complex gamma, 
-    complex * lambdas,std::int64_t num_SR, bool cold_start){
+    EXPORT size_t FindSpectrumFromResolvent(std::int64_t N_pos, std::int64_t N_neg, std::int64_t N_lam,double beta, std::complex<double> gamma, 
+    /*OUT*/std::complex<double> * lambdas, bool cold_star, double tol);
+    // EXPORT void FindSpectrumFromSparsematrix(int64_t N_pos, std::int64_t N_neg, double beta, complex gamma, 
+    // complex * lambdas,std::int64_t num_SR, bool cold_start, double tol);
 }
 
 class RandomWalker

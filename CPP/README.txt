@@ -1,5 +1,8 @@
 How to build:
-$ module load gcc/9.2.0
-$ module load cmake/3.18.4
-$ cmake . -D CMAKE_BUILD_TYPE=Release -B cmake-build-release
-$ cmake --build cmake-build-release/
+1. $ module load gcc/9.2.0
+2. $ module load cmake/3.18.4
+3. $ cmake . -D CMAKE_BUILD_TYPE=Release -B cmake-build-release
+4. $ cmake --build cmake-build-release/
+OR
+3. $ cmake . -D CMAKE_BUILD_TYPE=Debug -B cmake-build-debug
+4. $ cmake --build cmake-build-debug/
