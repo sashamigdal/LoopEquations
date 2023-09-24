@@ -66,8 +66,6 @@ double DS(std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_neg
     return abs((S_nm - S_mn) / (2 * sin(beta / 2)));
 }
 
-
-
 size_t FindSpectrumFromResolvent(std::int64_t N_pos, std::int64_t N_neg, std::int64_t N_lam, double beta, complex gamma, complex * lambdas, bool cold_start, double tol){
     MatrixMaker mm(N_pos, N_neg, beta,gamma);
     size_t M = N_pos + N_neg;
@@ -98,9 +96,10 @@ size_t FindSpectrumFromResolvent(std::int64_t N_pos, std::int64_t N_neg, std::in
     std::vector<complex> known_lambdas;
     // #pragma omp parallel for
     complex dlam = (0,0);
+    complex lambda0 = lambdas[0];
     double r = 10*tol;
     for(size_t k =0; k < L; k++){
-        lambdas[k] = lambdas[0] + r * expi(2 * M_PI * k/L);
+        lambdas[k] = lambda0 + r * expi(2 * M_PI * k/L);
         for(size_t iter =0; iter < maxiter; iter++){
             complex R = mm.Resolvent(lambdas[k]);
             for(auto lam: known_lambdas){

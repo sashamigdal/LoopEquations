@@ -61,7 +61,7 @@ def CorrFuncDir(Mu):
     return os.path.join("plots", "VorticityCorr." + str(Mu))
 
 class CurveSimulator():
-    def __init__(self, Mu, EG, T, CPU, R0, R1, STP, C , Nlam, gamma):
+    def __init__(self, Mu, EG, T, CPU, R0, R1, STP, C, Nlam, gamma):
         MakeDir(CorrFuncDir(Mu))
         self.mu = Mu
         self.CPU = CPU
@@ -72,11 +72,15 @@ class CurveSimulator():
         self.R1 = R1
         self.STP = STP
         self.spectralParams =(Nlam, gamma,1e-4)
+        self.lambdas = np.zeros(N_lam, dtype=complex)
+        self.M = 5396
 
-
-    def EulerPair(self, M=0):
-        if M ==0:
+    def EulerPair(self):
+        if self.M ==0:
             M = int(np.clip(np.floor(0.5*np.random.exponential(1./self.mu)),3,5e9))*2
+        else:
+            M = self.M
+
         while (True):
             q = 2 * np.random.randint(2,M//2)
             p = np.random.randint(1, q)
@@ -118,7 +122,7 @@ class CurveSimulator():
         np.random.seed(self.C + 1000 * beg)  # to make a unique seed for at least 1000 nodes
 
         for k in range(beg, end):
-            M, p, q = self.EulerPair(M=5396)
+            M, p, q = self.EulerPair(M=self.M)
             beta = (2 * pi * p) / float(q)
             r =0
             N_pos = (M + q*r) // 2  # Number of 1's
@@ -163,25 +167,31 @@ class CurveSimulator():
         mu = self.mu
         T = self.T
         Nlam = self.spectralParams[0]
+        self.lambdas.fill(-0.235777 - 853.085j)
+
         MakeDir(CorrFuncDir(mu))
+
         if not os.path.isfile(self.SpectrumPathname()):
-            res = None
-            params = [(T * i // self.CPU, T * (i + 1) // self.CPU, ) for i in range(self.CPU)]
-            if serial:
-                res = list(map(self.getSpectrum, params))
-            else:
-                with fut.ProcessPoolExecutor(max_workers=self.CPU) as exec:
-                    res = list(exec.map(self.getSpectrum, params))
-            data = np.vstack(res).reshape(Nlam,-1)
-            means = np.zeros(Nlam,complex)
-            for n in range(Nlam):
-                ok = ~np.isnan(data[n])
-                good_data = data[n][ok]
-                means[n] = good_data.mean()
-                xx = np.real(good_data)
-                err = np.std(xx)
-                print(" n=", n, " mean lambda =", means[n] , " +/- ",err )
-            data.tofile(self.SpectrumPathname())
+            with open(self.SpectrumPathname(), 'a') as fout:
+                for iter in range(10):
+                    res = None
+                    params = [(T * i // self.CPU, T * (i + 1) // self.CPU, ) for i in range(self.CPU)]
+                    if serial:
+                        res = list(map(self.getSpectrum, params))
+                    else:
+                        with fut.ProcessPoolExecutor(max_workers=self.CPU) as exec:
+                            res = list(exec.map(self.getSpectrum, params))
+                    data = np.vstack(res).reshape(Nlam,-1)
+                    self.lambdas = np.zeros(Nlam,complex)
+                    for n in range(Nlam):
+                        ok = ~np.isnan(data[n])
+                        good_data = data[n][ok]
+                        self.lambdas[n] = good_data.mean()
+                        xx = np.real(good_data)
+                        err = np.std(xx)
+                        print(" n=", n, " mean lambda =", self.lambdas[n] , " +/- ",err )
+                    np.savetxt(fout, [iter, self.M] + self.lambdas)
+                    self.M += 1000
         print("made Spectrum " + str(mu))
         
     @staticmethod

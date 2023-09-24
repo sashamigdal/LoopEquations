@@ -192,6 +192,8 @@ def test_Spectrum(Mu, EG, T, CPU, C, serial, Nlam, gamma):
             fdp.PrepareSpectrum(serial)  # runs on each node, outputs placed in the plot dir of the main node
     else:
         print(f"not implemented on {sys.platform}")
+
+
 def MakePlots(Mu, EG, T, CPU, R0, R1, STP):
     with Timer("done MakePlots for Mu,T= " + str(Mu) + "," + str(T)):
         fdp = CurveSimulator(Mu, EG, T, CPU, R0, R1, STP, 0)
