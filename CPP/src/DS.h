@@ -1,5 +1,6 @@
 #include <math.h>
 #include <complex.h>
+#include <random>
 #include "Eigen/Dense"
 
 using Eigen::Matrix3cd;
@@ -12,6 +13,8 @@ using namespace std::complex_literals;
 #elif defined(__GNUC__)
 #   define EXPORT __attribute__((visibility("default")))
 #endif
+
+inline complex expi( double a );
 
 // '''
 // def SS(n, m, M, sigmas, beta):

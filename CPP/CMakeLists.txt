@@ -10,5 +10,14 @@ find_package(OpenMP)
 #     message(WARNING "OpenMP not found")
 # endif()
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
-add_library(${PROJECT_NAME} SHARED src/DS.cpp)
+include_directories(
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/arpackpp-2.3.0/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/arpackpp-2.3.0/examples/matprod
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/arpackpp-2.3.0/examples/matprod/complex
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/arpackpp-2.3.0/examples/reverse/complex
+)
+
+add_library(${PROJECT_NAME} SHARED
+        src/DS.cpp
+        src/EigenProblem.cpp)

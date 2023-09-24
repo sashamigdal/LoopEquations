@@ -52,8 +52,9 @@ void Test(T type)
 } // Test.
 
 size_t FindSpectrumFromSparsematrix(std::int64_t N_pos, std::int64_t N_neg, std::int64_t N_lam,double beta, std::complex<double> gamma, 
-    /*OUT*/std::complex<double> * lambdas, bool cold_star, double tol)
+    /*OUT*/std::complex<double> * lambdas, bool cold_start, double tol)
 {
+    MatrixMaker mm(N_pos, N_neg, beta,gamma);
     size_t M = N_pos + N_neg;
     size_t L = 3*M;
     size_t maxiter=10;

@@ -10,8 +10,12 @@ from plot import MakeDir, MultiRankHistPos, MultiXYPlot
 
 import ctypes
 
-libDS_path = os.path.join("CPP/cmake-build-release", 'libDS.so')
-sys.path.append("CPP/cmake-build-release")
+
+lib_config = "debug" if (os.getenv("USE_DEBUG_LIB") == "1") else "release"
+cxx_lib_dir = "CPP/cmake-build-" + lib_config
+libDS_path = os.path.join(cxx_lib_dir, 'libDS.so')
+sys.path.append(cxx_lib_dir)
+
 if sys.platform == 'linux':
     libDS = ctypes.cdll.LoadLibrary(libDS_path)
 c_double_p = ctypes.POINTER(ctypes.c_double)
@@ -117,24 +121,27 @@ class CurveSimulator():
         return ar
     
     def getSpectrum(self, params):
-        beg, end = params
-        N_lam, gamma, tol = self.spectralParams
-        ar = np.zeros(shape=(end-beg,N_lam),dtype = complex)
-        ar.fill(np.NaN)
-        np.random.seed(self.C + 1000 * beg)  # to make a unique seed for at least 1000 nodes
+        try:
+            beg, end = params
+            N_lam, gamma, tol = self.spectralParams
+            ar = np.zeros(shape=(end-beg,N_lam),dtype = complex)
+            ar.fill(np.NaN)
+            np.random.seed(self.C + 1000 * beg)  # to make a unique seed for at least 1000 nodes
 
-        for k in range(beg, end):
-            M, p, q = self.EulerPair()
-            beta = (2 * pi * p) / float(q)
-            r =0
-            N_pos = (M + q*r) // 2  # Number of 1's
-            N_neg = M - N_pos  # Number of -1's
-            t = k - beg
-            res  = SPECTRUM_CPP( N_pos, N_neg,N_lam, beta, gamma,tol)
-            if res is None: continue
-            if len(res) >0:
-                ar[t,:len(res)] = res[:]
-            pass
+            for k in range(beg, end):
+                M, p, q = self.EulerPair()
+                beta = (2 * pi * p) / float(q)
+                r =0
+                N_pos = (M + q*r) // 2  # Number of 1's
+                N_neg = M - N_pos  # Number of -1's
+                t = k - beg
+                res  = SPECTRUM_CPP( N_pos, N_neg, N_lam, beta, gamma,tol)
+                if res is None: continue
+                if len(res) >0:
+                    ar[t,:len(res)] = res[:]
+                pass
+        except:
+            print("Exception caught")
         return ar
     
     def FDistributionPathname(self):
@@ -172,9 +179,11 @@ class CurveSimulator():
         self.lambdas.fill(0+0j)
 
         MakeDir(CorrFuncDir(mu))
-        os.remove(self.SpectrumPathname())
+        spectrum_filepath = self.SpectrumPathname()
+        if os.path.exists(spectrum_filepath):
+            os.remove(spectrum_filepath)
         # if not os.path.isfile(self.SpectrumPathname()):
-        with open(self.SpectrumPathname(), 'a') as fout:
+        with open(spectrum_filepath, 'a') as fout:
             for iter in range(10):
                 res = None
                 params = [(T * i // self.CPU, T * (i + 1) // self.CPU, ) for i in range(self.CPU)]
