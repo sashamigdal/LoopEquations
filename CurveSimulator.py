@@ -46,12 +46,14 @@ def SPECTRUM_CPP( N_pos, N_neg,N_lam, beta, gamma,tol):
     #/*OUT*/std::complex<double> * lambdas, bool cold_start, double tol);
     N = N_pos + N_neg
     lambdas = np.zeros(N_lam,dtype= complex)
-    lambdas.fill(-0.235777 -853.085j)
+    lambdas.fill( 1j)
+    # lambdas.fill(0 + 0j)
     INT64 = ctypes.c_int64
-    libDS.FindSpectrumFromResolvent.argtypes = (INT64, INT64, INT64, ctypes.c_double, c_double_complex,c_double_complex_p ,ctypes.c_bool,ctypes.c_double)
-    libDS.FindSpectrumFromResolvent.restype = ctypes.c_uint64
+    func = libDS.FindSpectrumFromResolvent
+    func.argtypes = (INT64, INT64, INT64, ctypes.c_double, c_double_complex,c_double_complex_p ,ctypes.c_bool,ctypes.c_double)
+    func.restype = ctypes.c_uint64
     arg_gamma = c_double_complex(gamma, 0)
-    N_good = libDS.FindSpectrumFromResolvent(N_pos, N_neg,N_lam, beta, arg_gamma,
+    N_good = func(N_pos, N_neg,N_lam, beta, arg_gamma,
                                     lambdas.ctypes.data_as(c_double_complex_p),False,tol)
     
     return np.sort_complex(lambdas[:N_good]) if N_good > 0 else None
@@ -72,8 +74,8 @@ class CurveSimulator():
         self.R1 = R1
         self.STP = STP
         self.spectralParams =(Nlam, gamma,1e-4)
-        self.lambdas = np.zeros(N_lam, dtype=complex)
-        self.M = 5396
+        self.lambdas = np.zeros(Nlam, dtype=complex)
+        self.M = 16
 
     def EulerPair(self):
         if self.M ==0:
@@ -122,7 +124,7 @@ class CurveSimulator():
         np.random.seed(self.C + 1000 * beg)  # to make a unique seed for at least 1000 nodes
 
         for k in range(beg, end):
-            M, p, q = self.EulerPair(M=self.M)
+            M, p, q = self.EulerPair()
             beta = (2 * pi * p) / float(q)
             r =0
             N_pos = (M + q*r) // 2  # Number of 1's
@@ -167,31 +169,31 @@ class CurveSimulator():
         mu = self.mu
         T = self.T
         Nlam = self.spectralParams[0]
-        self.lambdas.fill(-0.235777 - 853.085j)
+        self.lambdas.fill(0+0j)
 
         MakeDir(CorrFuncDir(mu))
-
-        if not os.path.isfile(self.SpectrumPathname()):
-            with open(self.SpectrumPathname(), 'a') as fout:
-                for iter in range(10):
-                    res = None
-                    params = [(T * i // self.CPU, T * (i + 1) // self.CPU, ) for i in range(self.CPU)]
-                    if serial:
-                        res = list(map(self.getSpectrum, params))
-                    else:
-                        with fut.ProcessPoolExecutor(max_workers=self.CPU) as exec:
-                            res = list(exec.map(self.getSpectrum, params))
-                    data = np.vstack(res).reshape(Nlam,-1)
-                    self.lambdas = np.zeros(Nlam,complex)
-                    for n in range(Nlam):
-                        ok = ~np.isnan(data[n])
-                        good_data = data[n][ok]
-                        self.lambdas[n] = good_data.mean()
-                        xx = np.real(good_data)
-                        err = np.std(xx)
-                        print(" n=", n, " mean lambda =", self.lambdas[n] , " +/- ",err )
-                    np.savetxt(fout, [iter, self.M] + self.lambdas)
-                    self.M += 1000
+        os.remove(self.SpectrumPathname())
+        # if not os.path.isfile(self.SpectrumPathname()):
+        with open(self.SpectrumPathname(), 'a') as fout:
+            for iter in range(10):
+                res = None
+                params = [(T * i // self.CPU, T * (i + 1) // self.CPU, ) for i in range(self.CPU)]
+                if serial:
+                    res = list(map(self.getSpectrum, params))
+                else:
+                    with fut.ProcessPoolExecutor(max_workers=self.CPU) as exec:
+                        res = list(exec.map(self.getSpectrum, params))
+                data = np.vstack(res).reshape(Nlam,-1)
+                self.lambdas = np.zeros(Nlam,complex)
+                for n in range(Nlam):
+                    ok = ~np.isnan(data[n])
+                    good_data = data[n][ok]
+                    self.lambdas[n] = good_data.mean()
+                    xx = np.real(good_data)
+                    err = np.std(xx)
+                    print(" n=", n, " mean lambda =", self.lambdas[n] , " +/- ",err )
+                np.savetxt(fout, [iter, self.M] + self.lambdas)
+                self.M *= 2
         print("made Spectrum " + str(mu))
         
     @staticmethod

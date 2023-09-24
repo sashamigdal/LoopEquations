@@ -50,12 +50,15 @@ void Test(T type)
   Solution(prob);
 
 } // Test.
-void FindSpectrumFromSparsematrix(int64_t N_pos, std::int64_t N_neg, double beta, complex gamma, complex * lambdas,std::int64_t num_SR, bool cold_start){
-    MatrixMaker mm(N_pos, N_neg, beta,gamma);
+
+size_t FindSpectrumFromSparsematrix(std::int64_t N_pos, std::int64_t N_neg, std::int64_t N_lam,double beta, std::complex<double> gamma, 
+    /*OUT*/std::complex<double> * lambdas, bool cold_star, double tol)
+{
     size_t M = N_pos + N_neg;
     size_t L = 3*M;
     size_t maxiter=10;
-    if(cold_start){
+    if(cold_start)
+    {
         //det(R -1) -> det(a/lambda + b/lambda^2) ~ det(a/lambda) det(1 + a^(-1) b/lambda)~ (lambda + tr(a^-1 b))
         // lambda0 = - tr(b/a)
         // a_k = -A_k - B_k
@@ -75,33 +78,38 @@ void FindSpectrumFromSparsematrix(int64_t N_pos, std::int64_t N_neg, double beta
             lambdas[k] = lambda0 + r * expi(2 * M_PI * k/L);
         }
     }
-
-    std::vector<double> errs(L);
+    
     ARrcCompStdEig<T> prob(L, num_SR,"SR");
-    while (!prob.ArnoldiBasisFound()) {
+    while (!prob.ArnoldiBasisFound()) 
+    {
 
-    // Calling ARPACK FORTRAN code. Almost all work needed to
-    // find an Arnoldi basis is performed by TakeStep.
+      // Calling ARPACK FORTRAN code. Almost all work needed to
+      // find an Arnoldi basis is performed by TakeStep.
 
-    prob.TakeStep();
+      prob.TakeStep();
 
-    if ((prob.GetIdo() == 1)||(prob.GetIdo() == -1)) {
+      if ((prob.GetIdo() == 1)||(prob.GetIdo() == -1)) {
 
-      // Performing matrix-vector multiplication.
-      // In regular mode, w = Av must be performed whenever
-      // GetIdo is equal to 1 or -1. GetVector supplies a pointer
-      // to the input vector, v, and PutVector a pointer to the
-      // output vector, w.
+        // Performing matrix-vector multiplication.
+        // In regular mode, w = Av must be performed whenever
+        // GetIdo is equal to 1 or -1. GetVector supplies a pointer
+        // to the input vector, v, and PutVector a pointer to the
+        // output vector, w.
 
-      mm.MultMv(prob.GetVector(), prob.PutVector());
+        mm.MultMv(prob.GetVector(), prob.PutVector());
 
+      }
     }
+    
     // Finding eigenvalues and eigenvectors.
 
-    prob.FindEigenvalues();
-
-    // Printing solution.
-
-    Solution(prob);
-  }
+    size_t num =prob.FindEigenvalues();
+    if(num ==0 ) return 0;
+    std::vector<complex> known_lambdas(num);
+    prob.Eigenvalues(known_lambdas.begin());
+    std::sort(known_lambdas.begin(), known_lambdas.end(),[](auto&a,auto&b){return a.real() == b.real() ? a.imag() < b.imag() : a.real() < b.real();});
+    if(known_lambdas.size() > N_lam) known_lambdas.resize(N_lam);
+    std::copy( std::begin(known_lambdas), std::end(known_lambdas), lambdas );
+    return known_lambdas.size();
 }
+

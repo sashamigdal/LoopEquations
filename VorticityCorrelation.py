@@ -245,9 +245,9 @@ if __name__ == '__main__':
 
     logger = logging.getLogger()
     parser = argparse.ArgumentParser()
-    parser.add_argument('-Mu', type=float, default=1e-4)
+    parser.add_argument('-Mu', type=float, default=1e-3)
     parser.add_argument('-EG', type=str, default='E')
-    parser.add_argument('-T', type=int, default=100000)
+    parser.add_argument('-T', type=int, default=1000)
     parser.add_argument('-CPU', type=int, default=mp.cpu_count())
     parser.add_argument('-C', type=int, default=1)
     parser.add_argument('--serial', default=False, action="store_true")

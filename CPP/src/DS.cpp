@@ -4,6 +4,11 @@
 #include <iostream>
 #include "DS.h"
 
+// #include "arcomp.h"
+// #include "arrscomp.h"
+// #include "cmatrixa.h"
+// #include "rcompsol.h"
+
 using Eigen::Matrix3cd;
 using Eigen::Vector3cd;
 using complex = std::complex<double>;
@@ -109,10 +114,11 @@ size_t FindSpectrumFromResolvent(std::int64_t N_pos, std::int64_t N_neg, std::in
             lambdas[k] -= dlam;
             if(abs(dlam) < tol){
                 known_lambdas.push_back(lambdas[k]);
+                lambda0 = lambdas[k];
+                std::cout << "N=" << M <<  ", k= " << k << ", found " << lambdas[k] <<" +/-" << abs(dlam) << std::endl;
                 break;
             }
         }
-        // std::cout << "N=" << M <<  ", k= " << k << ", found " << lambdas[k] <<" +/-" << abs(dlam) << std::endl;
     }
     if(known_lambdas.size() ==0 ) return 0;
     std::sort(known_lambdas.begin(), known_lambdas.end(),[](auto&a,auto&b){return a.real() == b.real() ? a.imag() < b.imag() : a.real() < b.real();});
@@ -258,4 +264,4 @@ complex MatrixMaker::Resolvent(complex lambda) const
     return ((R - I3).inverse()* RP).trace();
 };
 
-   
+
