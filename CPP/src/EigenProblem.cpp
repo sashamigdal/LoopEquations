@@ -80,7 +80,7 @@ size_t FindSpectrumFromSparsematrix(std::int64_t N_pos, std::int64_t N_neg, std:
         }
     }
     
-    ARrcCompStdEig<complex> prob(L, N_lam,"SR");
+    ARrcCompStdEig<double> prob(L, N_lam,"SR");
     while (!prob.ArnoldiBasisFound()) 
     {
 
