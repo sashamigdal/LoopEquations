@@ -22,3 +22,5 @@ add_library(${PROJECT_NAME} SHARED
         src/DS.cpp
         src/EigenProblem.cpp
         )
+
+target_link_libraries(DS LINK_PUBLIC arpack)
