@@ -14,7 +14,13 @@ using namespace std::complex_literals;
 #   define EXPORT __attribute__((visibility("default")))
 #endif
 
-inline complex expi( double a );
+
+inline complex expi(double a)
+{
+    double sin_a, cos_a;
+    sincos(a, &sin_a, &cos_a);
+    return {cos_a, sin_a};
+}
 
 // '''
 // def SS(n, m, M, sigmas, beta):

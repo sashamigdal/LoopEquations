@@ -13,12 +13,6 @@ using Eigen::Vector3cd;
 using complex = std::complex<double>;
 using namespace std::complex_literals;
 
-inline complex expi(double a)
-{
-    double sin_a, cos_a;
-    sincos(a, &sin_a, &cos_a);
-    return {cos_a, sin_a};
-}
 /*
 TODO: replace formulas by these
 
