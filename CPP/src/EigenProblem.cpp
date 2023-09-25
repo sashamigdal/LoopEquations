@@ -1,4 +1,5 @@
-#include "DS.h"
+#include "Euler.h"
+#include "MatrixMaker.h"
 #include "arcomp.h"
 #include "arrscomp.h"
 #include "cmatrixa.h"
@@ -81,27 +82,7 @@ size_t FindSpectrumFromSparsematrix(std::int64_t N_pos, std::int64_t N_neg, std:
     }
     
     ARrcCompStdEig<double> prob(L, N_lam,"SR");
-    while (!prob.ArnoldiBasisFound()) 
-    {
 
-      // Calling ARPACK FORTRAN code. Almost all work needed to
-      // find an Arnoldi basis is performed by TakeStep.
-
-      prob.TakeStep();
-
-      if ((prob.GetIdo() == 1)||(prob.GetIdo() == -1)) {
-
-        // Performing matrix-vector multiplication.
-        // In regular mode, w = Av must be performed whenever
-        // GetIdo is equal to 1 or -1. GetVector supplies a pointer
-        // to the input vector, v, and PutVector a pointer to the
-        // output vector, w.
-
-        mm.MultMv(prob.GetVector(), prob.PutVector());
-
-      }
-    }
-    
     // Finding eigenvalues and eigenvectors.
 
     size_t num =prob.FindEigenvalues();
