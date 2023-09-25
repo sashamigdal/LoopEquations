@@ -53,11 +53,15 @@ def SPECTRUM_CPP( N_pos, N_neg,N_lam, beta, gamma,tol):
     lambdas.fill( 1j)
     # lambdas.fill(0 + 0j)
     INT64 = ctypes.c_int64
-    func = libDS.FindSpectrumFromResolvent
-    func.argtypes = (INT64, INT64, INT64, ctypes.c_double, c_double_complex,c_double_complex_p ,ctypes.c_bool,ctypes.c_double)
+    UINT64 = ctypes.c_uint64
+
+    bUseResolvent = False
+    func = libDS.FindSpectrumFromResolvent if bUseResolvent else libDS.FindSpectrumFromSparsematrix
+    func.argtypes = (INT64, INT64, UINT64, ctypes.c_double, c_double_complex,c_double_complex_p, ctypes.c_bool,ctypes.c_double)
     func.restype = ctypes.c_uint64
+
     arg_gamma = c_double_complex(gamma, 0)
-    N_good = func(N_pos, N_neg,N_lam, beta, arg_gamma,
+    N_good = func(N_pos, N_neg, N_lam, beta, arg_gamma,
                                     lambdas.ctypes.data_as(c_double_complex_p),False,tol)
     
     return np.sort_complex(lambdas[:N_good]) if N_good > 0 else None
@@ -121,27 +125,24 @@ class CurveSimulator():
         return ar
     
     def getSpectrum(self, params):
-        try:
-            beg, end = params
-            N_lam, gamma, tol = self.spectralParams
-            ar = np.zeros(shape=(end-beg,N_lam),dtype = complex)
-            ar.fill(np.NaN)
-            np.random.seed(self.C + 1000 * beg)  # to make a unique seed for at least 1000 nodes
+        beg, end = params
+        N_lam, gamma, tol = self.spectralParams
+        ar = np.zeros(shape=(end-beg,N_lam),dtype = complex)
+        ar.fill(np.NaN)
+        np.random.seed(self.C + 1000 * beg)  # to make a unique seed for at least 1000 nodes
 
-            for k in range(beg, end):
-                M, p, q = self.EulerPair()
-                beta = (2 * pi * p) / float(q)
-                r =0
-                N_pos = (M + q*r) // 2  # Number of 1's
-                N_neg = M - N_pos  # Number of -1's
-                t = k - beg
-                res  = SPECTRUM_CPP( N_pos, N_neg, N_lam, beta, gamma,tol)
-                if res is None: continue
-                if len(res) >0:
-                    ar[t,:len(res)] = res[:]
-                pass
-        except:
-            print("Exception caught")
+        for k in range(beg, end):
+            M, p, q = self.EulerPair()
+            beta = (2 * pi * p) / float(q)
+            r =0
+            N_pos = (M + q*r) // 2  # Number of 1's
+            N_neg = M - N_pos  # Number of -1's
+            t = k - beg
+            res  = SPECTRUM_CPP( N_pos, N_neg, N_lam, beta, gamma,tol)
+            if res is None: continue
+            if len(res) >0:
+                ar[t,:len(res)] = res[:]
+            pass
         return ar
     
     def FDistributionPathname(self):
