@@ -51,7 +51,7 @@ void Test(T type)
 
 } // Test.
 
-size_t FindSpectrumFromSparsematrix(std::int64_t N_pos, std::int64_t N_neg, std::int64_t N_lam,double beta, std::complex<double> gamma, 
+size_t FindSpectrumFromSparsematrix(std::int64_t N_pos, std::int64_t N_neg, std::uint64_t N_lam,double beta, std::complex<double> gamma,
     /*OUT*/std::complex<double> * lambdas, bool cold_start, double tol)
 {
     MatrixMaker mm(N_pos, N_neg, beta,gamma);
@@ -108,10 +108,9 @@ size_t FindSpectrumFromSparsematrix(std::int64_t N_pos, std::int64_t N_neg, std:
     if(num ==0 ) return 0;
     complex* known_lambdas = new complex[num];
     prob.Eigenvalues(known_lambdas);
-    std::sort(known_lambdas.begin(), known_lambdas.end(),[](auto&a,auto&b){return a.real() == b.real() ? a.imag() < b.imag() : a.real() < b.real();});
-    if(known_lambdas.size() > N_lam) known_lambdas.resize(N_lam);
-    std::copy( std::begin(known_lambdas), std::end(known_lambdas), lambdas );
-    size_t nKnownLambdas = known_lambdas.size();
+    std::sort( known_lambdas, known_lambdas + num,[](auto&a,auto&b){return a.real() == b.real() ? a.imag() < b.imag() : a.real() < b.real();} );
+    num = std::min( num, N_lam );
+    std::copy( known_lambdas, known_lambdas + num, lambdas );
     delete[] known_lambdas;
-    return nKnownLambdas;
+    return num;
 }
