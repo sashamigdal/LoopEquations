@@ -114,3 +114,4 @@ size_t FindSpectrumFromSparsematrix(std::int64_t N_pos, std::int64_t N_neg, std:
     delete[] known_lambdas;
     return num;
 }
+
