@@ -106,11 +106,12 @@ size_t FindSpectrumFromSparsematrix(std::int64_t N_pos, std::int64_t N_neg, std:
 
     size_t num =prob.FindEigenvalues();
     if(num ==0 ) return 0;
-    std::vector<complex > known_lambdas(num);
-    prob.Eigenvalues(known_lambdas.begin());
+    complex* known_lambdas = new complex[num];
+    prob.Eigenvalues(known_lambdas);
     std::sort(known_lambdas.begin(), known_lambdas.end(),[](auto&a,auto&b){return a.real() == b.real() ? a.imag() < b.imag() : a.real() < b.real();});
     if(known_lambdas.size() > N_lam) known_lambdas.resize(N_lam);
     std::copy( std::begin(known_lambdas), std::end(known_lambdas), lambdas );
-    return known_lambdas.size();
+    size_t nKnownLambdas = known_lambdas.size();
+    delete[] known_lambdas;
+    return nKnownLambdas;
 }
-
