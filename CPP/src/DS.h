@@ -84,6 +84,9 @@ public:
     // Matrix-vector product: w = M*v.
     void MultMv( complex* v, complex* w );
 
+   
+    void CompMatrixC(size_t n, size_t& nL, size_t& nU, complex* &A);//LHS: A X = lambda B x
+    void CompMatrixB(size_t n, size_t& nL, size_t& nU, complex* &B);//RHS: A X = lambda B x
     complex GetScale() const{
         return ABscale;
     }

@@ -231,7 +231,13 @@ void MatrixMaker::MultMv( complex* v, complex* w )
         if(k +1 <M) Y[k+1] = X[k] - Y[k];
     }
 };
+void MatrixMaker::CompMatrixB(size_t n, size_t& nL, size_t& nU, complex* &B){
+    //RHS: A X = lambda B X // B= (1/2,/1/2,1/2,1/2, 1/2,1/2)
+    nL =0;
+    nU = 6;
+    
 
+};
 complex MatrixMaker::Resolvent(complex lambda) const
 {
     // using prepared A, B, compute R(lambda) and return Tr(R'(lambda)/(R(lambda)-1))
