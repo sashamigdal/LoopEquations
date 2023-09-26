@@ -1,3 +1,5 @@
+#pragma once
+
 #include <math.h>
 #include <complex.h>
 #include "Eigen/Dense"

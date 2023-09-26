@@ -3,6 +3,7 @@
 #include <iostream>
 #include "Euler.h"
 #include "RandomWalker.h"
+#include "MatrixMaker.h"
 
 // #include "arcomp.h"
 // #include "arrscomp.h"

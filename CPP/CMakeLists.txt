@@ -22,6 +22,7 @@ add_library(${PROJECT_NAME} SHARED
         src/Euler.cpp
         src/EigenProblem.cpp
         src/MatrixMaker.cpp
+        src/arpackpp-2.3.0/patch/arerror.cpp
         )
 
 target_link_libraries(Euler LINK_PUBLIC arpack)

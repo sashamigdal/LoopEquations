@@ -123,7 +123,7 @@ class CurveSimulator():
             ar[t, 0] = 1/tan(beta/2)**2
             ar[t, 1], ar[t, 2] = DS_CPP(n, m, N_pos, N_neg, beta)
         return ar
-    
+
     def getSpectrum(self, params):
         beg, end = params
         N_lam, gamma, tol = self.spectralParams
@@ -144,10 +144,10 @@ class CurveSimulator():
                 ar[t,:len(res)] = res[:]
             pass
         return ar
-    
+
     def FDistributionPathname(self):
         return os.path.join(CorrFuncDir(self.mu), "Fdata." + str(self.EG)+ "."+ str(self.T) + "." + str(self.C) + ".np")
-    
+
     def SpectrumPathname(self):
         return os.path.join(CorrFuncDir(self.mu), "Spectrum."+ str(self.spectralParams) + "." + str(self.C) + ".np")
 

@@ -1,58 +1,7 @@
 #include "Euler.h"
 #include "MatrixMaker.h"
-#include "arcomp.h"
-#include "arrscomp.h"
-#include "cmatrixa.h"
-#include "rcompsol.h"
 
-
-template<class T>
-void Test(T type)
-{
-
-  // Defining a complex matrix.
-
-  CompMatrixA<T> A(10); // n = 10*10.
-
-  // Creating a complex eigenvalue problem and defining what we need:
-  // the four eigenvectors of A with largest magnitude.
-
-  ARrcCompStdEig<T> prob(A.ncols(), 4L);
-
-  // Finding an Arnoldi basis.
-
-  while (!prob.ArnoldiBasisFound()) {
-
-    // Calling ARPACK FORTRAN code. Almost all work needed to
-    // find an Arnoldi basis is performed by TakeStep.
-
-    prob.TakeStep();
-
-    if ((prob.GetIdo() == 1)||(prob.GetIdo() == -1)) {
-
-      // Performing matrix-vector multiplication.
-      // In regular mode, w = Av must be performed whenever
-      // GetIdo is equal to 1 or -1. GetVector supplies a pointer
-      // to the input vector, v, and PutVector a pointer to the
-      // output vector, w.
-
-      A.MultMv(prob.GetVector(), prob.PutVector());
-
-    }
-
-  }
-
-  // Finding eigenvalues and eigenvectors.
-
-  prob.FindEigenvectors();
-
-  // Printing solution.
-
-  Solution(prob);
-
-} // Test.
-
-size_t FindSpectrumFromSparsematrix(std::int64_t N_pos, std::int64_t N_neg, std::uint64_t N_lam,double beta, std::complex<double> gamma,
+size_t FindSpectrumFromSparsematrix(std::int64_t N_pos, std::int64_t N_neg, std::uint64_t N_lam, double beta, std::complex<double> gamma,
     /*OUT*/std::complex<double> * lambdas, bool cold_start, double tol)
 {
     MatrixMaker mm(N_pos, N_neg, beta,gamma);
@@ -80,19 +29,8 @@ size_t FindSpectrumFromSparsematrix(std::int64_t N_pos, std::int64_t N_neg, std:
             lambdas[k] = lambda0 + r * expi(2 * M_PI * k/L);
         }
     }
-    
-    ARrcCompStdEig<double> prob(L, N_lam,"SR");
 
-    // Finding eigenvalues and eigenvectors.
-
-    size_t num =prob.FindEigenvalues();
-    if(num ==0 ) return 0;
-    complex* known_lambdas = new complex[num];
-    prob.Eigenvalues(known_lambdas);
-    std::sort( known_lambdas, known_lambdas + num,[](auto&a,auto&b){return a.real() == b.real() ? a.imag() < b.imag() : a.real() < b.real();} );
-    num = std::min( num, N_lam );
-    std::copy( known_lambdas, known_lambdas + num, lambdas );
-    delete[] known_lambdas;
+    size_t num = mm.FindEigenvalues(N_lam);
+    std::copy( std::begin( mm.Eigenvalues() ), std::end( mm.Eigenvalues() ), lambdas );
     return num;
 }
-

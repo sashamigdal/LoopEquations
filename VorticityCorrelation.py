@@ -268,5 +268,3 @@ if __name__ == '__main__':
                 test_FDistribution(A.Mu, A.EG, A.T, A.CPU, A.C, A.serial)
     else:
         MakePlots(A.Mu, A.EG, A.T, A.CPU, A.R0, A.R1, A.STP)
-   
-

@@ -1,6 +1,8 @@
 #include "MatrixMaker.h"
 #include "RandomWalker.h"
-#include "arlnsmat.h" // ARluNonSymMatrix
+#include "Euler.h"
+#include "BlockMatrixUtils.h"
+#include "arlgcomp.h"
 
 using Eigen::Matrix3cd;
 
@@ -24,8 +26,8 @@ MatrixMaker::MatrixMaker(std::int64_t N_pos, std::int64_t N_neg, double beta, co
 // \left(\frac{\beta }{2}\right)\right\};
     //     '''
     M = N_pos + N_neg;
-    A.resize(M);
-    B.resize(M);
+    A->resize(M);
+    B->resize(M);
     F.resize(M);
     RandomWalker walker(N_pos, N_neg);
 
@@ -133,8 +135,10 @@ void MatrixMaker::CompEigProbLHSMatrix() {
 
         pcol[col + 1] = j;
     }
-    ARluNonSymMatrix<Matrix3cd,complex> arpack_A_block( M, 2 * M, &nzval[0], &irow[0], &pcol[0] );
-    //ARluNonSymMatrix<complex,complex> matrix = ConvertBlockMatrix(arpack_A_block);
+    A.reset();
+    B.reset();
+    CSC_Matrix<Matrix3cd> arpack_A_block( M, 2 * M, std::move(nzval), std::move(irow), std::move(pcol) );
+    arpack_A = ConvertBlockMatrix(arpack_A_block);
 };
 
 /* B X
@@ -149,7 +153,7 @@ void MatrixMaker::CompEigProbLHSMatrix() {
  *      g_{n-1}x   0   0
  *        0 gn-1y   0
  *        0   0 gn-1z]
-/* Matrix 3n x 3n
+ * Matrix 3n x 3n
  * [.5 .5 0 ...
  * 0  .5 .5 0 ...
  * ...
@@ -189,8 +193,8 @@ void MatrixMaker::CompEigProbRHSMatrix() {
 
         pcol[col + 1] = j;
     }
-    ARluNonSymMatrix<Matrix3cd,complex> arpack_B_block( M, 2 * M, &nzval[0], &irow[0], &pcol[0] );
-    //ARluNonSymMatrix<complex,complex> matrix = ConvertBlockMatrix(arpack_B_block);
+    CSC_Matrix<Matrix3cd> arpack_B_block( M, 2 * M, std::move(nzval), std::move(irow), std::move(pcol) );
+    arpack_B = ConvertBlockMatrix(arpack_B_block);
 };
 
 complex MatrixMaker::Resolvent(complex lambda) const
@@ -216,4 +220,23 @@ complex MatrixMaker::Resolvent(complex lambda) const
         R = R1;
     }
     return ((R - I3).inverse()* RP).trace();
+}
+
+int MatrixMaker::FindEigenvalues( std::uint64_t N_lam ) {
+    CompEigProbLHSMatrix();
+    CompEigProbRHSMatrix();
+
+    EigVal.resize(N_lam);  // Eigenvalues.
+
+    // Defining the eigenvalue problem.
+    ARluCompGenEig<double> problem( N_lam, arpack_A, arpack_B, "SR" );
+
+    // Finding eigenvalues.
+    complex* pEigVal = &EigVal[0];
+    int nFound = problem.Eigenvalues(pEigVal);
+    EigVal.resize(nFound);
+    std::sort( std::begin(EigVal), std::end(EigVal), [](auto&a,auto&b){
+        return a.real() == b.real() ? a.imag() < b.imag() : a.real() < b.real();
+    } );
+    return nFound;
 };

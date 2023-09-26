@@ -159,7 +159,7 @@ inline void ArpackError::Print(const std::string& where, const std::string& mess
 
 } // Print
 
-void ArpackError::Set(ErrorCode error, const std::string& where)
+inline void ArpackError::Set(ErrorCode error, const std::string& where)
 {
 
   code = error;
@@ -329,8 +329,5 @@ void ArpackError::Set(ErrorCode error, const std::string& where)
   }
 
 } // Set.
-
-ArpackError::ErrorCode ArpackError::code = NO_ERRORS;
-// "code" initialization.
 
 #endif // ARERROR_H
