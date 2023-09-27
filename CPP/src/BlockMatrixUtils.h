@@ -13,16 +13,22 @@ class CSC_Matrix {
     template <typename U>
     friend ARluNonSymMatrix<std::complex<U>,U> ConvertBlockMatrix( const CSC_Matrix<Eigen::Matrix<std::complex<U>,3,3>>& blockMatrix );
 private:
+    int  m; // # of rows
     int  nnz;
     std::vector<int> irow;
     std::vector<int> pcol;
     std::vector<T>   a;
 public:
     CSC_Matrix( int np, int nnzp, std::vector<T>&& ap, std::vector<int>&& irowp, std::vector<int>&& pcolp )
-      : nnz(nnzp),
+      : m(np),
+        nnz(nnzp),
         a( std::move(ap) ),
         irow( std::move(irowp) ),
         pcol( std::move(pcolp) ) {
+    }
+
+    size_t nrows() const {
+        return m;
     }
 
     size_t ncols() const {
@@ -51,6 +57,7 @@ ARluNonSymMatrix<std::complex<T>,T> ConvertBlockMatrix( const CSC_Matrix<Eigen::
             pcol[3 * maj_col + min_col + 1] = nzval.size();
         }
     }
+    return ARluNonSymMatrix<std::complex<T>,T>( 3 * blockMatrix.nrows(), nzval.size(), &nzval[0], &irow[0], &pcol[0] );
 }
 
 void Test_ConvertBlockMatrix() {

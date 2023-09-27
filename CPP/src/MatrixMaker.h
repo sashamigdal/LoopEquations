@@ -17,6 +17,11 @@ public:
     const typename T::value_type& operator[] ( size_t index ) const {
         return (*std::unique_ptr<T>::get())[index];
     }
+
+    IndexingWrapper<T>& operator= ( std::unique_ptr<T>&& other ) noexcept {
+        std::unique_ptr<T>::operator= ( std::move(other) );
+        return *this;
+    }
 };
 
 class MatrixMaker

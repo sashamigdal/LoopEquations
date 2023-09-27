@@ -26,8 +26,8 @@ MatrixMaker::MatrixMaker(std::int64_t N_pos, std::int64_t N_neg, double beta, co
 // \left(\frac{\beta }{2}\right)\right\};
     //     '''
     M = N_pos + N_neg;
-    A->resize(M);
-    B->resize(M);
+    A = std::make_unique<std::vector<Eigen::Matrix3cd>>(M);
+    B = std::make_unique<std::vector<Eigen::Matrix3cd>>(M);
     F.resize(M);
     RandomWalker walker(N_pos, N_neg);
 
