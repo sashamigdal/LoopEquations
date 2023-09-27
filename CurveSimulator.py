@@ -7,13 +7,12 @@ from numpy import pi, sin, tan
 import multiprocessing as mp
 import concurrent.futures as fut
 from plot import MakeDir, MultiRankHistPos, MultiXYPlot
-
 import ctypes
 
 
 lib_config = "debug" if (os.getenv("USE_DEBUG_LIB") == "1") else "release"
 cxx_lib_dir = "CPP/cmake-build-" + lib_config
-libDS_path = os.path.join(cxx_lib_dir, 'libDS.so')
+libDS_path = os.path.join(cxx_lib_dir, 'libEuler.so')
 sys.path.append(cxx_lib_dir)
 
 if sys.platform == 'linux':

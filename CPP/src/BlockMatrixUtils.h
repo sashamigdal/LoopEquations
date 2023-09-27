@@ -52,3 +52,29 @@ ARluNonSymMatrix<std::complex<T>,T> ConvertBlockMatrix( const CSC_Matrix<Eigen::
         }
     }
 }
+
+void Test_ConvertBlockMatrix() {
+    size_t M = 3;
+    std::vector<Matrix3cd> nzval( 2 * M, Matrix3cd::Identity() * 0.5 );
+    std::vector<int> irow( 2 * M );
+    std::vector<int> pcol( M + 1 );
+    pcol[0] = 0;
+    int j = 0;
+    for ( size_t col = 0; col != M; col++ ) {
+        if ( col != 0 ) {
+            irow[j++] = col - 1;
+        }
+
+        irow[j++] = col;
+
+        if ( col == 0 ) {
+            irow[j++] = M - 1;
+        }
+
+        pcol[col + 1] = j;
+    }
+    CSC_Matrix<Matrix3cd> arpack_B_block( M, 2 * M, std::move(nzval), std::move(irow), std::move(pcol) );
+    auto arpack_B = ConvertBlockMatrix(arpack_B_block);
+    //std::cout << arpack_B_block << std::endl;
+    //std::cout << arpack_B << std::endl;
+}
