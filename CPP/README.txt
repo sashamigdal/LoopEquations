@@ -6,3 +6,6 @@ How to build:
 OR
 3. $ cmake . -D CMAKE_BUILD_TYPE=Debug -B cmake-build-debug
 4. $ cmake --build cmake-build-debug/
+
+Important: `ARPACK++` conflicts with `MKL` library. That means `numpy` and `scipy` must be installed
+ using `pip`, not `conda`.

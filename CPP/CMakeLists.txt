@@ -13,16 +13,14 @@ find_package(OpenMP)
 include_directories(
         ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${CMAKE_CURRENT_SOURCE_DIR}/src/arpackpp-2.3.0/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/arpackpp-2.3.0/examples/matprod
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/arpackpp-2.3.0/examples/matprod/complex
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/arpackpp-2.3.0/examples/reverse/complex
 )
 
-add_library(${PROJECT_NAME} SHARED
-        src/Euler.cpp
-        src/EigenProblem.cpp
-        src/MatrixMaker.cpp
-        src/arpackpp-2.3.0/patch/arerror.cpp
-        )
+set(SOURCES src/Euler.cpp
+            src/EigenProblem.cpp
+            src/MatrixMaker.cpp
+            src/arpackpp-2.3.0/patch/arerror.cpp
+)
 
-target_link_libraries(Euler LINK_PUBLIC arpack superlu)
+add_library(${PROJECT_NAME} SHARED ${SOURCES})
+
+target_link_libraries(${PROJECT_NAME} LINK_PUBLIC arpack superlu)

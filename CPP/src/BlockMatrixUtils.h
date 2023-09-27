@@ -40,7 +40,7 @@ template <typename T>
 ARluNonSymMatrix<std::complex<T>,T> ConvertBlockMatrix( const CSC_Matrix<Eigen::Matrix<std::complex<T>,3,3>>& blockMatrix ) {
     std::vector<std::complex<T>> nzval;
     std::vector<int> irow;
-    std::vector<int> pcol( 3 * blockMatrix.ncols() + 1 );
+    int* pcol = new int[3 * blockMatrix.ncols() + 1];
     pcol[0] = 0;
     for ( size_t maj_col = 0; maj_col != blockMatrix.ncols(); maj_col++ ) {
         for ( int min_col = 0; min_col != 3; min_col++ ) {
@@ -57,7 +57,11 @@ ARluNonSymMatrix<std::complex<T>,T> ConvertBlockMatrix( const CSC_Matrix<Eigen::
             pcol[3 * maj_col + min_col + 1] = nzval.size();
         }
     }
-    return ARluNonSymMatrix<std::complex<T>,T>( 3 * blockMatrix.nrows(), nzval.size(), &nzval[0], &irow[0], &pcol[0] );
+    std::complex<T>* arNzval = new std::complex<T>[ nzval.size() ];
+    int* arIrow = new int[ nzval.size() ];
+    std::copy( std::begin(nzval), std::end(nzval), arNzval );
+    std::copy( std::begin(irow), std::end(irow), arIrow );
+    return ARluNonSymMatrix<std::complex<T>,T>( 3 * blockMatrix.nrows(), nzval.size(), arNzval, arIrow, pcol );
 }
 
 void Test_ConvertBlockMatrix() {

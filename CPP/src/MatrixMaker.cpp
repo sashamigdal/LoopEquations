@@ -114,6 +114,7 @@ MatrixMaker::MatrixMaker(std::int64_t N_pos, std::int64_t N_neg, double beta, co
 //};
 
 void MatrixMaker::CompEigProbLHSMatrix() {
+#if 0
     std::vector<Matrix3cd> nzval( 2 * M );
     std::vector<int> irow( 2 * M );
     std::vector<int> pcol( M + 1 );
@@ -135,10 +136,22 @@ void MatrixMaker::CompEigProbLHSMatrix() {
 
         pcol[col + 1] = j;
     }
+    CSC_Matrix<Matrix3cd> arpack_A_block( M, nzval.size(), std::move(nzval), std::move(irow), std::move(pcol) );
+    arpack_A = ConvertBlockMatrix(arpack_A_block);
+#else
+    std::vector<Matrix3cd> nzval( M, Matrix3cd::Identity() );
+    std::vector<int> irow(M);
+    std::vector<int> pcol( M + 1 );
+    pcol[0] = 0;
+    for ( size_t col = 0; col != M; col++ ) {
+        irow[col] = col;
+        pcol[col + 1] = col + 1;
+    }
+    CSC_Matrix<Matrix3cd> arpack_A_block( M, nzval.size(), std::move(nzval), std::move(irow), std::move(pcol) );
+    arpack_A = ConvertBlockMatrix(arpack_A_block);
+#endif
     A.reset();
     B.reset();
-    CSC_Matrix<Matrix3cd> arpack_A_block( M, 2 * M, std::move(nzval), std::move(irow), std::move(pcol) );
-    arpack_A = ConvertBlockMatrix(arpack_A_block);
 };
 
 /* B X
@@ -176,6 +189,7 @@ void MatrixMaker::CompEigProbLHSMatrix() {
  *  0 0 1  0 0 0  0 0 0  0 0 0 ... 0 0 1] * 0.5
  * */
 void MatrixMaker::CompEigProbRHSMatrix() {
+#if 0
     std::vector<Matrix3cd> nzval( 2 * M, Matrix3cd::Identity() * 0.5 );
     std::vector<int> irow( 2 * M );
     std::vector<int> pcol( M + 1 );
@@ -196,6 +210,18 @@ void MatrixMaker::CompEigProbRHSMatrix() {
     }
     CSC_Matrix<Matrix3cd> arpack_B_block( M, 2 * M, std::move(nzval), std::move(irow), std::move(pcol) );
     arpack_B = ConvertBlockMatrix(arpack_B_block);
+#else
+    std::vector<Matrix3cd> nzval( M, Matrix3cd::Identity() );
+    std::vector<int> irow(M);
+    std::vector<int> pcol( M + 1 );
+    pcol[0] = 0;
+    for ( size_t col = 0; col != M; col++ ) {
+        irow[col] = col;
+        pcol[col + 1] = col + 1;
+    }
+    CSC_Matrix<Matrix3cd> arpack_B_block( M, nzval.size(), std::move(nzval), std::move(irow), std::move(pcol) );
+    arpack_B = ConvertBlockMatrix(arpack_B_block);
+#endif
 };
 
 complex MatrixMaker::Resolvent(complex lambda) const
@@ -240,4 +266,4 @@ int MatrixMaker::FindEigenvalues( std::uint64_t N_lam ) {
         return a.real() == b.real() ? a.imag() < b.imag() : a.real() < b.real();
     } );
     return nFound;
-};
+}

@@ -5,11 +5,6 @@
 #include "RandomWalker.h"
 #include "MatrixMaker.h"
 
-// #include "arcomp.h"
-// #include "arrscomp.h"
-// #include "cmatrixa.h"
-// #include "rcompsol.h"
-
 using Eigen::Matrix3cd;
 using Eigen::Vector3cd;
 using complex = std::complex<double>;
@@ -124,4 +119,3 @@ size_t FindSpectrumFromResolvent(std::int64_t N_pos, std::int64_t N_neg, std::ui
 Matrix3cd PseudoInverse(const Matrix3cd &X){
     return (X.adjoint()*X).inverse()* X.adjoint();
 }
-
