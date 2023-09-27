@@ -25,4 +25,4 @@ add_library(${PROJECT_NAME} SHARED
         src/arpackpp-2.3.0/patch/arerror.cpp
         )
 
-target_link_libraries(Euler LINK_PUBLIC arpack)
+target_link_libraries(Euler LINK_PUBLIC arpack superlu)
