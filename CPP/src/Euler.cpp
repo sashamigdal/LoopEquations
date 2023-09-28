@@ -88,33 +88,44 @@ size_t FindSpectrumFromResolvent(std::int64_t N_pos, std::int64_t N_neg, std::ui
         }
     }
 
-    std::vector<complex> known_lambdas;
+    std::vector<complex> known_zeros;
+    const std::vector<complex> &known_poles = mm.GetPoles();
     // #pragma omp parallel for
     complex dlam = (0,0);
-    complex lambda0 = lambdas[0];
+    complex lambda0 = lambdas[0];   
     double r = 10*tol;
     for(size_t k =0; k < L; k++){
         lambdas[k] = lambda0 + r * expi(2 * M_PI * k/L);
         for(size_t iter =0; iter < maxiter; iter++){
             complex R = mm.Resolvent(lambdas[k]);
-            for(auto lam: known_lambdas){
-                R -= complex(1,0)/(lambdas[k] - lam);
+            for(auto p: known_poles){
+                R += complex(1,0)/(lambdas[k] - p);
+            }
+            for(auto z: known_zeros){
+                R -= complex(1,0)/(lambdas[k] - z);
             }
             dlam= complex(1,0)/R;
             lambdas[k] -= dlam;
             if(abs(dlam) < tol){
-                known_lambdas.push_back(lambdas[k]);
+                known_zeros.push_back(lambdas[k]);
                 lambda0 = lambdas[k];
-                std::cout << "N=" << M <<  ", k= " << k << ", found " << lambdas[k] <<" +/-" << abs(dlam) << std::endl;
+                std::cout << "N=" << M <<  ", k= " << k << ", iter== " << iter << ", found " << lambdas[k] <<" +/-" << abs(dlam) << std::endl;
                 break;
+            }else{
+                // std::cout << "N=" << M <<  ", k= " << k << ", iter== " << iter << ", testing " << lambdas[k] <<" +/-" << abs(dlam) << std::endl;
+
             }
         }
     }
-    if(known_lambdas.size() ==0 ) return 0;
-    std::sort(known_lambdas.begin(), known_lambdas.end(),[](auto&a,auto&b){return a.real() == b.real() ? a.imag() < b.imag() : a.real() < b.real();});
-    if(known_lambdas.size() > N_lam) known_lambdas.resize(N_lam);
-    std::copy( std::begin(known_lambdas), std::end(known_lambdas), lambdas );
-    return known_lambdas.size();
+    if(known_zeros.size() ==0 ) return 0;
+    std::sort(known_zeros.begin(), known_zeros.end(),[](auto&a,auto&b){return a.real() == b.real() ? a.imag() < b.imag() : a.real() < b.real();});
+    if(known_zeros.size() > N_lam) known_zeros.resize(N_lam);
+    for(auto &z: known_zeros){
+        z /=  pow(mm.GetSmallFactor(),2);
+    }
+    std::copy( std::begin(known_zeros), std::end(known_zeros), lambdas );
+
+    return known_zeros.size();
 }
 Matrix3cd PseudoInverse(const Matrix3cd &X){
     return (X.adjoint()*X).inverse()* X.adjoint();

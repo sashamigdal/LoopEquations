@@ -12,15 +12,12 @@ MatrixMaker::MatrixMaker(std::int64_t N_pos, std::int64_t N_neg, double beta, co
     //     && \hat M_k(\lambda) =
     //    \prod_{i=k}^{i=0} (\hat I +\hat A_k/(\lambda) )^{-1}(\hat I -\hat B_k /(\lambda))
 
-    //      &&\hat A_k  =
-    //  \gamma  \hat I +(2 \gamma -4 i \vec F_k \cdot\Delta \vec F_k+i) \Delta \vec F_k\otimes \vec F_k\nonumber\\
-//     &&\left(-\gamma +2 i (\vec F_k \cdot\Delta \vec F_k) (2 \vec F_k \cdot\Delta \vec F_k-1)\right)\Delta \vec F_k\otimes \Delta \vec F_k +
-    //     i \vec F_k \otimes \Delta \vec F_k;\\
-//     && \hat B_k =
-    //     -\gamma\hat I  +\left(2 \gamma -4 i \vec F_k \cdot\Delta \vec F_k-i\right) \Delta \vec F_k\otimes \vec F_k+\nonumber\\
-//     &&\left(\gamma +2 i (\vec F_k \cdot\Delta \vec F_k)(2  \vec F_k \cdot\Delta \vec F_k + 1)\right)\Delta \vec F_k\otimes \Delta \vec F_k
-    //     -i \vec F_k \otimes\Delta \vec F_k
-
+    //&&2\hat A_k  =
+    // \gamma \hat I -(\gamma -2 \imath) \Delta \vec F_k\otimes \Delta \vec F_k +\\
+    //(2 \gamma +3 \imath) \Delta \vec F_k\otimes\vec F_k+\imath \vec F_k \otimes\Delta \vec F_k;\\
+    //&& 2\hat B_k = 
+    //- \gamma \hat I + \gamma  \Delta \vec F_k\otimes \Delta \vec F_k+\\
+    //(2 \gamma +\imath) \Delta \vec F_k\otimes\vec F_k -\imath \vec F_k \otimes\Delta \vec F_k
     //     \vec F_k =  \frac{1}{2} \csc \left(\frac{\beta }{2}\right) \
 // \left\{\cos (\alpha_k), \sin (\alpha_k) \vec w, i \cos \
 // \left(\frac{\beta }{2}\right)\right\};
@@ -33,14 +30,15 @@ MatrixMaker::MatrixMaker(std::int64_t N_pos, std::int64_t N_neg, double beta, co
 
     complex cs;
     complex eb2 = expi(beta / 2);
-    double csb = 1 / (2 * eb2.imag());
-    complex fz = (0, eb2.real() * csb);
+    small_factor = pow(2 * eb2.imag(),2);
+    complex fz = (0, eb2.real());
+    complex gamma1 = gamma * small_factor;
     I3.setIdentity();
 
     std::int64_t k = 0;
     for (; k < M; k++)
     { // k = [0; M)
-        cs = expi(walker.get_alpha() * beta) * csb;
+        cs = expi(walker.get_alpha() * beta) ;
         F[k] << cs.real(), cs.imag(), fz;
         walker.Advance();
     }
@@ -50,25 +48,39 @@ MatrixMaker::MatrixMaker(std::int64_t N_pos, std::int64_t N_neg, double beta, co
     sumak.setZero();
     sumbk.setZero();
     sumakl.setZero();
+    Poles.resize(3*M);
+    Eigen::ComplexEigenSolver<Matrix3cd> eigsolver;
+    size_t i =0;
     for (k=0; k < M; k++)
     { // k = [0; M)
         //\vec F_k\otimes \vec F_k
         DF = F[(k + 1) % M] - F[k];
-        TensP = DF * F[k].transpose();
-        complex FDF = F[k].dot(DF);
-        A[k] = gamma * I3 + (2. * gamma - (4.0i * FDF) + 1i) * TensP;
-        B[k] = -gamma * I3 + (2. * gamma - 4.0i * FDF - 1i) * TensP;
-        TensP = DF * DF.transpose();
-        //-\gamma +2 i FDF (2 FDF-1)
-        A[k] += (-gamma + 2.0i * FDF * (2. * FDF - 1.0)) * TensP;
-        B[k] += (+gamma + 2.0i * FDF * (2. * FDF + 1.0)) * TensP;
-        TensP = F[k] * DF.transpose();
-        A[k] += 1.0i * TensP;
-        B[k] -= 1.0i * TensP;
+        TensP = DF * F[k].transpose();//multiplied by small_factor
+         //\\gamma \hat I -(\gamma -2 \imath) \Delta \vec F_k\otimes \Delta \vec F_k
+         //(2 \gamma +3 \imath) \Delta \vec F_k\otimes\vec F_k+\imath \vec F_k \otimes\Delta \vec F_k;
+        A[k] = gamma1 * I3 +  (2. * gamma + 3i) * TensP;//multiplied by small_factor
+        B[k] = -gamma1 * I3 + (2. * gamma + 1i) * TensP;//multiplied by small_factor
+        TensP = DF * DF.transpose();//multiplied by small_factor
+        A[k] += (-gamma + 2.0i) * TensP;//multiplied by small_factor
+        B[k] += (+gamma ) * TensP;//multiplied by small_factor
+        TensP = F[k] * DF.transpose();//multiplied by small_factor
+        A[k] += 1.0i * TensP;//multiplied by small_factor
+        B[k] -= 1.0i * TensP;//multiplied by small_factor
+        A[k] /= 2;
+        B[k] /= 2;
         // a_k = -A_k - B_k
         // b_k = A_k^2 + A_k B_k = -A_k a_k
         // a = Sum{a_k}
         // b = Sum{b_k} + Sum_{k<l}{a_k a_l}
+        eigsolver.compute(A[k],false);
+        // std::cout << "A[" << k << "]="<< std::endl;;
+        // std::cout << A[k] << std::endl;;
+        // std::cout << "B[" << k << "]="<< std::endl;;
+        // std::cout << B[k] << std::endl;;
+        for(auto p:eigsolver.eigenvalues()){
+            std::cout << "pole[" << i << "]="<< -p << std::endl;;
+            Poles[i++] = -p;
+        }
         Matrix3cd ak =-A[k] - B[k];
         sumbk += (sumak -A[k])* ak;
         sumak += ak;
@@ -113,8 +125,10 @@ MatrixMaker::MatrixMaker(std::int64_t N_pos, std::int64_t N_neg, double beta, co
 //    }
 //};
 
+
+
 void MatrixMaker::CompEigProbLHSMatrix() {
-#if 0
+#if 1
     std::vector<Matrix3cd> nzval( 2 * M );
     std::vector<int> irow( 2 * M );
     std::vector<int> pcol( M + 1 );
@@ -189,7 +203,7 @@ void MatrixMaker::CompEigProbLHSMatrix() {
  *  0 0 1  0 0 0  0 0 0  0 0 0 ... 0 0 1] * 0.5
  * */
 void MatrixMaker::CompEigProbRHSMatrix() {
-#if 0
+#if 1
     std::vector<Matrix3cd> nzval( 2 * M, Matrix3cd::Identity() * 0.5 );
     std::vector<int> irow( 2 * M );
     std::vector<int> pcol( M + 1 );
@@ -265,5 +279,8 @@ int MatrixMaker::FindEigenvalues( std::uint64_t N_lam ) {
     std::sort( std::begin(EigVal), std::end(EigVal), [](auto&a,auto&b){
         return a.real() == b.real() ? a.imag() < b.imag() : a.real() < b.real();
     } );
+    for(int k=0; k < nFound; k++){
+        EigVal[k] /= small_factor;
+    }
     return nFound;
 }

@@ -54,7 +54,7 @@ def SPECTRUM_CPP( N_pos, N_neg,N_lam, beta, gamma,tol):
     INT64 = ctypes.c_int64
     UINT64 = ctypes.c_uint64
 
-    bUseResolvent = False
+    bUseResolvent = True
     func = libDS.FindSpectrumFromResolvent if bUseResolvent else libDS.FindSpectrumFromSparsematrix
     func.argtypes = (INT64, INT64, UINT64, ctypes.c_double, c_double_complex,c_double_complex_p, ctypes.c_bool,ctypes.c_double)
     func.restype = ctypes.c_uint64

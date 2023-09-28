@@ -33,15 +33,17 @@ private:
     std::vector<Eigen::Vector3cd> F;
     complex ABscale;
     size_t M;
+    double small_factor;
     ARluNonSymMatrix<complex,double> arpack_A;
-    ARluNonSymMatrix<complex,double> arpack_B;
-    std::vector<complex> EigVal;
+    ARluNonSymMatrix<complex,double> arpack_B; 
+    std::vector<complex> EigVal, Poles;
 
 public:
     MatrixMaker(std::int64_t N_pos, std::int64_t N_neg, double beta, complex gamma);
     complex Resolvent(complex lambda) const;
     int FindEigenvalues( std::uint64_t N_lam );
     const std::vector<complex>& Eigenvalues() const { return EigVal; }
+    const std::vector<complex>& GetPoles() const { return Poles; }
 
     // Matrix-vector product: w = M*v.
     //void MultMv( complex* v, complex* w );
@@ -49,10 +51,14 @@ public:
     complex GetScale() const{
         return ABscale;
     }
+    double GetSmallFactor() const{
+        return small_factor;
+    }
 
     std::int64_t GetSize() const{
         return M;
     }
+    
 private:
     // A X = lambda B x
     void CompEigProbLHSMatrix();
