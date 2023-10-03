@@ -3,7 +3,7 @@
 #include <vector>
 #include <memory>
 #include "Eigen/Dense"
-#include "arlnsmat.h" // ARluNonSymMatrix
+//#include "arlnsmat.h" // ARluNonSymMatrix
 
 using complex = std::complex<double>;
 
@@ -34,8 +34,8 @@ private:
     complex ABscale;
     size_t M;
     double small_factor;
-    ARluNonSymMatrix<complex,double> arpack_A;
-    ARluNonSymMatrix<complex,double> arpack_B; 
+    //ARluNonSymMatrix<complex,double> arpack_A;
+    //ARluNonSymMatrix<complex,double> arpack_B; 
     std::vector<complex> EigVal, Poles;
 
 public:
