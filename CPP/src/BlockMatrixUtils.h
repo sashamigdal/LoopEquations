@@ -89,3 +89,4 @@ void Test_ConvertBlockMatrix() {
     //std::cout << arpack_B_block << std::endl;
     //std::cout << arpack_B << std::endl;
 }
+

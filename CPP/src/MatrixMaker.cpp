@@ -6,6 +6,13 @@
 
 using Eigen::Matrix3cd;
 
+void DetInv(const Matrix3cd & Y, Matrix3cd & X){
+    //X = Det[Y] * Y^{-1} 
+    auto Y2 = Y* Y;
+    complex t = Y.trace();
+    X = Y2 - t * Y  + 0.5i * (Y2 -t*t);
+}
+
 MatrixMaker::MatrixMaker(std::int64_t N_pos, std::int64_t N_neg, double beta, complex gamma)
 {
     //     '''
@@ -50,6 +57,7 @@ MatrixMaker::MatrixMaker(std::int64_t N_pos, std::int64_t N_neg, double beta, co
     sumakl.setZero();
     Poles.resize(3*M);
     Eigen::ComplexEigenSolver<Matrix3cd> eigsolver;
+
     size_t i =0;
     for (k=0; k < M; k++)
     { // k = [0; M)
@@ -72,15 +80,21 @@ MatrixMaker::MatrixMaker(std::int64_t N_pos, std::int64_t N_neg, double beta, co
         // b_k = A_k^2 + A_k B_k = -A_k a_k
         // a = Sum{a_k}
         // b = Sum{b_k} + Sum_{k<l}{a_k a_l}
-        eigsolver.compute(A[k],false);
-        // std::cout << "A[" << k << "]="<< std::endl;;
-        // std::cout << A[k] << std::endl;;
+        eigsolver.compute(A[k],true);
+        // std::cout << " N = " << M << "," << "B[" << k << "]="<< std::endl;;
+        // std::cout << B[k] << std::endl;;
         // std::cout << "B[" << k << "]="<< std::endl;;
         // std::cout << B[k] << std::endl;;
-        for(auto p:eigsolver.eigenvalues()){
-            std::cout << "pole[" << i << "]="<< -p << std::endl;;
-            Poles[i++] = -p;
-        }
+        // for(auto p:eigsolver.eigenvalues()){
+        //     // std::cout << "pole[" << i << "]="<< -p << std::endl;;
+        //     Poles[i++] = -p;
+        // }
+        // auto v = eigsolver.eigenvectors();
+        // // auto test = v.inverse() * B[k] * v;
+        // // std::cout << "v_inv.B[" <<k << "].v=" << test << std::endl;;
+        // auto test1 = v.inverse() * A[k] * v;
+        // std::cout << "v_inv.A[" <<k << "].v=" << test1 << std::endl;;
+        
         Matrix3cd ak =-A[k] - B[k];
         sumbk += (sumak -A[k])* ak;
         sumak += ak;
