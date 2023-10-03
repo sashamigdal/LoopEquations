@@ -16,4 +16,4 @@ cd ${PROJECT_DIR}
 source /share/apps/NYUAD/miniconda/3-4.11.0/bin/activate py39
 
 echo "Starting plotting script on node . . . "
-python -u VorticityCorrelation.py -Mu ${MU} -EG E -T ${T} -CPU 1 -C 0 -R0 0.0 -R1 0.01 --serial -STP 10000
+python -u VorticityCorrelation.py -Mu ${MU} -EG E -T ${T} -CPU 1 -C 0 -R0 0.0 -R1 0.01 --serial -STP 0

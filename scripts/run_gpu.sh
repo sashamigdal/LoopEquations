@@ -1,0 +1,12 @@
+#!/bin/bash
+
+PROJECT_DIR=/scratch/${USER}/LoopEquations
+
+echo SLURM_ARRAY_JOB_ID = ${SLURM_ARRAY_JOB_ID}
+echo SLURM_ARRAY_TASK_ID = ${SLURM_ARRAY_TASK_ID}
+echo SLURM_CPUS_PER_TASK = ${SLURM_CPUS_PER_TASK}
+echo PROJECT_DIR = ${PROJECT_DIR}
+
+cd ${PROJECT_DIR}
+
+./CPP/src/euler
