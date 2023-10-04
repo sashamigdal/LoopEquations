@@ -32,7 +32,7 @@ inline std::complex<double> expi(double a)
 //     return np.sqrt(ds.dot(ds))
 // '''
 
-extern "C"{
+extern "C" {
     EXPORT double DS( std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_neg, double beta, /*OUT*/ double* o_o );
     EXPORT size_t FindSpectrumFromResolvent(std::int64_t N_pos, std::int64_t N_neg, std::uint64_t N_lam,double beta, std::complex<double> gamma,
     /*OUT*/std::complex<double> * lambdas, bool cold_star, double tol);

@@ -17,7 +17,8 @@ TODO: replace formulas by these
  -\frac{1}{2} \cot ^2\left(\frac{\beta }{2}\right) \sigma _m \sigma _n \sin ^2\left(\frac{1}{4} \left(2 \alpha _m+\beta  \left(\sigma _m-\sigma _n\right)-2 \alpha _n\right)\right)
 
 */
-double DS(std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_neg, std::int64_t N_lam, double beta, /*OUT*/ double *o_o)
+
+double DS(std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_neg, double beta, /*OUT*/ double *o_o)
 {
     assert(n < m);
     std::int64_t M = N_pos + N_neg;
@@ -61,6 +62,7 @@ double DS(std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_neg
     return abs((S_nm - S_mn) / (2 * sin(beta / 2)));
 }
 
+#if 0
 size_t FindSpectrumFromResolvent(std::int64_t N_pos, std::int64_t N_neg, std::uint64_t N_lam, double beta, complex gamma, complex * lambdas, bool cold_start, double tol){
     MatrixMaker mm(N_pos, N_neg, beta,gamma);
     size_t M = N_pos + N_neg;
@@ -127,6 +129,8 @@ size_t FindSpectrumFromResolvent(std::int64_t N_pos, std::int64_t N_neg, std::ui
 
     return known_zeros.size();
 }
+#endif
+
 Matrix3cd PseudoInverse(const Matrix3cd &X){
     return (X.adjoint()*X).inverse()* X.adjoint();
 }

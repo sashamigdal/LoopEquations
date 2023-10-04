@@ -3,36 +3,31 @@ import sys
 import calendar
 from datetime import datetime, timedelta
 
+def GetTime():
+    if sys.platform == 'win32':
+        return time.perf_counter()
+    else:
+        return time.time()
 
 class MTimer:
     def __init__(self, message=''):
-        if sys.platform == 'win32':
-            self.t1 = time.perf_counter()
-        else:
-            self.t1 = time.time()
-
+        self.t1 = GetTime()
         self.message = message
-
 
     def __enter__(self):
         return self
-
 
     def setmessage(self, message):
         self.message = message
 
     def end(self):
-        if sys.platform == 'win32':
-            t = time.perf_counter() - self.t1
-        else:
-            t = time.time() - self.t1
+        t = GetTime() - self.t1
         if t > 0.1:
             print(self.message, '{0:.2f}'.format(t), "s")
         elif t > 0.001:
             print(self.message, '{0:.2f}'.format(t * 1000), "ms")
         else :
-            print(self.message, '{0:.2f}'.format(t * 1000000), "mcs")
-
+            print(self.message, '{0:.2f}'.format(t * 1000000), "us")
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.end()

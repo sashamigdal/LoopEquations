@@ -9,3 +9,6 @@ OR
 
 Important: `ARPACK++` conflicts with `MKL` library. That means `numpy` and `scipy` must be installed
  using `pip`, not `conda`.
+
+Benchmark:
+On Max's VM the params `-CPU 1 -NLAM 0 -Mu 1e-7 --serial` with T=1000 give 1.76e7 random walk steps per second (on CPU).

@@ -8,7 +8,7 @@ import multiprocessing as mp
 import concurrent.futures as fut
 from cfractions import Fraction
 from QuadPy import SphericalFourierIntegral
-from CurveSimulator import CurveSimulator
+from CurveSimulator import CurveSimulatorFDistribution, CurveSimulatorSpectrum
 
 
 # @jit
@@ -163,22 +163,18 @@ def test_GroupFourierIntegral():
     r = r.reshape((3, 10))
     X = r.dot(r.T)
     with Timer("multi integrals in QuadPy"):
-        test1 = gfi.FourierIntegralQuadpy(X,  1, 2, 1000)
+        test1 = gfi.FourierIntegralQuadpy(X, 1, 2, 1000)
     # print(test1)
     pass
-
-
-
-
 
 def test_FDistribution(Mu, EG, T, CPU, C, serial):
     """
     :param serial: Boolean If set, run serially.
     """
     if sys.platform == 'linux':
-        with Timer("done FDistribution for M,T,C= " + str(Mu) + "," + str(T)+ "," + str(C)):
-            fdp = CurveSimulator(Mu, EG, T, CPU, 0, 0, 0, C)
-            fdp.FDistribution(serial)  # runs on each node, outputs placed in the plot dir of the main node
+        with Timer("done FDistribution for Mu,T,C= " + str(Mu) + "," + str(T)+ "," + str(C)):
+            fdp = CurveSimulatorFDistribution(Mu, EG, T, CPU, 0, 0, 0, C)
+            fdp.DoWork(serial)  # runs on each node, outputs placed in the plot dir of the main node
     else:
         print(f"not implemented on {sys.platform}")
 
@@ -188,15 +184,15 @@ def test_Spectrum(Mu, EG, T, CPU, C, serial, Nlam, gamma):
     """
     if sys.platform == 'linux':
         with Timer("done Spectrum for M,T,C= " + str(Mu) + "," + str(T)+ "," + str(C)):
-            fdp = CurveSimulator(Mu, EG, T, CPU, 0, 0, 0, C, Nlam, gamma)
-            fdp.PrepareSpectrum(serial)  # runs on each node, outputs placed in the plot dir of the main node
+            fdp = CurveSimulatorSpectrum(Mu, EG, T, CPU, 0, 0, 0, C, Nlam, gamma)
+            fdp.DoWork(M0=16, serial=serial)  # runs on each node, outputs placed in the plot dir of the main node
     else:
         print(f"not implemented on {sys.platform}")
 
 
 def MakePlots(Mu, EG, T, CPU, R0, R1, STP):
     with Timer("done MakePlots for Mu,T= " + str(Mu) + "," + str(T)):
-        fdp = CurveSimulator(Mu, EG, T, CPU, R0, R1, STP, 0)
+        fdp = CurveSimulatorFDistribution(Mu, EG, T, CPU, R0, R1, STP, 0)
         fdp.MakePlots([Mu])  # runs on main node, pools tata if not yet done so,  subsamples data and makes plots
 
 def test_makePlots(Mu=1e-7, EG="E", T=1000, CPU=0, R0=0.001, R1=0.003, STP=1000):

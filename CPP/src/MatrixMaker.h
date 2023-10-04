@@ -24,6 +24,7 @@ public:
     }
 };
 
+#if 0
 class MatrixMaker
 {
 private:
@@ -64,3 +65,4 @@ private:
     void CompEigProbLHSMatrix();
     void CompEigProbRHSMatrix();
 };
+#endif
