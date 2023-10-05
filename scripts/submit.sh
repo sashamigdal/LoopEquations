@@ -1,16 +1,16 @@
 #!/bin/bash
 
 #Export Parameters
-NJOBS=100
-export NCPUS=128
+NJOBS=1
+export NCPUS=1
 
 # Memory size, in GB:
-export MEM_SIZE=240
-export MU=1e-7
+export MEM_SIZE=4
+export MU=1e-6
 export T=1000
 
-#jobid=$(sbatch --array=1-${NJOBS} --cpus-per-task=${NCPUS} --mem=${MEM_SIZE}GB --parsable run.sh)
-#echo Submitted jobs ${jobid}
+jobid=$(sbatch --cpus-per-task=${NCPUS} --mem=${MEM_SIZE}GB --parsable run.sh)
+echo Submitted jobs ${jobid}
 
 # sbatch -d afterok:$jobid plot.sh
-sbatch plot.sh
+#sbatch plot.sh
