@@ -242,18 +242,20 @@ if __name__ == '__main__':
     logger = logging.getLogger()
     parser = argparse.ArgumentParser()
     parser.add_argument('-Mu', type=float, default=1e-3)
+    parser.add_argument('-M', type=int)
     parser.add_argument('-EG', type=str, default='E')
     parser.add_argument('-T', type=int, default=1000)
     parser.add_argument('-CPU', type=int, default=mp.cpu_count())
     parser.add_argument('-C', type=int, default=1)
     parser.add_argument('--serial', default=True, action="store_true")
+    parser.add_argument('--GPU', default=False, action="store_true")
     parser.add_argument('-R0', type=float, default=0.001)
     parser.add_argument('-R1', type=float, default=0.0035)
     parser.add_argument('-STP', type=int, default=10000)
     parser.add_argument('-NLAM', type=int, default=1)
     parser.add_argument('-GAMMA', type=float, default=-100.)
     #, Nlam, gamma
-    
+
     A = parser.parse_args()
     if A.C > 0:
         if A.NLAM >0:

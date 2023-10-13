@@ -18,13 +18,11 @@ TODO: replace formulas by these
 
 */
 
-double DS(std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_neg, double beta, /*OUT*/ double *o_o)
-{
+double DS(std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_neg, double beta, /*OUT*/ double *o_o) {
     assert(n < m);
     std::int64_t M = N_pos + N_neg;
     int sigma_n, sigma_m, alpha_m, alpha_n;
     complex S_nm, S_mn;
-    double R_nm;
 
     RandomWalker walker(N_pos, N_neg);
     std::int64_t i = 0;
