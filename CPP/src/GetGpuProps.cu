@@ -2,7 +2,11 @@
 #include <vector>
 #include <iostream>
 #include <iomanip>
+#include <chrono>
+#include <thread>
 #include <cuda_runtime.h> // for Intellisense
+
+using namespace std::chrono_literals;
 
 template <bool b>
 struct f_helper;
@@ -186,5 +190,9 @@ int main ( int argc, char * argv [] ) {
         print( devProp[device], directManagedMemAccessFromHost        , "Host can directly access managed memory on the device without migration." );
     }
 #endif
+
+    std::cout << "Sleeping 10 min...";
+    std::this_thread::sleep_for(10min);
+    std::cout << "[FINISHED]\n";
     return 0;
 }
