@@ -8,6 +8,8 @@
 #include <device_launch_parameters.h> // for Intellisense
 #include <cuComplex.h>
 
+using namespace std::string_literals;
+
 // no noticeable difference
 #define USE_DOUBLE 1
 
@@ -30,8 +32,6 @@ using real = float;
 #   define cuCabsr cuCabsf
 #   define curand_uniform_real curand_uniform
 #endif
-
-int device = 1;
 
 void CheckErrorCode( cudaError_t err_code ) {
     if ( err_code ) {
@@ -193,7 +193,7 @@ chkWrap(cudaEventElapsedTime)
 chkWrap(cudaEventRecord)
 chkWrap(cudaGetDeviceProperties)
 
-double benchmark( int gridSize, int nThreads ) {
+double benchmark( int gridSize, int nThreads, int device ) {
     const int totThreads = gridSize * nThreads;
     CheckErrorCode( cudaSetDevice(device) );
 
@@ -272,15 +272,19 @@ double benchmark( int gridSize, int nThreads ) {
 }
 
 int main() {
+    int device = 0;
     int best_gridSize = 1;
     int best_nThreads = 1;
-    double best_speedup = 1;
-    std::cout << "gridSize" << '\t' << "nThreads" << '\t' << "gpuTime" << '\t' << "speed" << '\t' << "speedup" << '\t' << "eff" << '\n';
-    double baseline;
+    double best_speed = 1;
+    std::cout << "gridSize" << '\t' << "nThreads" << '\t' << "speed" << std::endl;
     cudaDeviceProp devProp;
     chkcudaGetDeviceProperties( &devProp, device );
+    std::cout << "Running on GPU \"" << devProp.name << "\"" << std::endl;
+    if ( devProp.name == "NVIDIA GeForce GTX 1080 Ti"s ) {
+        device = 1;
+    }
     const int warpSize = devProp.warpSize;
-    
+
     for ( int gridSize = 1; gridSize <= 1 << 12; gridSize *= 2 )
     //int gridSize = 4096;
     {
@@ -288,24 +292,22 @@ int main() {
         //int nThreads = 128;
         {
             if ( gridSize * nThreads < warpSize ) { continue; }
-            double speed = benchmark( gridSize, nThreads );
+            double speed = benchmark( gridSize, nThreads, device );
             if ( speed == -1 ) {
-                std::cout << "fail for " << gridSize << '\t' << nThreads << std::endl;
-                //continue;
-            }
-            if ( gridSize == 1 && nThreads == 1 ) {
-                baseline = speed;
-            }
-            std::cout << gridSize << '\t' << nThreads << '\t' << speed << '\n';
-            double speedup = speed / baseline;
-            if ( speedup > best_speedup ) {
-                best_speedup = speedup;
-                best_gridSize = gridSize;
-                best_nThreads = nThreads;
+                std::cout << "Fail for " << gridSize << '\t' << nThreads << std::endl;
+            } else {
+                std::cout << gridSize << '\t' << nThreads << '\t' << speed;
+                if ( speed > best_speed ) {
+                    best_speed = speed;
+                    best_gridSize = gridSize;
+                    best_nThreads = nThreads;
+                    std::cout << "\t(new best)";
+                }
+                std::cout << std::endl;
             }
         }
     }
-    std::cout << "----------------------\n";
-    std::cout << "best is " << best_gridSize << "x" << best_nThreads << " giving " << best_speedup << " speedup\n";
+    std::cout << "--------------------------------------------\n";
+    std::cout << "The best is " << best_gridSize << "x" << best_nThreads << " giving " << best_speed << " speed\n";
     return 0;
 }
