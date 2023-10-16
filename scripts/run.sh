@@ -1,8 +1,5 @@
 #!/bin/bash
 
-#SBATCH --time=00:20:00
-#SBATCH -p preempt
-
 PROJECT_DIR=/scratch/${USER}/LoopEquations
 JOB_ID=$1
 
@@ -16,5 +13,4 @@ cd ${PROJECT_DIR}
 
 source /share/apps/NYUAD/miniconda/3-4.11.0/bin/activate py39
 
-# python -u VorticityCorrelation.py -Mu ${MU} -EG E -T ${T} -CPU 1 -C ${JOB_ID} -R0 0.0 -R1 0.01 --serial -STP 1000000
-python -u VorticityCorrelation.py -CPU 1 -NLAM 0 -Mu 1e-7 --serial
+python -u VorticityCorrelation.py -M ${M} -T ${T} --compute=CPU -CPU 1 -NLAM 0 --run=0 --serial
