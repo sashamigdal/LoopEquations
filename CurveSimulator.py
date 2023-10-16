@@ -72,9 +72,8 @@ def CorrFuncDir(M : int, compute : str, run : int) -> str:
 
 class CurveSimulatorBase():
     def __init__(self, M, EG, T, CPU, R0, R1, STP, run, C, compute):
-        MakeDir(CurrentCorrFuncDir())
         self.M = M
-        self.CPU = CPU
+        self.nWorkers = CPU
         self.C = C
         self.T = T
         self.EG = EG
@@ -83,8 +82,9 @@ class CurveSimulatorBase():
         self.STP = STP
         self.run = run
         self.compute = compute
+        MakeDir(self.CurrentCorrFuncDir())
 
-    def CurrentCorrFuncDir() -> str:
+    def CurrentCorrFuncDir(self) -> str:
         return CorrFuncDir(self.M, self.compute, self.run)
 
     def EulerPair(self):
@@ -106,35 +106,35 @@ class CurveSimulatorBase():
 
 class CurveSimulatorFDistribution(CurveSimulatorBase):
     def __init__(self, M, EG, T, CPU, run, C, compute):
-        CurveSimulatorBase.__init__(M, EG, T, CPU, 0, 0, 0, run, C, compute)
+        CurveSimulatorBase.__init__(self, M, EG, T, CPU, 0, 0, 0, run, C, compute)
 
     def DoWork(self, serial):
         """
         :param serial: Boolean If set, run jobs serially.
         """
         T = self.T
-        MakeDir(CurrentCorrFuncDir())
-        if compute == "CPU":
+        MakeDir(self.CurrentCorrFuncDir())
+        if self.compute == "CPU":
             if not os.path.isfile(self.Pathname()):
                 res = None
-                params = range(self.CPU)
+                params = range(self.nWorkers)
                 t0 = GetTime()
                 if serial:
                     res = list(map(self.GetSamples, params))
                 else:
-                    with fut.ProcessPoolExecutor(max_workers=self.CPU) as exec:
+                    with fut.ProcessPoolExecutor(max_workers=self.nWorkers) as exec:
                         res = list(exec.map(self.GetSamples, params))
                 dt = GetTime() - t0
                 data = np.vstack(res)
                 data.tofile(self.Pathname())
                 Mtot = T * self.M
-                print("made FDistribution " + str(mu))
+                print(f"made FDistribution {self.M}")
                 speed = Mtot / dt
-                print(f"Random walker has made {Mtot:.2g} steps total in {dt:.2g} seconds." +
+                print(f"Random walker has made {Mtot} steps total in {dt} seconds." +
                       f" Avg speed is {speed:g} steps per second.")
 
     def Pathname(self):
-        return os.path.join(CurrentCorrFuncDir(), "Fdata." + str(self.EG)+ "."+ str(self.T) + "." + str(self.C) + ".np")
+        return os.path.join(self.CurrentCorrFuncDir(), "Fdata." + str(self.EG)+ "."+ str(self.T) + "." + str(self.C) + ".np")
 
     def GetSamples(self, workerId):
         beg = self.T * workerId // self.nWorkers
@@ -184,7 +184,7 @@ class CurveSimulatorFDistribution(CurveSimulatorBase):
         if res == []:
             raise Exception("no stats to collect!!!!")
         data = np.vstack(res).reshape(-1, T, 3)
-        pathname = os.path.join(CurrentCorrFuncDir(), 'FDStats.' + str(self.EG) + "." + str(T) + '.np')
+        pathname = os.path.join(self.CurrentCorrFuncDir(), 'FDStats.' + str(self.EG) + "." + str(T) + '.np')
         data.tofile(pathname)
         return pathname, T
 
@@ -202,7 +202,7 @@ class CurveSimulatorFDistribution(CurveSimulatorBase):
                         splits = filename.split(".")
                         T = int(splits[-2])
                         if (T > 0):
-                            pathname = os.path.join(CurrentCorrFuncDir(), filename)
+                            pathname = os.path.join(self.CurrentCorrFuncDir(), filename)
                             break
                     except Exception as ex:
                         break
@@ -317,11 +317,11 @@ class CurveSimulatorSpectrum(CurveSimulatorBase):
         with open(spectrum_filepath, 'a') as fout:
             for iter in range(10):
                 res = None
-                params = [(T * i // self.CPU, T * (i + 1) // self.CPU, ) for i in range(self.CPU)]
+                params = [(T * i // self.nWorkers, T * (i + 1) // self.nWorkers, ) for i in range(self.nWorkers)]
                 if serial:
                     res = list(map(self.getSpectrum, params))
                 else:
-                    with fut.ProcessPoolExecutor(max_workers=self.CPU) as exec:
+                    with fut.ProcessPoolExecutor(max_workers=self.nWorkers) as exec:
                         res = list(exec.map(self.getSpectrum, params))
                 data = np.vstack(res).reshape(Nlam,-1)
                 self.lambdas = np.zeros(Nlam,complex)

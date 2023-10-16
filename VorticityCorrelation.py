@@ -246,7 +246,7 @@ if __name__ == '__main__':
     parser.add_argument('-T', type=int, default=1000)
     parser.add_argument('-CPU', type=int, default=mp.cpu_count())
     parser.add_argument('-C', type=int, default=1)
-    parser.add_argument('--serial', default=True, action="store_true")
+    parser.add_argument('--serial', default=False, action="store_true")
     parser.add_argument('--compute', type=str)  # CPU or GPU
     parser.add_argument('--run', type=int)  # run count. Needed for PRNG seed.
     parser.add_argument('-R0', type=float, default=0.001)
