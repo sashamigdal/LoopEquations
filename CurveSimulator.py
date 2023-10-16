@@ -67,14 +67,13 @@ def SPECTRUM_CPP( N_pos, N_neg,N_lam, beta, gamma,tol):
     return np.sort_complex(lambdas[:N_good]) if N_good > 0 else None
 
 
-def CorrFuncDir(Mu):
-    return os.path.join("plots", "VorticityCorr." + str(Mu))
+def CorrFuncDir(M : int, compute : str, run : int) -> str:
+    return os.path.join("plots", f"VorticityCorr.{M}.{compute}.{run}")
 
 class CurveSimulatorBase():
-    def __init__(self, Mu, EG, T, CPU, R0, R1, STP, C):
-        MakeDir(CorrFuncDir(Mu))
-        self.mu = Mu
-        self.M = 0
+    def __init__(self, M, EG, T, CPU, R0, R1, STP, run, C, compute):
+        MakeDir(CurrentCorrFuncDir())
+        self.M = M
         self.CPU = CPU
         self.C = C
         self.T = T
@@ -82,6 +81,11 @@ class CurveSimulatorBase():
         self.R0 = R0
         self.R1 = R1
         self.STP = STP
+        self.run = run
+        self.compute = compute
+
+    def CurrentCorrFuncDir() -> str:
+        return CorrFuncDir(self.M, self.compute, self.run)
 
     def EulerPair(self):
         if self.M ==0:
@@ -101,46 +105,47 @@ class CurveSimulatorBase():
 
 
 class CurveSimulatorFDistribution(CurveSimulatorBase):
+    def __init__(self, M, EG, T, CPU, run, C, compute):
+        CurveSimulatorBase.__init__(M, EG, T, CPU, 0, 0, 0, run, C, compute)
+
     def DoWork(self, serial):
         """
         :param serial: Boolean If set, run jobs serially.
         """
-        mu = self.mu
         T = self.T
-        MakeDir(CorrFuncDir(mu))
-        if not os.path.isfile(self.Pathname()):
-            res = None
-            params = [(T * i // self.CPU, T * (i + 1) // self.CPU) for i in range(self.CPU)]
-            t0 = GetTime()
-            if serial:
-                res = list(map(self.GetSamples, params))
-            else:
-                with fut.ProcessPoolExecutor(max_workers=self.CPU) as exec:
-                    res = list(exec.map(self.GetSamples, params))
-            dt = GetTime() - t0
-            dat, Ms = zip(*res)
-            data = np.vstack(dat)
-            data.tofile(self.Pathname())
-            Mtot = sum(Ms)
-            print("made FDistribution " + str(mu))
-            speed = Mtot / dt
-            print(f"Random walker made {Mtot:.2g} steps total in {dt:.2g} seconds." +
-                  f" Speed is {speed:g} steps per second.")
+        MakeDir(CurrentCorrFuncDir())
+        if compute == "CPU":
+            if not os.path.isfile(self.Pathname()):
+                res = None
+                params = range(self.CPU)
+                t0 = GetTime()
+                if serial:
+                    res = list(map(self.GetSamples, params))
+                else:
+                    with fut.ProcessPoolExecutor(max_workers=self.CPU) as exec:
+                        res = list(exec.map(self.GetSamples, params))
+                dt = GetTime() - t0
+                data = np.vstack(res)
+                data.tofile(self.Pathname())
+                Mtot = T * self.M
+                print("made FDistribution " + str(mu))
+                speed = Mtot / dt
+                print(f"Random walker has made {Mtot:.2g} steps total in {dt:.2g} seconds." +
+                      f" Avg speed is {speed:g} steps per second.")
 
     def Pathname(self):
-        return os.path.join(CorrFuncDir(self.mu), "Fdata." + str(self.EG)+ "."+ str(self.T) + "." + str(self.C) + ".np")
+        return os.path.join(CurrentCorrFuncDir(), "Fdata." + str(self.EG)+ "."+ str(self.T) + "." + str(self.C) + ".np")
 
-    def GetSamples(self, params):
-        beg, end = params
+    def GetSamples(self, workerId):
+        beg = self.T * workerId // self.nWorkers
+        end = self.T * (workerId + 1) // self.nWorkers
         ar = np.zeros((end - beg) * 3, dtype=float).reshape(-1, 3)
-        np.random.seed(self.C + 1000 * beg)  # to make a unique seed for at least 1000 nodes
-        M_total = 0  # sum of all M's processed. Needed for benchmark.
+        np.random.seed((self.run * 1000 + self.C) * self.nWorkers + workerId)  # to make a unique seed for at least 1000 nodes
 
         for k in range(beg, end):
             M, p, q = self.EulerPair()
-            M_total += M
             beta = (2 * pi * p) / float(q)
-            r =0
+            r = 0
             N_pos = (M + q*r) // 2  # Number of 1's
             N_neg = M - N_pos  # Number of -1's
 
@@ -152,23 +157,23 @@ class CurveSimulatorFDistribution(CurveSimulatorBase):
             t = k - beg
             ar[t, 0] = 1/tan(beta/2)**2
             ar[t, 1], ar[t, 2] = DS_CPP(n, m, N_pos, N_neg, beta)
-        return ar, M_total
+        return ar
 
     @staticmethod
     def ReadStatsFile(params):
         pathname, T, dim = params
         return np.fromfile(pathname, float).reshape(T, dim)
 
-    def GetFDStats(self, mu):
+    def GetFDStats(self, M):
         params = []
         T = None
-        for filename in os.listdir(CorrFuncDir(mu)):
+        for filename in os.listdir(CorrFuncDir(M, self.compute, self.run)):
             if filename.endswith(".np") and filename.startswith("Fdata." + str(self.EG)):
                 try:
                     splits = filename.split(".")
                     T = int(splits[-3])
                     if T > 0:
-                        params.append([os.path.join(CorrFuncDir(mu), filename), T, 3])
+                        params.append([os.path.join(CorrFuncDir(M, self.compute, self.run), filename), T, 3])
                 except Exception as ex:
                     pass
                 pass
@@ -179,31 +184,31 @@ class CurveSimulatorFDistribution(CurveSimulatorBase):
         if res == []:
             raise Exception("no stats to collect!!!!")
         data = np.vstack(res).reshape(-1, T, 3)
-        pathname = os.path.join(CorrFuncDir(self.mu), 'FDStats.' + str(self.EG) + "." + str(T) + '.np')
+        pathname = os.path.join(CurrentCorrFuncDir(), 'FDStats.' + str(self.EG) + "." + str(T) + '.np')
         data.tofile(pathname)
         return pathname, T
 
-    def MakePlots(self, Mulist):
+    def MakePlots(self, Mlist):
         Betas = []
         Dss = []
         OdotO = []
-        np.sort(Mulist)
-        for mu in Mulist:
+        np.sort(Mlist)
+        for M in Mlist:
             pathname = None
             T = None
-            for filename in os.listdir(CorrFuncDir(mu)):
+            for filename in os.listdir(CorrFuncDir(M, self.compute, self.run)):
                 if filename.endswith(".np") and filename.startswith("FDStats." + str(self.EG)):
                     try:
                         splits = filename.split(".")
                         T = int(splits[-2])
                         if (T > 0):
-                            pathname = os.path.join(CorrFuncDir(self.mu), filename)
+                            pathname = os.path.join(CurrentCorrFuncDir(), filename)
                             break
                     except Exception as ex:
                         break
                     pass
             if pathname is None:
-                pathname, T = self.GetFDStats(mu)
+                pathname, T = self.GetFDStats(M)
             array = np.fromfile(pathname, dtype=float)
             stats = array.reshape(-1, T, 3)
             stats = np.transpose(stats, (2, 1, 0)).reshape(3, -1)
@@ -217,7 +222,7 @@ class CurveSimulatorFDistribution(CurveSimulatorBase):
                 data = []
                 for k, mu in enumerate(Mulist):
                     data.append([str(mu), X[k]]) if name != "-OmOm" else data.append([str(mu), -X[k]])
-                plotpath = os.path.join(CorrFuncDir(MaxMu), str(self.EG) + "." + name + ".png")
+                plotpath = os.path.join(CorrFuncDir(MaxMu, self.compute, self.run), str(self.EG) + "." + name + ".png")
                 try:
                     logx = True
                     logy = True
@@ -234,7 +239,7 @@ class CurveSimulatorFDistribution(CurveSimulatorBase):
                 data.append([str(mu), dss[pos], oto[pos]])
                 data.append([str(-mu), dss[neg], -oto[neg]])
                 try:
-                    plotpath = os.path.join(CorrFuncDir(MaxMu), str(self.EG) + ".OtOvsDss.png")
+                    plotpath = os.path.join(CorrFuncDir(MaxMu, self.compute, self.run), str(self.EG) + ".OtOvsDss.png")
                     MultiXYPlot(data, plotpath, logx=True, logy=True, title='OtoOVsDss', scatter=False,
                                 xlabel='log(dss)',
                                 ylabel='log(oto)', frac_last=0.9, num_subsamples=1000)
@@ -255,7 +260,7 @@ class CurveSimulatorFDistribution(CurveSimulatorBase):
             corr[0] = np.mean(oto)
             data.append([str(mu), rho_data, corr])
         try:
-            plotpath = os.path.join(CorrFuncDir(MaxMu), str(self.EG) + ".CorrFunction.png")
+            plotpath = os.path.join(CorrFuncDir(MaxMu, self.compute, self.run), str(self.EG) + ".CorrFunction.png")
             MultiXYPlot(data, plotpath, logx=True, logy=True, title='CorrFunction', scatter=False, xlabel='rho',
                         ylabel='cor', frac_last=0.9, num_subsamples=1000)
         except Exception as ex:
@@ -264,8 +269,8 @@ class CurveSimulatorFDistribution(CurveSimulatorBase):
 
 
 class CurveSimulatorSpectrum(CurveSimulatorBase):
-    def __init__(self, Mu, EG, T, CPU, R0, R1, STP, C, Nlam, gamma):
-        CurveSimulatorBase.__init__(Mu, EG, T, CPU, R0, R1, STP, C)
+    def __init__(self, M, EG, T, CPU, R0, R1, STP, C, Nlam, gamma):
+        CurveSimulatorBase.__init__(M, EG, T, CPU, R0, R1, STP, C)
         self.spectralParams =(Nlam, gamma,1e-4)
         self.lambdas = np.zeros(Nlam, dtype=complex)
 
@@ -291,7 +296,7 @@ class CurveSimulatorSpectrum(CurveSimulatorBase):
         return ar
 
     def Pathname(self):
-        return os.path.join(CorrFuncDir(self.mu), "Spectrum."+ str(self.spectralParams) + "." + str(self.C) + ".np")
+        return os.path.join(CorrFuncDir(), "Spectrum."+ str(self.spectralParams) + "." + str(self.C) + ".np")
 
     def DoWork(self, M0, serial):
         """
@@ -299,12 +304,12 @@ class CurveSimulatorSpectrum(CurveSimulatorBase):
         :param serial: (boolean) If set, run jobs serially.
         """
         self.M = M0
-        mu = self.mu
+        M = self.M
         T = self.T
         Nlam = self.spectralParams[0]
         self.lambdas.fill(0+0j)
 
-        MakeDir(CorrFuncDir(mu))
+        MakeDir(CorrFuncDir())
         spectrum_filepath = self.Pathname()
         if os.path.exists(spectrum_filepath):
             os.remove(spectrum_filepath)
@@ -329,4 +334,4 @@ class CurveSimulatorSpectrum(CurveSimulatorBase):
                     print(" n=", n, " mean lambda =", self.lambdas[n] , " +/- ",err )
                 np.savetxt(fout, [iter, self.M] + self.lambdas)
                 self.M *= 2
-        print("made Spectrum " + str(mu))
+        print("made Spectrum " + str(M))

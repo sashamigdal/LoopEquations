@@ -156,7 +156,6 @@ class GroupFourierIntegral:
     def __del__(self):
         pass
 
-
 def test_GroupFourierIntegral():
     gfi = GroupFourierIntegral()
     r = np.random.normal(scale=0.1, size=30) + 1j * np.random.normal(scale=0.1, size=30)
@@ -167,36 +166,37 @@ def test_GroupFourierIntegral():
     # print(test1)
     pass
 
-def test_FDistribution(Mu, EG, T, CPU, C, serial):
+def test_FDistribution(M, EG, T, CPU, run, C, compute, serial):
     """
+    :param run: (int) Run count. Needed for PRNG seed.
+    :param compute: (str) "CPU" or "GPU"
     :param serial: Boolean If set, run serially.
     """
     if sys.platform == 'linux':
-        with Timer("done FDistribution for Mu,T,C= " + str(Mu) + "," + str(T)+ "," + str(C)):
-            fdp = CurveSimulatorFDistribution(Mu, EG, T, CPU, 0, 0, 0, C)
+        with Timer("done FDistribution for M,T,C= " + str(M) + "," + str(T)+ "," + str(C)):
+            fdp = CurveSimulatorFDistribution(M, EG, T, CPU, run, C, compute)
             fdp.DoWork(serial)  # runs on each node, outputs placed in the plot dir of the main node
     else:
         print(f"not implemented on {sys.platform}")
 
-def test_Spectrum(Mu, EG, T, CPU, C, serial, Nlam, gamma):
+def test_Spectrum(M, EG, T, CPU, C, serial, Nlam, gamma):
     """
     :param serial: Boolean If set, run serially.
     """
     if sys.platform == 'linux':
-        with Timer("done Spectrum for M,T,C= " + str(Mu) + "," + str(T)+ "," + str(C)):
-            fdp = CurveSimulatorSpectrum(Mu, EG, T, CPU, 0, 0, 0, C, Nlam, gamma)
+        with Timer("done Spectrum for M,T,C= " + str(M) + "," + str(T)+ "," + str(C)):
+            fdp = CurveSimulatorSpectrum(M, EG, T, CPU, 0, 0, 0, C, Nlam, gamma)
             fdp.DoWork(M0=16, serial=serial)  # runs on each node, outputs placed in the plot dir of the main node
     else:
         print(f"not implemented on {sys.platform}")
 
+def MakePlots(M, EG, T, CPU, R0, R1, STP):
+    with Timer("done MakePlots for M,T= " + str(M) + "," + str(T)):
+        fdp = CurveSimulatorFDistribution(M, EG, T, CPU, R0, R1, STP, 0)
+        fdp.MakePlots([M])  # runs on main node, pools tata if not yet done so, subsamples data and makes plots
 
-def MakePlots(Mu, EG, T, CPU, R0, R1, STP):
-    with Timer("done MakePlots for Mu,T= " + str(Mu) + "," + str(T)):
-        fdp = CurveSimulatorFDistribution(Mu, EG, T, CPU, R0, R1, STP, 0)
-        fdp.MakePlots([Mu])  # runs on main node, pools tata if not yet done so,  subsamples data and makes plots
-
-def test_makePlots(Mu=1e-7, EG="E", T=1000, CPU=0, R0=0.001, R1=0.003, STP=1000):
-    MakePlots(Mu, EG, T, CPU, R0, R1, STP)
+def test_makePlots(M=1e7, EG="E", T=1000, CPU=0, R0=0.001, R1=0.003, STP=1000):
+    MakePlots(M, EG, T, CPU, R0, R1, STP)
 #from euler_maths import euler_totients
 #from primefac import factorint
 
@@ -241,14 +241,14 @@ if __name__ == '__main__':
 
     logger = logging.getLogger()
     parser = argparse.ArgumentParser()
-    parser.add_argument('-Mu', type=float, default=1e-3)
     parser.add_argument('-M', type=int)
     parser.add_argument('-EG', type=str, default='E')
     parser.add_argument('-T', type=int, default=1000)
     parser.add_argument('-CPU', type=int, default=mp.cpu_count())
     parser.add_argument('-C', type=int, default=1)
     parser.add_argument('--serial', default=True, action="store_true")
-    parser.add_argument('--GPU', default=False, action="store_true")
+    parser.add_argument('--compute', type=str)  # CPU or GPU
+    parser.add_argument('--run', type=int)  # run count. Needed for PRNG seed.
     parser.add_argument('-R0', type=float, default=0.001)
     parser.add_argument('-R1', type=float, default=0.0035)
     parser.add_argument('-STP', type=int, default=10000)
@@ -259,10 +259,10 @@ if __name__ == '__main__':
     A = parser.parse_args()
     if A.C > 0:
         if A.NLAM >0:
-            with Timer("done Spectrum for Mu,T= "   + str(A.Mu) + "," + str(A.T)+"," +  str(A.NLAM) + "," + str(A.GAMMA)):
-                test_Spectrum(A.Mu, A.EG, A.T, A.CPU, A.C, A.serial, A.NLAM, A.GAMMA)
+            with Timer("done Spectrum for M,T= "   + str(A.M) + "," + str(A.T)+"," +  str(A.NLAM) + "," + str(A.GAMMA)):
+                test_Spectrum(A.M, A.EG, A.T, A.CPU, A.C, A.serial, A.NLAM, A.GAMMA)
         else:
-            with Timer("done Distribution for Mu,T= " + str(A.Mu) + "," + str(A.T)):
-                test_FDistribution(A.Mu, A.EG, A.T, A.CPU, A.C, A.serial)
+            with Timer("done Distribution for M,T= " + str(A.M) + "," + str(A.T)):
+                test_FDistribution(A.M, A.EG, A.T, A.CPU, A.run, A.C, A.compute, A.serial)
     else:
-        MakePlots(A.Mu, A.EG, A.T, A.CPU, A.R0, A.R1, A.STP)
+        MakePlots(A.M, A.EG, A.T, A.CPU, A.R0, A.R1, A.STP)
