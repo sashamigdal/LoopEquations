@@ -271,6 +271,65 @@ double benchmark( int gridSize, int nThreads, int device ) {
     return speed;
 }
 
+extern "C" {
+EXPORT double DS_GPU( std::int64_t size, const std::int64_t* ns, const std::int64_t* ms, const std::int64_t* N_poss,
+                      const std::int64_t* N_negs, const real* betas, /*OUT*/ real* Ss, /*OUT*/ real* o_os )
+{
+    int deviceCount;
+    cudaGetDeviceCount( &deviceCount );
+    cudaDeviceProp devProp;
+    chkcudaGetDeviceProperties( &devProp, 0 );
+    const int warpSize = devProp.warpSize;
+    size_t nSamples = size * warpSize / deviceCount;
+    int gridSize = nSamples / 8; //65536;
+    int nThreads = 8;
+    const int totThreads = gridSize * nThreads;
+    std::cout << "Running on GPU \"" << devProp.name << "\"" << std::endl;
+
+    std::vector<pair_ptr<cudaRandomWalker>> walkers(deviceCount);
+    std::vector<pair_ptr<std::int64_t>> arr_ns(deviceCount);
+    std::vector<pair_ptr<std::int64_t>> arr_ms(deviceCount);
+    std::vector<pair_ptr<std::int64_t>> arr_N_poss(deviceCount);
+    std::vector<pair_ptr<std::int64_t>> arr_N_negs(deviceCount);
+    std::vector<pair_ptr<real>> arr_betas(deviceCount);
+    std::vector<pair_ptr<real>> arr_Ss(deviceCount);
+    std::vector<pair_ptr<real>> arr_o_os(deviceCount);
+
+    for ( int device = 0; device < deviceCount; device++ ) {
+        CheckErrorCode( cudaSetDevice(device) );
+
+        walkers[device].allocate(totThreads);
+        arr_ns[device].allocate(totThreads);
+        arr_ms[device].allocate(totThreads);
+        arr_N_poss[device].allocate(totThreads);
+        arr_N_negs[device].allocate(totThreads);
+        arr_betas[device].allocate(totThreads);
+        arr_Ss[device].allocate(totThreads);
+        arr_o_os[device].allocate(totThreads);
+
+        std::mt19937_64 gen( std::random_device{}() );
+        for ( size_t i = 0; i != size / deviceCount; i++ ) {
+            for ( int j = 0; j != warpSize; j++ ) {
+                size_t idx = i * warpSize + j;
+                arr_ns[device].host_ptr[idx] = ns[i];
+                arr_ms[device].host_ptr[idx] = ms[i];
+                arr_N_poss[device].host_ptr[idx] = N_poss[i];
+                arr_N_negs[device].host_ptr[idx] = N_negs[i];
+                arr_betas[device].host_ptr[idx] = betas[i];
+            }
+        }
+        DoWorkKernel<<<gridSize, nThreads>>>( walkers[device].device_ptr, arr_ns[device].device_ptr,
+                                              arr_ms[device].device_ptr, arr_N_poss[device].device_ptr,
+                                              arr_N_negs[device].device_ptr, arr_betas[device].device_ptr,
+                                              arr_Ss[device].device_ptr, arr_o_os[device].device_ptr );
+
+        if ( cudaGetLastError() != cudaSuccess ) {
+            std::cerr << "Error launching CUDA kernel" << std::endl;
+            return -1; }
+    }
+}
+}
+
 int main() {
     int device = 0;
     int best_gridSize = 1;

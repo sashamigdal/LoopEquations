@@ -114,32 +114,40 @@ class CurveSimulatorFDistribution(CurveSimulatorBase):
         """
         T = self.T
         MakeDir(self.CurrentCorrFuncDir())
-        if self.compute == "CPU":
-            if not os.path.isfile(self.Pathname()):
-                res = None
+
+        if not os.path.isfile(self.Pathname()):
+            res = None
+            t0 = GetTime()
+            if self.compute == "CPU":
                 params = range(self.nWorkers)
-                t0 = GetTime()
                 if serial:
                     res = list(map(self.GetSamples, params))
                 else:
                     with fut.ProcessPoolExecutor(max_workers=self.nWorkers) as exec:
                         res = list(exec.map(self.GetSamples, params))
-                dt = GetTime() - t0
-                data = np.vstack(res)
-                data.tofile(self.Pathname())
-                Mtot = T * self.M
-                print(f"made FDistribution {self.M}")
-                speed = Mtot / dt
-                print(f"Random walker has made {Mtot} steps total in {dt} seconds." +
-                      f" Avg speed is {speed:g} steps per second.")
+            elif self.compute == "GPU":
+                res = [self.GetSamples(0)]
+            dt = GetTime() - t0
+            data = np.vstack(res)
+            data.tofile(self.Pathname())
+            Mtot = T * self.M
+            print(f"made FDistribution {self.M}")
+            speed = Mtot / dt
+            print(f"Random walker has made {Mtot} steps total in {dt} seconds." +
+                  f" Avg speed is {speed:g} steps per second.")
 
     def Pathname(self):
         return os.path.join(self.CurrentCorrFuncDir(), "Fdata." + str(self.EG)+ "."+ str(self.T) + "." + str(self.C) + ".np")
 
     def GetSamples(self, workerId):
-        beg = self.T * workerId // self.nWorkers
-        end = self.T * (workerId + 1) // self.nWorkers
-        ar = np.zeros((end - beg) * 3, dtype=float).reshape(-1, 3)
+        if self.compute == "CPU":
+            beg = self.T * workerId // self.nWorkers
+            end = self.T * (workerId + 1) // self.nWorkers
+            ar = np.zeros((end - beg) * 3, dtype=float).reshape(-1, 3)
+        elif self.compute == "GPU":
+            beg = 0
+            end = self.T
+            ar = np.zeros((end - beg) * 32 * 3, dtype=float).reshape(-1, 3)
         np.random.seed((self.run * 1000 + self.C) * self.nWorkers + workerId)  # to make a unique seed for at least 1000 nodes
 
         for k in range(beg, end):

@@ -258,7 +258,7 @@ if __name__ == '__main__':
 
     A = parser.parse_args()
     if A.C > 0:
-        if A.NLAM >0:
+        if A.NLAM > 0:
             with Timer("done Spectrum for M,T= "   + str(A.M) + "," + str(A.T)+"," +  str(A.NLAM) + "," + str(A.GAMMA)):
                 test_Spectrum(A.M, A.EG, A.T, A.CPU, A.C, A.serial, A.NLAM, A.GAMMA)
         else:
