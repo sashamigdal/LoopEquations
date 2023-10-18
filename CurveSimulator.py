@@ -20,10 +20,12 @@ if sys.platform == "linux":
 elif sys.platform == "win32":
     cxx_lib_ext = "dll"
 libDS_path = os.path.join(cxx_lib_dir, 'libEuler.' + cxx_lib_ext)
+libEulerGPU_path = os.path.join(cxx_lib_dir, 'libEulerGPU.' + cxx_lib_ext)
 sys.path.append(cxx_lib_dir)
 
 if sys.platform == 'linux' or sys.platform == "win32":
     libDS = ctypes.cdll.LoadLibrary(libDS_path)
+    libEulerGPU = ctypes.cdll.LoadLibrary(libEulerGPU_path)
 c_int64 = ctypes.c_int64
 c_uint64 = ctypes.c_uint64
 c_double_p = ctypes.POINTER(ctypes.c_double)
@@ -45,7 +47,6 @@ c_double_complex_p = ctypes.POINTER(c_double_complex)
 
 
 def DS_CPP(n, m, N_pos, N_neg, beta):
-
     libDS.DS.argtypes = (c_int64, c_int64, c_int64, c_int64, ctypes.c_double, c_double_p)
     libDS.DS.restype = ctypes.c_double
     np_o_o = np.zeros(1, dtype=float)
@@ -71,15 +72,15 @@ def DS_GPU(warp_size : int,
     nSamples = len(ns)
     Ss = np.zeros(nSamples * warp_size, dtype=np.double)
     o_os = np.zeros(nSamples * warp_size, dtype=np.double)
-    libDS.DS_GPU.argtypes = (c_uint64, c_uint64_p, c_uint64_p, c_uint64_p, c_uint64_p, c_double_p, c_double_p, c_double_p)
-    libDS.DS_GPU(nSamples, ns.ctypes.data_as(c_uint64_p), ms.ctypes.data_as(c_uint64_p),
+    libEulerGPU.DS_GPU.argtypes = (c_uint64, c_uint64_p, c_uint64_p, c_uint64_p, c_uint64_p, c_double_p, c_double_p, c_double_p)
+    libEulerGPU.DS_GPU(nSamples, ns.ctypes.data_as(c_uint64_p), ms.ctypes.data_as(c_uint64_p),
                  N_poss.ctypes.data_as(c_uint64_p), N_negs.ctypes.data_as(c_uint64_p), betas.ctypes.data_as(c_double_p),
                  Ss.ctypes.data_as(c_double_p), o_os.ctypes.data_as(c_double_p) )
     return Ss, o_os
 
 def DS_GetGpuWarpSize():
-    libDS.GetGpuWarpSize.restype = ctypes.c_int
-    return libDS.GetGpuWarpSize()
+    libEulerGPU.GetGpuWarpSize.restype = ctypes.c_int
+    return libEulerGPU.GetGpuWarpSize()
 
 def SPECTRUM_CPP( N_pos, N_neg,N_lam, beta, gamma,tol):
     #  void FindSpectrumFromResolvent(std::int64_t N_pos, std::int64_t N_neg, std::int64_t N_lam,double beta, std::complex<double> gamma, 
