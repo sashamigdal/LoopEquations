@@ -1,6 +1,8 @@
 ﻿#include <cassert>
 #include <utility>
 #include <random>
+#include <chrono>
+#include <thread>
 #include <iostream>
 #include <iomanip>
 #include <cuda_runtime.h>
@@ -9,6 +11,7 @@
 #include <cuComplex.h>
 
 using namespace std::string_literals;
+using namespace std::chrono_literals;
 
 // no noticeable difference
 #define USE_DOUBLE 1
@@ -95,16 +98,17 @@ private:
     curandState_t gen;
 };
 
-static __global__ void DoWorkKernel( cudaRandomWalker* walkers, std::int64_t* ns, std::int64_t* ms,
-                                     std::int64_t* N_poss, std::int64_t* N_negs, real* betas, /*OUT*/ real* Ss, /*OUT*/ real* o_os )
+static __global__ void DoWorkKernel( size_t size, cudaRandomWalker* walkers, std::uint64_t* ns, std::uint64_t* ms,
+                                     std::uint64_t* N_poss, std::uint64_t* N_negs, real* betas, /*OUT*/ real* Ss, /*OUT*/ real* o_os )
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    if ( tid >= size ) { return; }
     //int tid = ((blockI blockIdx.y) * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     cudaRandomWalker& walker = walkers[tid];
-    std::int64_t n = ns[tid];
-    std::int64_t m = ms[tid];
-    std::int64_t N_pos = N_poss[tid];
-    std::int64_t N_neg = N_negs[tid];
+    std::uint64_t n = ns[tid];
+    std::uint64_t m = ms[tid];
+    std::uint64_t N_pos = N_poss[tid];
+    std::uint64_t N_neg = N_negs[tid];
     real beta = betas[tid];
     real& S = Ss[tid];
     real& o_o = o_os[tid];
@@ -160,6 +164,10 @@ struct pair_ptr {
         CheckErrorCode( cudaMalloc( (void**)&device_ptr, size * sizeof(T) ) );
     }
 
+    void allocateOnDevice( size_t size ) {
+        CheckErrorCode( cudaMalloc( (void**)&device_ptr, size * sizeof(T) ) );
+    }
+
     ~pair_ptr() {
         CheckErrorCode( cudaFree(device_ptr) );
         if ( host_ptr_allocated ) {
@@ -210,7 +218,7 @@ double benchmark( int gridSize, int nThreads, int device ) {
     CheckErrorCode( cudaSetDevice(device) );
 
     pair_ptr<cudaRandomWalker> walkers;
-    pair_ptr<std::int64_t> ns, ms, N_poss, N_negs;
+    pair_ptr<std::uint64_t> ns, ms, N_poss, N_negs;
     pair_ptr<real> betas, Ss, o_os;
 
     walkers.allocate(totThreads);
@@ -229,10 +237,10 @@ double benchmark( int gridSize, int nThreads, int device ) {
     const int warpSize = devProp.warpSize;
     if ( totThreads < warpSize ) { return -1; }
     for ( size_t i = 0; i != totThreads / warpSize; i++ ) {
-        std::uniform_int_distribution<std::int64_t> unif_M( 1, M );
-        std::uniform_int_distribution<std::int64_t> unif_M1( 1, M - 1 );
-        std::int64_t n = unif_M(gen) - 1;
-        std::int64_t m = (n + unif_M1(gen)) % M;
+        std::uniform_int_distribution<std::uint64_t> unif_M( 1, M );
+        std::uniform_int_distribution<std::uint64_t> unif_M1( 1, M - 1 );
+        std::uint64_t n = unif_M(gen) - 1;
+        std::uint64_t m = (n + unif_M1(gen)) % M;
         if ( n > m ) {
             std::swap( n, m );
         }
@@ -259,7 +267,7 @@ double benchmark( int gridSize, int nThreads, int device ) {
     chkcudaEventCreate( &stop );
     chkcudaEventRecord( start, cudaStream_t(0) );
 
-    DoWorkKernel<<<gridSize, nThreads>>>( walkers.device_ptr, ns.device_ptr, ms.device_ptr, N_poss.device_ptr, N_negs.device_ptr,
+    DoWorkKernel<<<gridSize, nThreads>>>( totThreads, walkers.device_ptr, ns.device_ptr, ms.device_ptr, N_poss.device_ptr, N_negs.device_ptr,
                                          betas.device_ptr, Ss.device_ptr, o_os.device_ptr );
 
     if ( cudaGetLastError() != cudaSuccess ) { return -1; }
@@ -282,6 +290,12 @@ double benchmark( int gridSize, int nThreads, int device ) {
     //}
     return speed;
 }
+
+#if defined(_MSC_VER)
+#   define EXPORT __declspec(dllexport)
+#elif defined(__GNUC__)
+#   define EXPORT __attribute__((visibility("default")))
+#endif
 
 extern "C" {
 EXPORT void DS_GPU( std::uint64_t size, const std::uint64_t* ns, const std::uint64_t* ms, const std::uint64_t* N_poss,
@@ -317,10 +331,13 @@ EXPORT void DS_GPU( std::uint64_t size, const std::uint64_t* ns, const std::uint
         arr_N_negs[device].allocate(totThreads);
         arr_betas[device].allocate(totThreads);
         arr_Ss[device].SetHostPtr( &Ss[nSamples * device] );
-        arr_o_os[device].SetHostPtr( &Ss[nSamples * device] );
+        arr_Ss[device].allocateOnDevice(totThreads);
+        arr_o_os[device].SetHostPtr( &o_os[nSamples * device] );
+        arr_o_os[device].allocateOnDevice(totThreads);
 
         std::mt19937_64 gen( std::random_device{}() );
         for ( size_t i = 0; i != size / deviceCount; i++ ) {
+            //std::cout << ns[i] << '\t' << ms[i]  << '\t' << N_poss[i] << '\t' << N_negs[i] << '\t' << betas[i] << std::endl;
             for ( int j = 0; j != warpSize; j++ ) {
                 size_t idx = i * warpSize + j;
                 arr_ns[device].host_ptr[idx] = ns[i];
@@ -330,7 +347,15 @@ EXPORT void DS_GPU( std::uint64_t size, const std::uint64_t* ns, const std::uint
                 arr_betas[device].host_ptr[idx] = betas[i];
             }
         }
-        DoWorkKernel<<<gridSize, nThreads>>>( walkers[device].device_ptr, arr_ns[device].device_ptr,
+
+        walkers[device].CopyToDevice(totThreads);
+        arr_ns[device].CopyToDevice(totThreads);
+        arr_ms[device].CopyToDevice(totThreads);
+        arr_N_poss[device].CopyToDevice(totThreads);
+        arr_N_negs[device].CopyToDevice(totThreads);
+        arr_betas[device].CopyToDevice(totThreads);
+
+        DoWorkKernel<<<gridSize, nThreads>>>( nSamples, walkers[device].device_ptr, arr_ns[device].device_ptr,
                                               arr_ms[device].device_ptr, arr_N_poss[device].device_ptr,
                                               arr_N_negs[device].device_ptr, arr_betas[device].device_ptr,
                                               arr_Ss[device].device_ptr, arr_o_os[device].device_ptr );

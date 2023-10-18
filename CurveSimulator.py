@@ -1,6 +1,7 @@
 import os
 import sys
 import numpy as np
+import numpy.typing as npt
 
 from math import gcd
 from numpy import pi, sin, tan
@@ -9,14 +10,19 @@ import concurrent.futures as fut
 from plot import MakeDir, MultiRankHistPos, MultiXYPlot
 import ctypes
 from Timer import GetTime
+from time import sleep
 
 
 lib_config = "debug" if (os.getenv("USE_DEBUG_LIB") == "1") else "release"
 cxx_lib_dir = "CPP/cmake-build-" + lib_config
-libDS_path = os.path.join(cxx_lib_dir, 'libEuler.so')
+if sys.platform == "linux":
+    cxx_lib_ext = "so"
+elif sys.platform == "win32":
+    cxx_lib_ext = "dll"
+libDS_path = os.path.join(cxx_lib_dir, 'libEuler.' + cxx_lib_ext)
 sys.path.append(cxx_lib_dir)
 
-if sys.platform == 'linux':
+if sys.platform == 'linux' or sys.platform == "win32":
     libDS = ctypes.cdll.LoadLibrary(libDS_path)
 c_int64 = ctypes.c_int64
 c_uint64 = ctypes.c_uint64
@@ -46,9 +52,12 @@ def DS_CPP(n, m, N_pos, N_neg, beta):
     dsabs = libDS.DS(n, m, N_pos, N_neg, beta, np_o_o.ctypes.data_as(c_double_p))
     return dsabs, np_o_o[0]
 
-def DS_GPU(warp_size : int, ns : np.NDArray[np.int64], ms : np.NDArray[np.int64], N_poss : np.NDArray[np.int64],
-           N_negs : np.NDArray[np.int64], betas : np.NDArray[np.double])\
-           -> (np.NDArray[np.double], np.NDArray[np.double]):
+def DS_GPU(warp_size : int,
+           ns : npt.NDArray[np.int64],
+           ms : npt.NDArray[np.int64],
+           N_poss : npt.NDArray[np.int64],
+           N_negs : npt.NDArray[np.int64],
+           betas : npt.NDArray[np.double]) -> (npt.NDArray[np.double], npt.NDArray[np.double]):
     """
     Wrapper on C++ CUDA code for GPU
     :param warp_size: Warp size on the GPU
@@ -63,7 +72,9 @@ def DS_GPU(warp_size : int, ns : np.NDArray[np.int64], ms : np.NDArray[np.int64]
     Ss = np.zeros(nSamples * warp_size, dtype=np.double)
     o_os = np.zeros(nSamples * warp_size, dtype=np.double)
     libDS.DS_GPU.argtypes = (c_uint64, c_uint64_p, c_uint64_p, c_uint64_p, c_uint64_p, c_double_p, c_double_p, c_double_p)
-    libDS.DS_GPU(nSamples, ns, ms, N_poss, N_negs, betas, Ss.ctypes.data_as(c_double_p), o_os.ctypes.data_as(c_double_p) )
+    libDS.DS_GPU(nSamples, ns.ctypes.data_as(c_uint64_p), ms.ctypes.data_as(c_uint64_p),
+                 N_poss.ctypes.data_as(c_uint64_p), N_negs.ctypes.data_as(c_uint64_p), betas.ctypes.data_as(c_double_p),
+                 Ss.ctypes.data_as(c_double_p), o_os.ctypes.data_as(c_double_p) )
     return Ss, o_os
 
 def DS_GetGpuWarpSize():
@@ -150,12 +161,13 @@ class CurveSimulatorFDistribution(CurveSimulatorBase):
                 else:
                     with fut.ProcessPoolExecutor(max_workers=self.nWorkers) as exec:
                         res = list(exec.map(self.GetSamples, params))
+                Mtot = T * self.M
             elif self.compute == "GPU":
                 res = [self.GetSamples(0)]
+                Mtot = T * self.M * 32
             dt = GetTime() - t0
             data = np.vstack(res)
             data.tofile(self.Pathname())
-            Mtot = T * self.M
             print(f"made FDistribution {self.M}")
             speed = Mtot / dt
             print(f"Random walker has made {Mtot} steps total in {dt} seconds." +
@@ -202,10 +214,10 @@ class CurveSimulatorFDistribution(CurveSimulatorBase):
             betas = np.zeros(end - beg, dtype=np.double)
             for k in range(end - beg):
                 ns[k], ms[k], N_poss[k], N_negs[k], betas[k] = self.GenerateEulerSet()
-                Ss, o_os = DS_GPU(warp_size, ns, ms, N_poss, N_negs, betas)
-                ar[k * warp_size: (k + 1) * warp_size, 0] = 1 / tan(beta / 2) ** 2
-                ar[:, 1] = Ss
-                ar[:, 2] = o_os
+                ar[k * warp_size: (k + 1) * warp_size, 0] = 1 / tan(betas[k] / 2) ** 2
+            Ss, o_os = DS_GPU(warp_size, ns, ms, N_poss, N_negs, betas)
+            ar[:, 1] = Ss
+            ar[:, 2] = o_os
         return ar
 
     @staticmethod

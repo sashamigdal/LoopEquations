@@ -172,7 +172,7 @@ def test_FDistribution(M, EG, T, CPU, run, C, compute, serial):
     :param compute: (str) "CPU" or "GPU"
     :param serial: Boolean If set, run serially.
     """
-    if sys.platform == 'linux':
+    if sys.platform == "linux" or sys.platform == "win32":
         with Timer("done FDistribution for M,T,C= " + str(M) + "," + str(T)+ "," + str(C)):
             fdp = CurveSimulatorFDistribution(M, EG, T, CPU, run, C, compute)
             fdp.DoWork(serial)  # runs on each node, outputs placed in the plot dir of the main node
@@ -234,7 +234,6 @@ def test_EulerPhi():
     ep.Probability(N)
 
 if __name__ == '__main__':
-    # test_Numba()
     import argparse
     import logging
     import multiprocessing as mp
@@ -252,7 +251,7 @@ if __name__ == '__main__':
     parser.add_argument('-R0', type=float, default=0.001)
     parser.add_argument('-R1', type=float, default=0.0035)
     parser.add_argument('-STP', type=int, default=10000)
-    parser.add_argument('-NLAM', type=int, default=1)
+    parser.add_argument('-NLAM', type=int, default=0)
     parser.add_argument('-GAMMA', type=float, default=-100.)
     #, Nlam, gamma
 
