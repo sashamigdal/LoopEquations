@@ -18,6 +18,8 @@ sys.path.append(cxx_lib_dir)
 
 if sys.platform == 'linux':
     libDS = ctypes.cdll.LoadLibrary(libDS_path)
+c_int64 = ctypes.c_int64
+c_uint64 = ctypes.c_uint64
 c_double_p = ctypes.POINTER(ctypes.c_double)
 c_int64_p = ctypes.POINTER(ctypes.c_int64)
 c_uint64_p = ctypes.POINTER(ctypes.c_uint64)
@@ -37,13 +39,36 @@ c_double_complex_p = ctypes.POINTER(c_double_complex)
 
 
 def DS_CPP(n, m, N_pos, N_neg, beta):
-    INT64 = ctypes.c_int64
-    libDS.DS.argtypes = (INT64, INT64, INT64, INT64, ctypes.c_double, c_double_p)
+
+    libDS.DS.argtypes = (c_int64, c_int64, c_int64, c_int64, ctypes.c_double, c_double_p)
     libDS.DS.restype = ctypes.c_double
     np_o_o = np.zeros(1, dtype=float)
     dsabs = libDS.DS(n, m, N_pos, N_neg, beta, np_o_o.ctypes.data_as(c_double_p))
     return dsabs, np_o_o[0]
 
+def DS_GPU(warp_size : int, ns : np.NDArray[np.int64], ms : np.NDArray[np.int64], N_poss : np.NDArray[np.int64],
+           N_negs : np.NDArray[np.int64], betas : np.NDArray[np.double])\
+           -> (np.NDArray[np.double], np.NDArray[np.double]):
+    """
+    Wrapper on C++ CUDA code for GPU
+    :param warp_size: Warp size on the GPU
+    :param ns: array of n's
+    :param ms: array of m's
+    :param N_poss: array of N_pos's
+    :param N_negs: array of N_neg's
+    :param betas: array of beta's
+    :return: pair of arrays
+    """
+    nSamples = len(ns)
+    Ss = np.zeros(nSamples * warp_size, dtype=np.double)
+    o_os = np.zeros(nSamples * warp_size, dtype=np.double)
+    libDS.DS_GPU.argtypes = (c_uint64, c_uint64_p, c_uint64_p, c_uint64_p, c_uint64_p, c_double_p, c_double_p, c_double_p)
+    libDS.DS_GPU(nSamples, ns, ms, N_poss, N_negs, betas, Ss.ctypes.data_as(c_double_p), o_os.ctypes.data_as(c_double_p) )
+    return Ss, o_os
+
+def DS_GetGpuWarpSize():
+    libDS.GetGpuWarpSize.restype = ctypes.c_int
+    return libDS.GetGpuWarpSize()
 
 def SPECTRUM_CPP( N_pos, N_neg,N_lam, beta, gamma,tol):
     #  void FindSpectrumFromResolvent(std::int64_t N_pos, std::int64_t N_neg, std::int64_t N_lam,double beta, std::complex<double> gamma, 
@@ -139,32 +164,48 @@ class CurveSimulatorFDistribution(CurveSimulatorBase):
     def Pathname(self):
         return os.path.join(self.CurrentCorrFuncDir(), "Fdata." + str(self.EG)+ "."+ str(self.T) + "." + str(self.C) + ".np")
 
+    def GenerateEulerSet(self):
+        M, p, q = self.EulerPair()
+        beta = (2 * pi * p) / float(q)
+        r = 0
+        N_pos = (M + q * r) // 2  # Number of 1's
+        N_neg = M - N_pos  # Number of -1's
+
+        n = np.random.randint(0, M)
+        m = np.random.randint(n + 1, M + n) % M
+        if n > m:
+            n, m = m, n
+        return n, m, N_pos, N_neg, beta
+
     def GetSamples(self, workerId):
+        partition = 0 if self.compute == "CPU" else 1
+        # to make a unique seed for at least 1000 nodes
+        np.random.seed(((partition * 100 + self.run) * 1000 + self.C) * self.nWorkers + workerId)
         if self.compute == "CPU":
             beg = self.T * workerId // self.nWorkers
             end = self.T * (workerId + 1) // self.nWorkers
             ar = np.zeros((end - beg) * 3, dtype=float).reshape(-1, 3)
+            for k in range(beg, end):
+                n, m, N_pos, N_neg, beta = self.GenerateEulerSet()
+                t = k - beg
+                ar[t, 0] = 1 / tan(beta / 2) ** 2
+                ar[t, 1], ar[t, 2] = DS_CPP(n, m, N_pos, N_neg, beta)
         elif self.compute == "GPU":
+            warp_size = DS_GetGpuWarpSize()
             beg = 0
             end = self.T
-            ar = np.zeros((end - beg) * 32 * 3, dtype=float).reshape(-1, 3)
-        np.random.seed((self.run * 1000 + self.C) * self.nWorkers + workerId)  # to make a unique seed for at least 1000 nodes
-
-        for k in range(beg, end):
-            M, p, q = self.EulerPair()
-            beta = (2 * pi * p) / float(q)
-            r = 0
-            N_pos = (M + q*r) // 2  # Number of 1's
-            N_neg = M - N_pos  # Number of -1's
-
-            n = np.random.randint(0, M)
-            m = np.random.randint(n + 1, M + n) % M
-            if n > m:
-                n, m = m, n
-
-            t = k - beg
-            ar[t, 0] = 1/tan(beta/2)**2
-            ar[t, 1], ar[t, 2] = DS_CPP(n, m, N_pos, N_neg, beta)
+            ar = np.zeros((end - beg) * warp_size * 3, dtype=float).reshape(-1, 3)
+            ns = np.zeros(end - beg, dtype=np.int64)
+            ms = np.zeros(end - beg, dtype=np.int64)
+            N_poss = np.zeros(end - beg, dtype=np.int64)
+            N_negs = np.zeros(end - beg, dtype=np.int64)
+            betas = np.zeros(end - beg, dtype=np.double)
+            for k in range(end - beg):
+                ns[k], ms[k], N_poss[k], N_negs[k], betas[k] = self.GenerateEulerSet()
+                Ss, o_os = DS_GPU(warp_size, ns, ms, N_poss, N_negs, betas)
+                ar[k * warp_size: (k + 1) * warp_size, 0] = 1 / tan(beta / 2) ** 2
+                ar[:, 1] = Ss
+                ar[:, 2] = o_os
         return ar
 
     @staticmethod

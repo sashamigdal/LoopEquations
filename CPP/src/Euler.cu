@@ -152,15 +152,19 @@ template <class T>
 struct pair_ptr {
     T* host_ptr;
     T* device_ptr;
+    bool host_ptr_allocated = false;
 
     void allocate( size_t size ) {
         host_ptr = new T[size];
+        host_ptr_allocated = true;
         CheckErrorCode( cudaMalloc( (void**)&device_ptr, size * sizeof(T) ) );
     }
 
     ~pair_ptr() {
         CheckErrorCode( cudaFree(device_ptr) );
-        delete[] host_ptr;
+        if ( host_ptr_allocated ) {
+            delete[] host_ptr;
+        }
     }
 
     void CopyToDevice( size_t size ) {
@@ -169,6 +173,14 @@ struct pair_ptr {
 
     void CopyFromDevice( size_t size ) {
         CheckErrorCode( cudaMemcpy( host_ptr, device_ptr, size * sizeof(T), cudaMemcpyDeviceToHost ) );
+    }
+
+    void SetHostPtr( T* host_ptr ) {
+        if ( host_ptr_allocated ) {
+            delete[] host_ptr;
+        }
+        this->host_ptr = host_ptr;
+        host_ptr_allocated = false;
     }
 };
 
@@ -272,8 +284,8 @@ double benchmark( int gridSize, int nThreads, int device ) {
 }
 
 extern "C" {
-EXPORT double DS_GPU( std::int64_t size, const std::int64_t* ns, const std::int64_t* ms, const std::int64_t* N_poss,
-                      const std::int64_t* N_negs, const real* betas, /*OUT*/ real* Ss, /*OUT*/ real* o_os )
+EXPORT void DS_GPU( std::uint64_t size, const std::uint64_t* ns, const std::uint64_t* ms, const std::uint64_t* N_poss,
+                      const std::uint64_t* N_negs, const real* betas, /*OUT*/ real* Ss, /*OUT*/ real* o_os )
 {
     int deviceCount;
     cudaGetDeviceCount( &deviceCount );
@@ -287,10 +299,10 @@ EXPORT double DS_GPU( std::int64_t size, const std::int64_t* ns, const std::int6
     std::cout << "Running on GPU \"" << devProp.name << "\"" << std::endl;
 
     std::vector<pair_ptr<cudaRandomWalker>> walkers(deviceCount);
-    std::vector<pair_ptr<std::int64_t>> arr_ns(deviceCount);
-    std::vector<pair_ptr<std::int64_t>> arr_ms(deviceCount);
-    std::vector<pair_ptr<std::int64_t>> arr_N_poss(deviceCount);
-    std::vector<pair_ptr<std::int64_t>> arr_N_negs(deviceCount);
+    std::vector<pair_ptr<std::uint64_t>> arr_ns(deviceCount);
+    std::vector<pair_ptr<std::uint64_t>> arr_ms(deviceCount);
+    std::vector<pair_ptr<std::uint64_t>> arr_N_poss(deviceCount);
+    std::vector<pair_ptr<std::uint64_t>> arr_N_negs(deviceCount);
     std::vector<pair_ptr<real>> arr_betas(deviceCount);
     std::vector<pair_ptr<real>> arr_Ss(deviceCount);
     std::vector<pair_ptr<real>> arr_o_os(deviceCount);
@@ -304,8 +316,8 @@ EXPORT double DS_GPU( std::int64_t size, const std::int64_t* ns, const std::int6
         arr_N_poss[device].allocate(totThreads);
         arr_N_negs[device].allocate(totThreads);
         arr_betas[device].allocate(totThreads);
-        arr_Ss[device].allocate(totThreads);
-        arr_o_os[device].allocate(totThreads);
+        arr_Ss[device].SetHostPtr( &Ss[nSamples * device] );
+        arr_o_os[device].SetHostPtr( &Ss[nSamples * device] );
 
         std::mt19937_64 gen( std::random_device{}() );
         for ( size_t i = 0; i != size / deviceCount; i++ ) {
@@ -324,9 +336,30 @@ EXPORT double DS_GPU( std::int64_t size, const std::int64_t* ns, const std::int6
                                               arr_Ss[device].device_ptr, arr_o_os[device].device_ptr );
 
         if ( cudaGetLastError() != cudaSuccess ) {
-            std::cerr << "Error launching CUDA kernel" << std::endl;
-            return -1; }
+            std::cerr << "Error launching CUDA kernel on device " << device << std::endl;
+            continue;
+        }
     }
+    for ( int device = 0; device < deviceCount; device++ ) {
+        CheckErrorCode( cudaSetDevice(device) );
+        if ( cudaDeviceSynchronize() != cudaSuccess ) {
+            std::cerr << "Error while running CUDA kernel on device " << device << std::endl;
+            continue;
+        }
+        arr_Ss[device].CopyFromDevice(totThreads);
+        arr_o_os[device].CopyFromDevice(totThreads);
+    }
+}
+
+EXPORT int GetGpuWarpSize() {
+    int deviceCount;
+    cudaGetDeviceCount( &deviceCount );
+    if ( deviceCount == 0 ) {
+        return 0;
+    }
+    cudaDeviceProp devProp;
+    chkcudaGetDeviceProperties( &devProp, 0 );
+    return devProp.warpSize;
 }
 }
 
