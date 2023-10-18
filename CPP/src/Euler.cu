@@ -310,7 +310,7 @@ EXPORT void DS_GPU( std::uint64_t size, const std::uint64_t* ns, const std::uint
     int gridSize = nSamples / 8; //65536;
     int nThreads = 8;
     const int totThreads = gridSize * nThreads;
-    std::cout << "Running on GPU \"" << devProp.name << "\"" << std::endl;
+    std::cout << "Running on GPU \"" << devProp.name << "\" (x" << deviceCount << ")" << std::endl;
 
     std::vector<pair_ptr<cudaRandomWalker>> walkers(deviceCount);
     std::vector<pair_ptr<std::uint64_t>> arr_ns(deviceCount);
