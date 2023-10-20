@@ -9,7 +9,7 @@ import subprocess
 import concurrent.futures as fut
 from cfractions import Fraction
 from QuadPy import SphericalFourierIntegral
-from CurveSimulator import CurveSimulatorFDistribution, CurveSimulatorSpectrum
+from CurveSimulator import CurveSimulatorFDistribution, CurveSimulatorSpectrum, CorrFuncDir
 
 
 # @jit
