@@ -203,7 +203,7 @@ def test_makePlots(M=1e7, EG="E", T=1000, CPU=0, R0=0.001, R1=0.003, STP=1000):
 
 def CollectDistribution(M, EG, run, compute):
     dir_path = CorrFuncDir(M, compute, run)
-    subprocess.run(f"cat {dir_path}/Fdata.{EG}.*.*.np > {dir_path}/FDStats.{EG}.np")
+    subprocess.run(["sh", "-c", f"cat {dir_path}/Fdata.{EG}.*.*.np > {dir_path}/FDStats.{EG}.np"])
 
 # @jit
 def euler_totients(N: int) -> list:
