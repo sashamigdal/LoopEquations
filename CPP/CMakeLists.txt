@@ -20,3 +20,4 @@ set(SOURCES src/Euler.cpp
 )
 
 add_library(${PROJECT_NAME} SHARED ${SOURCES})
+add_executable(SampleSorter src/SampleSorter.cpp)
