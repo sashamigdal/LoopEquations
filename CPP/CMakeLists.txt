@@ -20,4 +20,5 @@ set(SOURCES src/Euler.cpp
 )
 
 add_library(${PROJECT_NAME} SHARED ${SOURCES})
-add_executable(SampleSorter src/SampleSorter.cpp)
+add_executable(SamplesSorter src/SamplesSorter.cpp)
+target_link_libraries(SamplesSorter PUBLIC stdc++fs)
