@@ -5,6 +5,7 @@ from numpy import sqrt
 from numpy.linalg import multi_dot as mdot
 import numpy as np
 import multiprocessing as mp
+import subprocess
 import concurrent.futures as fut
 from cfractions import Fraction
 from QuadPy import SphericalFourierIntegral
@@ -190,7 +191,7 @@ def test_Spectrum(M, EG, T, CPU, C, serial, Nlam, gamma):
     else:
         print(f"not implemented on {sys.platform}")
 
-def MakePlots(M, EG, T, CPU, R0, R1, STP):
+def MakePlots(M, EG, T, CPU, run, compute, R0, R1, STP):
     with Timer("done MakePlots for M,T= " + str(M) + "," + str(T)):
         fdp = CurveSimulatorFDistribution(M, EG, T, CPU, R0, R1, STP, 0)
         fdp.MakePlots([M])  # runs on main node, pools tata if not yet done so, subsamples data and makes plots
@@ -199,6 +200,10 @@ def test_makePlots(M=1e7, EG="E", T=1000, CPU=0, R0=0.001, R1=0.003, STP=1000):
     MakePlots(M, EG, T, CPU, R0, R1, STP)
 #from euler_maths import euler_totients
 #from primefac import factorint
+
+def CollectDistribution(M, EG, run, compute):
+    dir_path = CorrFuncDir(M, compute, run)
+    subprocess.run(f"cat {dir_path}/Fdata.{EG}.*.*.np > {dir_path}/FDStats.{EG}.np")
 
 # @jit
 def euler_totients(N: int) -> list:
@@ -264,4 +269,5 @@ if __name__ == '__main__':
             with Timer("done Distribution for M,T= " + str(A.M) + "," + str(A.T)):
                 test_FDistribution(A.M, A.EG, A.T, A.CPU, A.run, A.C, A.compute, A.serial)
     else:
-        MakePlots(A.M, A.EG, A.T, A.CPU, A.R0, A.R1, A.STP)
+        CollectDistribution(A.M, A.EG, A.run, A.compute)
+        # MakePlots(A.M, A.EG, A.T, A.CPU, A.run, A.compute, A.R0, A.R1, A.STP)
