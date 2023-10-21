@@ -86,7 +86,9 @@ int main( int argc, const char* argv[] ) {
         } else {
             continue;
         }
-        sample.field[0] = log( abs( sample.field[0] ) );
+        for ( size_t i = 0; i != 3; i++ ) {
+            sample.field[i] = log( abs( sample.field[i] ) );
+        }
         minlog[i] = std::min( minlog[i], sample.field[0] );
         maxlog[i] = std::max( maxlog[i], sample.field[0] );
     }
