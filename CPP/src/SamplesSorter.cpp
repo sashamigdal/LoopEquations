@@ -110,8 +110,8 @@ int main( int argc, const char* argv[] ) {
         sample.field[0] = log( abs( sample.field[0] ) );
         minlog[i] = std::min( minlog[i], sample.field[0] );
         maxlog[i] = std::max( maxlog[i], sample.field[0] );
-        if ( minlog[i] == -std::numeric_limits<double>::infinity() ) {
-            std::cout << "-inf detected on samples #" << j << ": " << oldField0 << ", " << sample.field[1] << ", " << sample.field[2] << std::endl;
+        if ( !std::isfinite(minlog[i]) ) {
+            std::cout << "Infinite value detected on samples #" << j << ": " << oldField0 << ", " << sample.field[1] << ", " << sample.field[2] << std::endl;
         }
     }
     for ( i = 0; i != 2; i++ ) {
