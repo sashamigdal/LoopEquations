@@ -27,7 +27,7 @@ struct accum {
     }
 
     double Stdev( size_t n ) const {
-        return sqrt((sum2 - sum * sum / n) / (n - 1));
+        return sqrt((sum2 - sum * sum / n) / n);
     }
 };
 
@@ -78,6 +78,7 @@ int main( int argc, const char* argv[] ) {
     const auto filesize = fs::file_size(filepath);
     const auto T = filesize / sizeof(double) / 3;
     std::vector<Sample> samples(T);
+    std::vector<bool> ok(T, true);
     fIn.read( (char*) &samples[0], filesize );
 
     std::vector<std::vector<Stats>> stats(2);
@@ -89,10 +90,12 @@ int main( int argc, const char* argv[] ) {
     double step[2] = {};
     int i;
     size_t zeros_count = 0;
-    for ( Sample& sample : samples ) {
+    for ( size_t j = 0; j != samples.size(); j++ ) {
+        Sample& sample = samples[j];
         if (!( std::isfinite(sample.field[0]) && std::isfinite(sample.field[1]) && std::isfinite(sample.field[2]) && sample.field[0] > 0 && sample.field[1] > 0 ))
         {
             std::cerr << "Bad sample: " << sample.field[0] << ", " << sample.field[1] << ", " << sample.field[2] << std::endl;
+            ok[j] = false;
             continue;
         }
         if ( sample.field[2] > 0 ) {
@@ -110,10 +113,9 @@ int main( int argc, const char* argv[] ) {
     for ( i = 0; i != 2; i++ ) {
         step[i] = (maxlog[i] - minlog[i]) / M;
     }
-    for ( const Sample& sample : samples ) {
-        if (!( std::isfinite(sample.field[0]) && std::isfinite(sample.field[1]) && std::isfinite(sample.field[2]) && sample.field[0] > 0 && sample.field[1] > 0 )) {
-            continue;
-        }
+    for ( size_t j = 0; j != samples.size(); j++ ) {
+        Sample& sample = samples[j];
+        if (!ok[j]) { continue; }
         if ( sample.field[2] > 0 ) {
             i = 0;
         } else if ( sample.field[2] < 0 ) {
@@ -136,22 +138,5 @@ int main( int argc, const char* argv[] ) {
         }
     }
     std::cout << zeros_count << " zero samples\n";
-    return 0;
-}
-//////////////////////////////////////////////////////////////////////////
-int main2() {
-    fs::path filepath( "l:/Data/Work/LoopEquations/plots/VorticityCorr.100000000.ALL/FDBins.neg.np" );
-    const auto filesize = fs::file_size(filepath);
-    const auto T = filesize / sizeof(double);
-    std::vector<double> samples(T);
-    std::ifstream fIn( filepath, std::ios::binary );
-    fIn.read( (char*) &samples[0], filesize );
-    std::ofstream fOut( "out.csv" );
-    int i = 0;
-    for ( double x : samples ) {
-        fOut << x << ';';
-        i++;
-        if (i%7==0) fOut<<'\n';
-    }
     return 0;
 }
