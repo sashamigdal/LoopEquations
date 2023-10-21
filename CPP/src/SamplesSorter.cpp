@@ -62,7 +62,7 @@ std::ostream& operator<< ( std::ostream& out, const Stats& st ) {
     return out;
 }*/
 
-int main1( int argc, const char* argv[] ) {
+int main( int argc, const char* argv[] ) {
     if ( argc != 3 ) {
         std::cout << "Usage: " << argv[0] << " <file path> <M>" << std::endl;
         return 1;
@@ -128,7 +128,7 @@ int main1( int argc, const char* argv[] ) {
     return 0;
 }
 //////////////////////////////////////////////////////////////////////////
-int main() {
+int main2() {
     fs::path filepath( "l:/Data/Work/Турбулентность/LoopEquations/plots/VorticityCorr.100000000.ALL/FDBins.neg.np" );
     const auto filesize = fs::file_size(filepath);
     const auto T = filesize / sizeof(double);
@@ -142,4 +142,5 @@ int main() {
         i++;
         if (i%7==0) fOut<<'\n';
     }
+    return 0;
 }
