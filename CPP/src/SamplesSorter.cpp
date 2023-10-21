@@ -62,7 +62,7 @@ std::ostream& operator<< ( std::ostream& out, const Stats& st ) {
     return out;
 }*/
 
-int main( int argc, const char* argv[] ) {
+int main1( int argc, const char* argv[] ) {
     if ( argc != 3 ) {
         std::cout << "Usage: " << argv[0] << " <file path> <M>" << std::endl;
         return 1;
@@ -96,9 +96,7 @@ int main( int argc, const char* argv[] ) {
         } else {
             continue;
         }
-        for ( size_t i = 0; i != 3; i++ ) {
-            sample.field[i] = log( abs( sample.field[i] ) );
-        }
+        sample.field[0] = log( abs( sample.field[0] ) );
         minlog[i] = std::min( minlog[i], sample.field[0] );
         maxlog[i] = std::max( maxlog[i], sample.field[0] );
     }
@@ -116,9 +114,9 @@ int main( int argc, const char* argv[] ) {
         long long bin = static_cast<long long>( (sample.field[0] - minlog[i]) / step[i] );
         bin = std::max( 0LL, std::min( (long long)M - 1, bin ) );
         stats[i][bin].n++;
-        for ( int j = 0; j != 3; j++ ) {
-            stats[i][bin].acc[j].Add( sample.field[j] );
-        }
+        stats[i][bin].acc[0].Add( sample.field[0] );
+        stats[i][bin].acc[1].Add( log( abs( sample.field[1] ) ) );
+        stats[i][bin].acc[2].Add( log( abs( sample.field[2] ) ) );
     }
     for ( size_t i = 0; i != 2; i++ ) {
         fs::path outfilepath = dirpath / ("FDBins."s + (i == 0 ? "pos" : "neg") + ".np");
@@ -128,4 +126,20 @@ int main( int argc, const char* argv[] ) {
         }
     }
     return 0;
+}
+//////////////////////////////////////////////////////////////////////////
+int main() {
+    fs::path filepath( "l:/Data/Work/Турбулентность/LoopEquations/plots/VorticityCorr.100000000.ALL/FDBins.neg.np" );
+    const auto filesize = fs::file_size(filepath);
+    const auto T = filesize / sizeof(double);
+    std::vector<double> samples(T);
+    std::ifstream fIn( filepath, std::ios::binary );
+    fIn.read( (char*) &samples[0], filesize );
+    std::ofstream fOut( "out.csv" );
+    int i = 0;
+    for ( double x : samples ) {
+        fOut << x << ';';
+        i++;
+        if (i%7==0) fOut<<'\n';
+    }
 }
