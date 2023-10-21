@@ -107,7 +107,7 @@ int main( int argc, const char* argv[] ) {
             zeros_count++;
             continue;
         }
-        sample.field[0] = log( abs( sample.field[0] ) );
+        sample.field[0] = log( fabs( sample.field[0] ) );
         minlog[i] = std::min( minlog[i], sample.field[0] );
         maxlog[i] = std::max( maxlog[i], sample.field[0] );
         if ( !std::isfinite(minlog[i]) ) {
@@ -117,8 +117,8 @@ int main( int argc, const char* argv[] ) {
     for ( i = 0; i != 2; i++ ) {
         step[i] = (maxlog[i] - minlog[i]) / M;
     }
-    std::cout << ">0: log(abs(ctg)) = [" << minlog[0] << "; " << maxlog[0] << "], step=" << step[0] << "\n";
-    std::cout << "<0: log(abs(ctg)) = [" << minlog[1] << "; " << maxlog[1] << "], step=" << step[1] << "\n";
+    std::cout << ">0: log(fabs(ctg)) = [" << minlog[0] << "; " << maxlog[0] << "], step=" << step[0] << "\n";
+    std::cout << "<0: log(fabs(ctg)) = [" << minlog[1] << "; " << maxlog[1] << "], step=" << step[1] << "\n";
     for ( size_t j = 0; j != samples.size(); j++ ) {
         Sample& sample = samples[j];
         if (!ok[j]) { continue; }
@@ -133,8 +133,8 @@ int main( int argc, const char* argv[] ) {
         bin = std::max( 0LL, std::min( (long long)M - 1, bin ) );
         stats[i][bin].n++;
         stats[i][bin].acc[0].Add( sample.field[0] );
-        stats[i][bin].acc[1].Add( log( abs( sample.field[1] ) ) );
-        stats[i][bin].acc[2].Add( log( abs( sample.field[2] ) ) );
+        stats[i][bin].acc[1].Add( log( fabs( sample.field[1] ) ) );
+        stats[i][bin].acc[2].Add( log( fabs( sample.field[2] ) ) );
     }
     for ( size_t i = 0; i != 2; i++ ) {
         fs::path outfilepath = dirpath / ("FDBins."s + (i == 0 ? "pos" : "neg") + ".np");
