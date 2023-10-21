@@ -89,7 +89,7 @@ int main( int argc, const char* argv[] ) {
     double step[2] = {};
     int i;
     for ( Sample& sample : samples ) {
-        if (!( isfinite(sample.field[0]) && isfinite(sample.field[1]) && isfinite(sample.field[2])
+        if (!( std::isfinite(sample.field[0]) && std::isfinite(sample.field[1]) && std::isfinite(sample.field[2])
            && sample.field[0] > 0 && sample.field[1] > 0 && sample.field[2] != 0 ))
         {
             std::cerr << "Bad sample: " << sample.field[0] << ", " << sample.field[1] << ", " << sample.field[2] << std::endl;
@@ -110,7 +110,7 @@ int main( int argc, const char* argv[] ) {
         step[i] = (maxlog[i] - minlog[i]) / M;
     }
     for ( const Sample& sample : samples ) {
-        if (!( isfinite(sample.field[0]) && isfinite(sample.field[1]) && isfinite(sample.field[2])
+        if (!( std::isfinite(sample.field[0]) && std::isfinite(sample.field[1]) && std::isfinite(sample.field[2])
            && sample.field[0] > 0 && sample.field[1] > 0 && sample.field[2] != 0 ))
         {
             continue;
@@ -140,7 +140,7 @@ int main( int argc, const char* argv[] ) {
 }
 //////////////////////////////////////////////////////////////////////////
 int main2() {
-    fs::path filepath( "l:/Data/Work/Турбулентность/LoopEquations/plots/VorticityCorr.100000000.ALL/FDBins.neg.np" );
+    fs::path filepath( "l:/Data/Work/LoopEquations/plots/VorticityCorr.100000000.ALL/FDBins.neg.np" );
     const auto filesize = fs::file_size(filepath);
     const auto T = filesize / sizeof(double);
     std::vector<double> samples(T);
