@@ -38,6 +38,7 @@ struct Stats {
         std::memset( acc, 0, sizeof acc );
     }
 };
+#pragma pack(pop)
 
 std::ostream& operator<< ( std::ostream& out, const Stats& st ) {
     double dblN = st.n;
@@ -50,7 +51,16 @@ std::ostream& operator<< ( std::ostream& out, const Stats& st ) {
     }
     return out;
 }
-#pragma pack(pop)
+
+/*std::ostream& operator<< ( std::ostream& out, const Stats& st ) {
+    out << st.n;
+    for ( size_t i = 0; i != 3; i++ ) {
+        out << '\t' << st.acc[i].Mean(st.n);
+        out << '\t' << st.acc[i].Stdev(st.n);
+    }
+    out << '\n';
+    return out;
+}*/
 
 int main( int argc, const char* argv[] ) {
     if ( argc != 3 ) {
