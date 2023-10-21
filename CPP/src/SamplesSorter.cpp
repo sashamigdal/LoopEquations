@@ -40,7 +40,8 @@ struct Stats {
 };
 
 std::ostream& operator<< ( std::ostream& out, const Stats& st ) {
-    out.write( (char*)&st.n, sizeof st.n );
+    double dblN = st.n;
+    out.write( (char*)&dblN, sizeof dblN );
     for ( size_t i = 0; i != 3; i++ ) {
         double val = st.acc[i].Mean(st.n);
         out.write( (char*)&val, sizeof val );
