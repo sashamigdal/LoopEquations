@@ -140,7 +140,7 @@ int main( int argc, const char* argv[] ) {
 }
 //////////////////////////////////////////////////////////////////////////
 int main2() {
-    fs::path filepath( "l:/Data/Work/��������������/LoopEquations/plots/VorticityCorr.100000000.ALL/FDBins.neg.np" );
+    fs::path filepath( "l:/Data/Work/LoopEquations/plots/VorticityCorr.100000000.ALL/FDBins.neg.np" );
     const auto filesize = fs::file_size(filepath);
     const auto T = filesize / sizeof(double);
     std::vector<double> samples(T);
