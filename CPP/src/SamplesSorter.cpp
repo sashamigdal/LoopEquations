@@ -113,6 +113,8 @@ int main( int argc, const char* argv[] ) {
     for ( i = 0; i != 2; i++ ) {
         step[i] = (maxlog[i] - minlog[i]) / M;
     }
+    std::cout << ">0: log(abs(ctg)) = [" << minlog[0] << "; " << maxlog[0] << "], step=" << step[0] << "\n";
+    std::cout << "<0: log(abs(ctg)) = [" << minlog[1] << "; " << maxlog[1] << "], step=" << step[1] << "\n";
     for ( size_t j = 0; j != samples.size(); j++ ) {
         Sample& sample = samples[j];
         if (!ok[j]) { continue; }
