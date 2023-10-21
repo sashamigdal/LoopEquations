@@ -92,7 +92,7 @@ int main( int argc, const char* argv[] ) {
     size_t zeros_count = 0;
     for ( size_t j = 0; j != samples.size(); j++ ) {
         Sample& sample = samples[j];
-        if (!( std::isfinite(sample.field[0]) && std::isfinite(sample.field[1]) && std::isfinite(sample.field[2]) && sample.field[0] > 0 && sample.field[1] > 0 ))
+        if (!( std::isfinite(sample.field[0]) && std::isfinite(sample.field[1]) && std::isfinite(sample.field[2]) && sample.field[0] > 1e-300 && sample.field[1] > 1e-300 ))
         {
             std::cerr << "Bad sample: " << sample.field[0] << ", " << sample.field[1] << ", " << sample.field[2] << std::endl;
             ok[j] = false;
