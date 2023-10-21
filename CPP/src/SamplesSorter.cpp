@@ -1,4 +1,6 @@
 #include <algorithm>
+#include <cmath>
+#include <cstring>
 #include <iostream>
 #include <fstream>
 #include <experimental/filesystem>
