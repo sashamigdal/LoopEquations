@@ -88,9 +88,9 @@ int main( int argc, const char* argv[] ) {
     double maxlog[2] = {std::numeric_limits<double>::lowest(), std::numeric_limits<double>::lowest()};
     double step[2] = {};
     int i;
+    size_t zeros_count = 0;
     for ( Sample& sample : samples ) {
-        if (!( std::isfinite(sample.field[0]) && std::isfinite(sample.field[1]) && std::isfinite(sample.field[2])
-           && sample.field[0] > 0 && sample.field[1] > 0 && sample.field[2] != 0 ))
+        if (!( std::isfinite(sample.field[0]) && std::isfinite(sample.field[1]) && std::isfinite(sample.field[2]) && sample.field[0] > 0 && sample.field[1] > 0 ))
         {
             std::cerr << "Bad sample: " << sample.field[0] << ", " << sample.field[1] << ", " << sample.field[2] << std::endl;
             continue;
@@ -100,6 +100,7 @@ int main( int argc, const char* argv[] ) {
         } else if ( sample.field[2] < 0 ) {
             i = 1;
         } else {
+            zeros_count++;
             continue;
         }
         sample.field[0] = log( abs( sample.field[0] ) );
@@ -110,9 +111,7 @@ int main( int argc, const char* argv[] ) {
         step[i] = (maxlog[i] - minlog[i]) / M;
     }
     for ( const Sample& sample : samples ) {
-        if (!( std::isfinite(sample.field[0]) && std::isfinite(sample.field[1]) && std::isfinite(sample.field[2])
-           && sample.field[0] > 0 && sample.field[1] > 0 && sample.field[2] != 0 ))
-        {
+        if (!( std::isfinite(sample.field[0]) && std::isfinite(sample.field[1]) && std::isfinite(sample.field[2]) && sample.field[0] > 0 && sample.field[1] > 0 )) {
             continue;
         }
         if ( sample.field[2] > 0 ) {
@@ -136,11 +135,12 @@ int main( int argc, const char* argv[] ) {
             fOut << st;
         }
     }
+    std::cout << zeros_count << " zero samples\n";
     return 0;
 }
 //////////////////////////////////////////////////////////////////////////
 int main2() {
-    fs::path filepath( "l:/Data/Work/LoopEquations/plots/VorticityCorr.100000000.ALL/FDBins.neg.np" );
+    fs::path filepath( "l:/Data/Work/��������������/LoopEquations/plots/VorticityCorr.100000000.ALL/FDBins.neg.np" );
     const auto filesize = fs::file_size(filepath);
     const auto T = filesize / sizeof(double);
     std::vector<double> samples(T);
