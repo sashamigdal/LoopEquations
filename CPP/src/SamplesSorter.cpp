@@ -89,6 +89,12 @@ int main( int argc, const char* argv[] ) {
     double step[2] = {};
     int i;
     for ( Sample& sample : samples ) {
+        if (!( isfinite(sample.field[0]) && isfinite(sample.field[1]) && isfinite(sample.field[2])
+           && sample.field[0] > 0 && sample.field[1] > 0 && sample.field[2] != 0 ))
+        {
+            std::cerr << "Bad sample: " << sample.field[0] << ", " << sample.field[1] << ", " << sample.field[2] << std::endl;
+            continue;
+        }
         if ( sample.field[2] > 0 ) {
             i = 0;
         } else if ( sample.field[2] < 0 ) {
@@ -104,6 +110,11 @@ int main( int argc, const char* argv[] ) {
         step[i] = (maxlog[i] - minlog[i]) / M;
     }
     for ( const Sample& sample : samples ) {
+        if (!( isfinite(sample.field[0]) && isfinite(sample.field[1]) && isfinite(sample.field[2])
+           && sample.field[0] > 0 && sample.field[1] > 0 && sample.field[2] != 0 ))
+        {
+            continue;
+        }
         if ( sample.field[2] > 0 ) {
             i = 0;
         } else if ( sample.field[2] < 0 ) {
