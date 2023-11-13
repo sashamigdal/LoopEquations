@@ -147,7 +147,7 @@ class CurveSimulatorBase():
             M = self.M
 
         while (True):
-            #tested in Mathematica
+            #tested in Mathematica (TestCotCDF.nb)
             q = 2 * np.random.randint(2,M//2)
             r0 = np.log(np.tan(pi/q))
             r1 = np.log(np.tan(pi(q-2)/(2*q)))
