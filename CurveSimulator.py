@@ -149,6 +149,8 @@ class CurveSimulatorFDistribution(CurveSimulatorBase):
         """
         :param serial: Boolean If set, run jobs serially.
         """
+        global libDS
+        global libEulerGPU
         T = self.T
         MakeDir(self.CurrentCorrFuncDir())
 
