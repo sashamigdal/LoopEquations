@@ -9,6 +9,9 @@ OR
 4. $ cmake . -D CMAKE_BUILD_TYPE=Debug -B cmake-build-debug
 5. $ cmake --build cmake-build-debug/
 
+CUDA build:
+nvcc --compiler-options '-fPIC' -o libEulerGPU.so -O3 --shared Euler.cu
+
 Important: `ARPACK++` conflicts with `MKL` library. That means `numpy` and `scipy` must be installed
  using `pip`, not `conda`.
 

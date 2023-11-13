@@ -23,9 +23,9 @@ libDS_path = os.path.join(cxx_lib_dir, 'libEuler.' + cxx_lib_ext)
 libEulerGPU_path = os.path.join(cxx_lib_dir, 'libEulerGPU.' + cxx_lib_ext)
 sys.path.append(cxx_lib_dir)
 
-if sys.platform == 'linux' or sys.platform == "win32":
-    libDS = ctypes.cdll.LoadLibrary(libDS_path)
-    libEulerGPU = ctypes.cdll.LoadLibrary(libEulerGPU_path)
+libDS = None
+libEulerGPU = None
+
 c_int64 = ctypes.c_int64
 c_uint64 = ctypes.c_uint64
 c_double_p = ctypes.POINTER(ctypes.c_double)
@@ -156,6 +156,8 @@ class CurveSimulatorFDistribution(CurveSimulatorBase):
             res = None
             t0 = GetTime()
             if self.compute == "CPU":
+                if sys.platform == 'linux' or sys.platform == "win32":
+                    libDS = ctypes.cdll.LoadLibrary(libDS_path)
                 params = range(self.nWorkers)
                 if serial:
                     res = list(map(self.GetSamples, params))
@@ -164,6 +166,8 @@ class CurveSimulatorFDistribution(CurveSimulatorBase):
                         res = list(exec.map(self.GetSamples, params))
                 Mtot = T * self.M
             elif self.compute == "GPU":
+                if sys.platform == 'linux' or sys.platform == "win32":
+                    libEulerGPU = ctypes.cdll.LoadLibrary(libEulerGPU_path)
                 res = [self.GetSamples(0)]
                 Mtot = T * self.M * 32
             dt = GetTime() - t0
