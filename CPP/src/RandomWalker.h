@@ -5,7 +5,10 @@
 class RandomWalker
 {
 public:
-    RandomWalker(std::int64_t N_pos, std::int64_t N_neg) : N_pos(N_pos), N_neg(N_neg), alpha(), gen(std::random_device{}()), unif(0, 1) {}
+    RandomWalker(std::int64_t N_pos, std::int64_t N_neg) :
+     N_pos(N_pos), N_neg(N_neg), alpha(), gen(std::random_device{}()), unif(0, 1) {
+
+     }
 
     int Advance()
     {

@@ -140,7 +140,23 @@ class CurveSimulatorBase():
             pass
         return [M, p, q]
 
+    def EulerPairWithLogCot(self):
+        if self.M ==0:
+            M = int(np.clip(np.floor(0.5*np.random.exponential(1./self.mu)),3,5e9))*2
+        else:
+            M = self.M
 
+        while (True):
+            #tested in Mathematica
+            q = 2 * np.random.randint(2,M//2)
+            r0 = np.log(np.tan(pi/q))
+            r1 = np.log(np.tan(pi(q-2)/(2*q)))
+            p = np.floor(q/pi * np.arctan(np.exp(-r0 - np.random.random()*(r1-r0))))
+            if np.random.random() < 0.5 :
+                p = q - p
+            if gcd(p,q) ==1:  # P( (p,q)=1 ) = phi(q)/q
+                return [M, p, q]
+        return None
 class CurveSimulatorFDistribution(CurveSimulatorBase):
     def __init__(self, M, EG, T, CPU, run, C, compute):
         CurveSimulatorBase.__init__(self, M, EG, T, CPU, 0, 0, 0, run, C, compute)
@@ -284,11 +300,11 @@ class CurveSimulatorFDistribution(CurveSimulatorBase):
             Dss.append(stats[1])
             OdotO.append(stats[2])
         pass
-        MaxMu = Mulist[-1]
+        MaxMu = Mlist[-1]
         if sys.platform == 'linux':
             for X, name in zip([Betas, Dss, OdotO, OdotO], ["logTanbeta", "DS", "OmOm", "-OmOm"]):
                 data = []
-                for k, mu in enumerate(Mulist):
+                for k, mu in enumerate(Mlist):
                     data.append([str(mu), X[k]]) if name != "-OmOm" else data.append([str(mu), -X[k]])
                 plotpath = os.path.join(CorrFuncDir(MaxMu, self.compute, self.run), str(self.EG) + "." + name + ".png")
                 try:
@@ -299,7 +315,7 @@ class CurveSimulatorFDistribution(CurveSimulatorBase):
                     print(ex)
             pass
             data = []
-            for k, mu in enumerate(Mulist):
+            for k, mu in enumerate(Mlist):
                 oto = OdotO[k]
                 dss = Dss[k]
                 pos = oto > 0
@@ -318,7 +334,7 @@ class CurveSimulatorFDistribution(CurveSimulatorBase):
         if self.STP <= 0: return
         data = []
         rho_data = np.linspace(self.R0, self.R1, self.STP)
-        for k, mu in enumerate(Mulist):
+        for k, mu in enumerate(Mlist):
             oto = OdotO[k]
             dss = Dss[k]
             corr = np.zeros_like(rho_data)

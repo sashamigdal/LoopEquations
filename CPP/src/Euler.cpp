@@ -10,13 +10,6 @@ using Eigen::Vector3cd;
 using complex = std::complex<double>;
 using namespace std::complex_literals;
 
-/*
-TODO: replace formulas by these
-
-\vec \omega_m \cdot \vec \omega_n =
- -\frac{1}{2} \cot ^2\left(\frac{\beta }{2}\right) \sigma _m \sigma _n \sin ^2\left(\frac{1}{4} \left(2 \alpha _m+\beta  \left(\sigma _m-\sigma _n\right)-2 \alpha _n\right)\right)
-
-*/
 
 double DS(std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_neg, double beta, /*OUT*/ double *o_o) {
     assert(n < m);
