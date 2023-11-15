@@ -150,7 +150,7 @@ class CurveSimulatorBase():
             #tested in Mathematica (TestCotCDF.nb)
             q = 2 * np.random.randint(2,M//2)
             r0 = np.log(np.tan(pi/q))
-            r1 = np.log(np.tan(pi(q-2)/(2*q)))
+            r1 = np.log(np.tan(pi * (q-2)/(2*q)))
             p = np.floor(q/pi * np.arctan(np.exp(-r0 - np.random.random()*(r1-r0))))
             if np.random.random() < 0.5 :
                 p = q - p
