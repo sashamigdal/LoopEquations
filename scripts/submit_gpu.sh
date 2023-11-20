@@ -14,4 +14,7 @@ export T=524288
 PROJECT_DIR=/scratch/${USER}/LoopEquations
 
 jobid=$(sbatch -p nvidia -q nvidia-xxl --array=1-${NJOBS} --cpus-per-task=${NCPUS} --mem=${MEM_SIZE}GB --gres=gpu:a100:${NGPUS} -t 3-00:00:00 --parsable run_gpu.sh)
-echo Submitted jobs ${jobid}
+echo Submitted GPU jobs ${jobid}
+
+jobid2=$(sbatch --dependency=afterok:${jobid} plot.sh)
+echo Submitted binning job ${jobid2}
