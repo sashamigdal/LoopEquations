@@ -99,7 +99,7 @@ private:
 };
 
 static __global__ void DoWorkKernel( size_t size, cudaRandomWalker* walkers, std::uint64_t* ns, std::uint64_t* ms,
-                                     std::uint64_t* N_poss, std::uint64_t* N_negs, real* betas, /*OUT*/ real* Ss, /*OUT*/ real* o_os )
+                                     std::uint64_t* N_poss, std::uint64_t* N_negs, std::uint64_t* qq, real* betas, /*OUT*/ real* Ss, /*OUT*/ real* o_os )
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
     if ( tid >= size ) { return; }
@@ -109,6 +109,7 @@ static __global__ void DoWorkKernel( size_t size, cudaRandomWalker* walkers, std
     std::uint64_t m = ms[tid];
     std::uint64_t N_pos = N_poss[tid];
     std::uint64_t N_neg = N_negs[tid];
+    std::uint64_t q = qq[tid];
     real beta = betas[tid];
     real& S = Ss[tid];
     real& o_o = o_os[tid];
@@ -145,11 +146,11 @@ static __global__ void DoWorkKernel( size_t size, cudaRandomWalker* walkers, std
     /*
     -\frac{1}{2} \cot ^2\left(\frac{\beta }{2}\right) \sigma _m \sigma _n \sin ^2\left(\frac{1}{4} \left(2 \alpha _m+\beta  \left(\sigma _m-\sigma _n\right)-2 \alpha _n\right)\right)
     */
-    o_o = -sigma_n * sigma_m / (2 * pow(tan(beta / 2), real(2.0))) * pow( sin(beta / 4 * (2 * (alpha_m - alpha_n) + sigma_m - sigma_n)), real(2.0) );
+    o_o = -sigma_n * sigma_m / (2 * pow( q * tan(beta / 2), real(2.0))) * pow( sin(beta / 4 * (2 * (alpha_m - alpha_n) + sigma_m - sigma_n)), real(2.0) );
 
     S_nm /= real(m - n);
     S_mn /= real(n + M - m);
-    S = cuCabsr((S_nm - S_mn) / (2 * sin(beta / 2)));
+    S = cuCabsr((S_nm - S_mn) / (2 *  q sin(beta / 2)));
 }
 
 template <class T>

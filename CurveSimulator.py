@@ -46,11 +46,11 @@ class c_double_complex(ctypes.Structure):
 c_double_complex_p = ctypes.POINTER(c_double_complex)
 
 
-def DS_CPP(n, m, N_pos, N_neg, beta):
-    libDS.DS.argtypes = (c_int64, c_int64, c_int64, c_int64, ctypes.c_double, c_double_p)
+def DS_CPP(n, m, N_pos, N_neg, q, beta):
+    libDS.DS.argtypes = (c_int64, c_int64, c_int64, c_int64, c_int64, ctypes.c_double, c_double_p)
     libDS.DS.restype = ctypes.c_double
     np_o_o = np.zeros(1, dtype=float)
-    dsabs = libDS.DS(n, m, N_pos, N_neg, beta, np_o_o.ctypes.data_as(c_double_p))
+    dsabs = libDS.DS(n, m, N_pos, N_neg, q, beta, np_o_o.ctypes.data_as(c_double_p))
     return dsabs, np_o_o[0]
 
 def DS_GPU(warp_size : int,
@@ -58,6 +58,7 @@ def DS_GPU(warp_size : int,
            ms : npt.NDArray[np.int64],
            N_poss : npt.NDArray[np.int64],
            N_negs : npt.NDArray[np.int64],
+           qq : npt.NDArray[np.int64],
            betas : npt.NDArray[np.double]) -> (npt.NDArray[np.double], npt.NDArray[np.double]):
     """
     Wrapper on C++ CUDA code for GPU
@@ -66,15 +67,17 @@ def DS_GPU(warp_size : int,
     :param ms: array of m's
     :param N_poss: array of N_pos's
     :param N_negs: array of N_neg's
+    :param q: array of q's
     :param betas: array of beta's
     :return: pair of arrays
     """
     nSamples = len(ns)
     Ss = np.zeros(nSamples * warp_size, dtype=np.double)
     o_os = np.zeros(nSamples * warp_size, dtype=np.double)
-    libEulerGPU.DS_GPU.argtypes = (c_uint64, c_uint64_p, c_uint64_p, c_uint64_p, c_uint64_p, c_double_p, c_double_p, c_double_p)
+    libEulerGPU.DS_GPU.argtypes = (c_uint64, c_uint64_p, c_uint64_p, c_uint64_p, c_uint64_p,  c_double_p, c_double_p)
     libEulerGPU.DS_GPU(nSamples, ns.ctypes.data_as(c_uint64_p), ms.ctypes.data_as(c_uint64_p),
-                 N_poss.ctypes.data_as(c_uint64_p), N_negs.ctypes.data_as(c_uint64_p), betas.ctypes.data_as(c_double_p),
+                 N_poss.ctypes.data_as(c_uint64_p), N_negs.ctypes.data_as(c_uint64_p), qq.ctypes.data_as(c_uint64_p),
+                       betas.ctypes.data_as(c_double_p),
                  Ss.ctypes.data_as(c_double_p), o_os.ctypes.data_as(c_double_p) )
     return Ss, o_os
 
@@ -210,7 +213,7 @@ class CurveSimulatorFDistribution(CurveSimulatorBase):
         m = np.random.randint(n + 1, M + n) % M
         if n > m:
             n, m = m, n
-        return n, m, N_pos, N_neg, beta
+        return n, m, N_pos, N_neg, beta, q
 
     def GetSamples(self, workerId):
         partition = 0 if self.compute == "CPU" else 1
@@ -221,10 +224,10 @@ class CurveSimulatorFDistribution(CurveSimulatorBase):
             end = self.T * (workerId + 1) // self.nWorkers
             ar = np.zeros((end - beg) * 3, dtype=float).reshape(-1, 3)
             for k in range(beg, end):
-                n, m, N_pos, N_neg, beta = self.GenerateEulerSet()
+                n, m, N_pos, N_neg, beta, q = self.GenerateEulerSet()
                 t = k - beg
-                ar[t, 0] = 1 / tan(beta / 2) ** 2
-                ar[t, 1], ar[t, 2] = DS_CPP(n, m, N_pos, N_neg, beta)
+                ar[t, 0] = 1 / (q *tan(beta / 2)) ** 2
+                ar[t, 1], ar[t, 2] = DS_CPP(n, m, N_pos, N_neg, q, beta)
         elif self.compute == "GPU":
             warp_size = DS_GetGpuWarpSize()
             beg = 0
@@ -235,10 +238,11 @@ class CurveSimulatorFDistribution(CurveSimulatorBase):
             N_poss = np.zeros(end - beg, dtype=np.int64)
             N_negs = np.zeros(end - beg, dtype=np.int64)
             betas = np.zeros(end - beg, dtype=np.double)
+            qq = np.zeros(end - beg, dtype=np.double)
             for k in range(end - beg):
-                ns[k], ms[k], N_poss[k], N_negs[k], betas[k] = self.GenerateEulerSet()
-                ar[k * warp_size: (k + 1) * warp_size, 0] = 1 / tan(betas[k] / 2) ** 2
-            Ss, o_os = DS_GPU(warp_size, ns, ms, N_poss, N_negs, betas)
+                ns[k], ms[k], N_poss[k], N_negs[k], betas[k], qq[k] = self.GenerateEulerSet()
+                ar[k * warp_size: (k + 1) * warp_size, 0] = 1 / (qq[k]*tan(betas[k] / 2) )** 2
+            Ss, o_os = DS_GPU(warp_size, ns, ms, N_poss, N_negs, qq, betas)
             ar[:, 1] = Ss
             ar[:, 2] = o_os
         return ar

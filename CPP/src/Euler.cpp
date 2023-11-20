@@ -11,7 +11,7 @@ using complex = std::complex<double>;
 using namespace std::complex_literals;
 
 
-double DS(std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_neg, double beta, /*OUT*/ double *o_o) {
+double DS(std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_neg, std::int64_t q, double beta, /*OUT*/ double *o_o) {
     assert(n < m);
     std::int64_t M = N_pos + N_neg;
     int sigma_n, sigma_m, alpha_m, alpha_n;
@@ -46,11 +46,11 @@ double DS(std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_neg
     /*
     -\frac{1}{2} \cot ^2\left(\frac{\beta }{2}\right) \sigma _m \sigma _n \sin ^2\left(\frac{1}{4} \left(2 \alpha _m+\beta  \left(\sigma _m-\sigma _n\right)-2 \alpha _n\right)\right)
     */
-    *o_o = -M * (M - 1) / 2 * sigma_n * sigma_m / (2 * pow(tan(beta / 2), 2)) * pow(sin(beta / 4 * (2 * (alpha_m - alpha_n) + sigma_m - sigma_n)), 2);
+    *o_o = - sigma_n * sigma_m / (2 * q * pow(tan(beta / 2), 2)) * pow(sin(beta / 4 * (2 * (alpha_m - alpha_n) + sigma_m - sigma_n)), 2);
 
     S_nm /= double(m - n);
     S_mn /= double(n + M - m);
-    return abs((S_nm - S_mn) / (2 * sin(beta / 2)));
+    return abs((S_nm - S_mn) / (2 * q * sin(beta / 2)));
 }
 
 #if 0
