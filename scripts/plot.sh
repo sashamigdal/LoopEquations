@@ -19,4 +19,4 @@ source /share/apps/NYUAD/miniconda/3-4.11.0/bin/activate py39
 echo "Starting collecting script on node . . . "
 # python -u VorticityCorrelation.py -M ${M} -EG E -C 0 --run 2 --compute GPU
 cd CPP/cmake-build-release
-./SamplesSorter /scratch/am10485/LoopEquations/plots/UniformLogCtg/VorticityCorr.100000000.ALL/FDAllStats.E.np 1000000
+./SamplesBinner /scratch/am10485/LoopEquations/plots/VorticityCorr.${M}.GPU.0 1000000
