@@ -29,7 +29,7 @@ struct accum {
     }
 
     double Stdev( size_t n ) const {
-        return sqrt((sum2 - sum * sum / n) / n);
+        return n == 1 ? 0 : sqrt((sum2 - sum * sum / n) / (n - 1));
     }
 };
 
