@@ -154,7 +154,7 @@ class CurveSimulatorBase():
             q = 2 * np.random.randint(2,M//2)
             r0 = np.log(np.tan(pi/q))
             r1 = -r0
-            p = int(np.floor(q/pi * np.arctan(np.exp(-r0 - np.random.random()*(r1-r0))/q)))
+            p = int(np.floor(q/pi * np.arctan(np.exp(r0 * (2 * np.random.random() - 1))/q)))
             if np.random.random() < 0.5 :
                 p = q - p
             if gcd(p,q) ==1:  # P( (p,q)=1 ) = phi(q)/q
