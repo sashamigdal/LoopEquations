@@ -1,8 +1,8 @@
 #!/bin/bash
 # Submits jobs to Parallel Job Array
 
-T=3000000
-T_PER_JOB=1000
+T=24000000
+T_PER_JOB=10000
 NJOBS=$(( ${T} / ${T_PER_JOB} ))
 PROJECT_DIR=/scratch/${USER}/LoopEquations
 COMMANDS=list_of_commands.txt
@@ -22,4 +22,4 @@ done
 export M=100000000
 export T=${T_PER_JOB}
 
-slurm_parallel_ja_submit.sh -N 200 -t 1-00:00:00 ${COMMANDS}
+slurm_parallel_ja_submit.sh -N 200 -t 3-00:00:00 ${COMMANDS}

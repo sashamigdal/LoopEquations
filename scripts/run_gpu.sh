@@ -1,5 +1,7 @@
 #!/bin/bash
 
+#SBATCH --output=/scratch/am10485/slurm-logs/run_gpu-%A_%a_%N_%J.out
+
 PROJECT_DIR=/scratch/${USER}/LoopEquations
 
 echo SLURM_ARRAY_JOB_ID = ${SLURM_ARRAY_JOB_ID}
@@ -9,4 +11,6 @@ echo PROJECT_DIR = ${PROJECT_DIR}
 
 cd ${PROJECT_DIR}
 
-./CPP/src/euler
+source /share/apps/NYUAD/miniconda/3-4.11.0/bin/activate py39
+
+python -u VorticityCorrelation.py -M ${M} -T ${T} -EG E -C ${SLURM_ARRAY_TASK_ID} --compute GPU -NLAM 0 --run 2

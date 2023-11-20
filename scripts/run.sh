@@ -13,4 +13,4 @@ cd ${PROJECT_DIR}
 
 source /share/apps/NYUAD/miniconda/3-4.11.0/bin/activate py39
 
-python -u VorticityCorrelation.py -M ${M} -T ${T} --compute=CPU -CPU 1 -NLAM 0 --run=0 --serial
+python -u VorticityCorrelation.py -M ${M} -T ${T} -EG E -C ${JOB_ID} --compute=CPU -CPU 1 -NLAM 0 --run=3 --serial
