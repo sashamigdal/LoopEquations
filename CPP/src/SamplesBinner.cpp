@@ -1,6 +1,6 @@
+#define _USE_MATH_DEFINES
 #include <algorithm>
 #include <cmath>
-#include <numbers>
 #include <cstring>
 #include <regex>
 #include <iostream>
@@ -76,8 +76,8 @@ public:
             return false;
         }
         unsigned long long N = std::stoull( m[1] );
-        minlog = 2 * log(std::numbers::pi) - 4 * log(N);
-        double maxlog = -2 * log(std::numbers::pi);
+        minlog = 2 * log(M_PI) - 4 * log(N);
+        double maxlog = -2 * log(M_PI);
         step = (maxlog - minlog) / M;
 
         stats.resize(2);
