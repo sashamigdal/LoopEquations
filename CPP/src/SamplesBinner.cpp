@@ -15,46 +15,6 @@ struct Sample {
     double field[3];
 };
 
-struct accumWelford {
-    double count,mean,M2;
-
-    accumWelford() : count(0), mean(0), M2(0) {}
-    void Add( double x ) {
-        count += 1;
-        double delta = x - mean;
-        mean += delta/count;
-        M2 += (x - mean) * delta;
-    }
-    double Count()  const{
-        return count;
-    }
-    double Mean() const {
-        return mean;
-    }
-
-    double Stdev( ) const {
-        return count < 2 ? 0 : sqrt(M2/ (count - 1));
-    }
-};
-struct StatsW {
-   size_t n;
-    accumWelford acc[3];
-    Stats() :n(0) {
-        std::memset( acc, 0, sizeof acc );
-    }
-};
-
-std::ostream& operator<< ( std::ostream& out, const StatsW& st ) {
-    double dblN = st.n;
-    out.write( (char*)&dblN, sizeof dblN );
-    for ( size_t i = 0; i != 3; i++ ) {
-        double val = st.acc[i].Mean();
-        out.write( (char*)&val, sizeof val );
-        val = st.acc[i].Stdev();
-        out.write( (char*)&val, sizeof val );
-    }
-    return out;
-}
 struct accum {
     double sum;
     double sum2;
@@ -80,8 +40,6 @@ struct Stats {
         std::memset( acc, 0, sizeof acc );
     }
 };
-
-
 #pragma pack(pop)
 
 std::ostream& operator<< ( std::ostream& out, const Stats& st ) {
@@ -96,8 +54,17 @@ std::ostream& operator<< ( std::ostream& out, const Stats& st ) {
     return out;
 }
 
+/*std::ostream& operator<< ( std::ostream& out, const Stats& st ) {
+    out << st.n;
+    for ( size_t i = 0; i != 3; i++ ) {
+        out << '\t' << st.acc[i].Mean(st.n);
+        out << '\t' << st.acc[i].Stdev(st.n);
+    }
+    out << '\n';
+    return out;
+}*/
+
 class SamplesBinner {
-    typedef myStats Stats;
 public:
     bool ProcessSamplesDir( fs::path dirpath, size_t M ) {
         this->M = M;
@@ -188,7 +155,7 @@ private:
     size_t zeros_count = 0;
     double minlog;
     double step;
-    std::vector<std::vector<myStats>> stats;
+    std::vector<std::vector<Stats>> stats;
 };
 
 
