@@ -237,7 +237,7 @@ class CurveSimulatorFDistribution(CurveSimulatorBase):
             N_poss = np.zeros(end - beg, dtype=np.int64)
             N_negs = np.zeros(end - beg, dtype=np.int64)
             betas = np.zeros(end - beg, dtype=np.double)
-            qq = np.zeros(end - beg, dtype=np.double)
+            qq = np.zeros(end - beg, dtype=np.int64)
             for k in range(end - beg):
                 ns[k], ms[k], N_poss[k], N_negs[k], betas[k], qq[k] = self.GenerateEulerSet()
                 ar[k * warp_size: (k + 1) * warp_size, 0] = 1 / (qq[k]*tan(betas[k] / 2) )** 2
