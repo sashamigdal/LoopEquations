@@ -219,7 +219,7 @@ double benchmark( int gridSize, int nThreads, int device ) {
     CheckErrorCode( cudaSetDevice(device) );
 
     pair_ptr<cudaRandomWalker> walkers;
-    pair_ptr<std::uint64_t> ns, ms, N_poss, N_negs;
+    pair_ptr<std::uint64_t> ns, ms, N_poss, N_negs, qs;
     pair_ptr<real> betas, Ss, o_os;
 
     walkers.allocate(totThreads);
@@ -227,6 +227,7 @@ double benchmark( int gridSize, int nThreads, int device ) {
     ms.allocate(totThreads);
     N_poss.allocate(totThreads);
     N_negs.allocate(totThreads);
+    qs.allocate(totThreads);
     betas.allocate(totThreads);
     Ss.allocate(totThreads);
     o_os.allocate(totThreads);
@@ -251,6 +252,7 @@ double benchmark( int gridSize, int nThreads, int device ) {
             ms.host_ptr[idx] = m;
             N_poss.host_ptr[idx] = M / 2;
             N_negs.host_ptr[idx] = M / 2;
+            qs.host_ptr[idx] = M - (M % 2);
             betas.host_ptr[idx] = real(0.1);
         }
     }
@@ -260,6 +262,7 @@ double benchmark( int gridSize, int nThreads, int device ) {
     ms.CopyToDevice(totThreads);
     N_poss.CopyToDevice(totThreads);
     N_negs.CopyToDevice(totThreads);
+    qs.CopyToDevice(totThreads);
     betas.CopyToDevice(totThreads);
 
     cudaEvent_t start, stop;
@@ -268,8 +271,8 @@ double benchmark( int gridSize, int nThreads, int device ) {
     chkcudaEventCreate( &stop );
     chkcudaEventRecord( start, cudaStream_t(0) );
 
-    DoWorkKernel<<<gridSize, nThreads>>>( totThreads, walkers.device_ptr, ns.device_ptr, ms.device_ptr, N_poss.device_ptr, N_negs.device_ptr,
-                                         betas.device_ptr, Ss.device_ptr, o_os.device_ptr );
+    DoWorkKernel<<<gridSize, nThreads>>>( totThreads, walkers.device_ptr, ns.device_ptr, ms.device_ptr, N_poss.device_ptr, N_negs.device_ptr, qs.device_ptr,
+                                          betas.device_ptr, Ss.device_ptr, o_os.device_ptr );
 
     if ( cudaGetLastError() != cudaSuccess ) { return -1; }
     if ( cudaDeviceSynchronize() != cudaSuccess ) { return -1; }
@@ -300,7 +303,7 @@ double benchmark( int gridSize, int nThreads, int device ) {
 
 extern "C" {
 EXPORT void DS_GPU( std::uint64_t size, const std::uint64_t* ns, const std::uint64_t* ms, const std::uint64_t* N_poss,
-                      const std::uint64_t* N_negs, const real* betas, /*OUT*/ real* Ss, /*OUT*/ real* o_os )
+                      const std::uint64_t* N_negs, std::uint64_t* qs, const real* betas, /*OUT*/ real* Ss, /*OUT*/ real* o_os )
 {
     int deviceCount;
     cudaGetDeviceCount( &deviceCount );
@@ -318,6 +321,7 @@ EXPORT void DS_GPU( std::uint64_t size, const std::uint64_t* ns, const std::uint
     std::vector<pair_ptr<std::uint64_t>> arr_ms(deviceCount);
     std::vector<pair_ptr<std::uint64_t>> arr_N_poss(deviceCount);
     std::vector<pair_ptr<std::uint64_t>> arr_N_negs(deviceCount);
+    std::vector<pair_ptr<std::uint64_t>> arr_qs(deviceCount);
     std::vector<pair_ptr<real>> arr_betas(deviceCount);
     std::vector<pair_ptr<real>> arr_Ss(deviceCount);
     std::vector<pair_ptr<real>> arr_o_os(deviceCount);
@@ -330,6 +334,7 @@ EXPORT void DS_GPU( std::uint64_t size, const std::uint64_t* ns, const std::uint
         arr_ms[device].allocate(totThreads);
         arr_N_poss[device].allocate(totThreads);
         arr_N_negs[device].allocate(totThreads);
+        arr_qs[device].allocate(totThreads);
         arr_betas[device].allocate(totThreads);
         arr_Ss[device].SetHostPtr( &Ss[nSamples * device] );
         arr_Ss[device].allocateOnDevice(totThreads);
@@ -345,6 +350,7 @@ EXPORT void DS_GPU( std::uint64_t size, const std::uint64_t* ns, const std::uint
                 arr_ms[device].host_ptr[idx] = ms[i];
                 arr_N_poss[device].host_ptr[idx] = N_poss[i];
                 arr_N_negs[device].host_ptr[idx] = N_negs[i];
+                arr_qs[device].host_ptr[idx] = N_negs[i];
                 arr_betas[device].host_ptr[idx] = betas[i];
             }
         }
@@ -354,11 +360,12 @@ EXPORT void DS_GPU( std::uint64_t size, const std::uint64_t* ns, const std::uint
         arr_ms[device].CopyToDevice(totThreads);
         arr_N_poss[device].CopyToDevice(totThreads);
         arr_N_negs[device].CopyToDevice(totThreads);
+        arr_qs[device].CopyToDevice(totThreads);
         arr_betas[device].CopyToDevice(totThreads);
 
         DoWorkKernel<<<gridSize, nThreads>>>( nSamples, walkers[device].device_ptr, arr_ns[device].device_ptr,
                                               arr_ms[device].device_ptr, arr_N_poss[device].device_ptr,
-                                              arr_N_negs[device].device_ptr, arr_betas[device].device_ptr,
+                                              arr_N_negs[device].device_ptr, arr_qs[device].device_ptr, arr_betas[device].device_ptr,
                                               arr_Ss[device].device_ptr, arr_o_os[device].device_ptr );
 
         if ( cudaGetLastError() != cudaSuccess ) {
