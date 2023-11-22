@@ -74,7 +74,7 @@ def DS_GPU(warp_size : int,
     nSamples = len(ns)
     Ss = np.zeros(nSamples * warp_size, dtype=np.double)
     o_os = np.zeros(nSamples * warp_size, dtype=np.double)
-    libEulerGPU.DS_GPU.argtypes = (c_uint64, c_uint64_p, c_uint64_p, c_uint64_p, c_uint64_p,  c_double_p, c_double_p)
+    libEulerGPU.DS_GPU.argtypes = (c_uint64, c_uint64_p, c_uint64_p, c_uint64_p, c_uint64_p, c_uint64_p, c_double_p, c_double_p)
     libEulerGPU.DS_GPU(nSamples, ns.ctypes.data_as(c_uint64_p), ms.ctypes.data_as(c_uint64_p),
                  N_poss.ctypes.data_as(c_uint64_p), N_negs.ctypes.data_as(c_uint64_p), qq.ctypes.data_as(c_uint64_p),
                        betas.ctypes.data_as(c_double_p),

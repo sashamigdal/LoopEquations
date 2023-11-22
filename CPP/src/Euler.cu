@@ -303,7 +303,7 @@ double benchmark( int gridSize, int nThreads, int device ) {
 
 extern "C" {
 EXPORT void DS_GPU( std::uint64_t size, const std::uint64_t* ns, const std::uint64_t* ms, const std::uint64_t* N_poss,
-                      const std::uint64_t* N_negs, std::uint64_t* qs, const real* betas, /*OUT*/ real* Ss, /*OUT*/ real* o_os )
+                      const std::uint64_t* N_negs, const std::uint64_t* qs, const real* betas, /*OUT*/ real* Ss, /*OUT*/ real* o_os )
 {
     int deviceCount;
     cudaGetDeviceCount( &deviceCount );
@@ -350,7 +350,7 @@ EXPORT void DS_GPU( std::uint64_t size, const std::uint64_t* ns, const std::uint
                 arr_ms[device].host_ptr[idx] = ms[i];
                 arr_N_poss[device].host_ptr[idx] = N_poss[i];
                 arr_N_negs[device].host_ptr[idx] = N_negs[i];
-                arr_qs[device].host_ptr[idx] = N_negs[i];
+                arr_qs[device].host_ptr[idx] = qs[i];
                 arr_betas[device].host_ptr[idx] = betas[i];
             }
         }
