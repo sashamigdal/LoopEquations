@@ -68,6 +68,9 @@ class SamplesBinner {
 public:
     bool ProcessSamplesDir( fs::path dirpath, size_t M ) {
         this->M = M;
+        if ( !dirpath.empty() && dirpath.generic_string().back() != '/' ) {
+            dirpath += '/';
+        }
         auto last_dirname = dirpath.parent_path().filename().string();
         std::smatch m;
         std::regex rxDataDirName(R"(VorticityCorr\.(\d+)\..+\.\d+)"); // "VorticityCorr.100000000.GPU.1"
