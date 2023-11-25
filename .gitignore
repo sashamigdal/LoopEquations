@@ -10,3 +10,4 @@ CPP/cmake_install.cmake
 CPP/CMakeCache.txt
 CPP/libDS.so
 CPP/Makefile
+/runConfigurations/
