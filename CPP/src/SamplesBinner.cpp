@@ -90,7 +90,7 @@ public:
 
         std::regex rxInputFileName(R"(Fdata\..+\.np)"); // "Fdata.E.524288.10.np"
         for ( const auto& entry : fs::directory_iterator(dirpath) ) {
-            auto filename = entry.path().string();
+            auto filename = entry.path().filename().string();
             if ( std::regex_match( filename, m, rxInputFileName ) ) {
                 if ( !ProcessSamples( entry.path() ) ) {
                     return false;
