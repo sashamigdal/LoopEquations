@@ -279,6 +279,7 @@ public:
             ProcessSamplesRecur(v, len/2, level+1,index*2);
             ProcessSamplesRecur(mid,len - len/2, level+1,index*2+1);
         }
+        }
         return false;
     }
 private:
