@@ -12,7 +12,7 @@ using namespace std::string_literals;
 
 #pragma pack(push, 1)
 struct Sample {
-    double field[3];
+    double ctg, ds, oo;
 };
 
 struct accum {
@@ -31,6 +31,11 @@ struct accum {
     double Stdev( size_t n ) const {
         return n == 1 ? 0 : sqrt((sum2 - sum * sum / n) / (n - 1));
     }
+
+    void Clear() {
+        sum = 0;
+        sum2 = 0;
+    }
 };
 
 struct Stats {
@@ -38,6 +43,12 @@ struct Stats {
     accum acc[3];
     Stats() : n(0) {
         std::memset( acc, 0, sizeof acc );
+    }
+    void Clear() {
+        n = 0;
+        for ( accum& a : acc ) {
+            a.Clear();
+        }
     }
 };
 #pragma pack(pop)
@@ -64,6 +75,8 @@ std::ostream& operator<< ( std::ostream& out, const Stats& st ) {
     return out;
 }*/
 
+enum SIGN { POS, NEG };
+
 class SamplesBinner {
 public:
     bool ProcessSamplesDir( fs::path dirpath, size_t M ) {
@@ -79,25 +92,14 @@ public:
             return false;
         }
         unsigned long long N = std::stoull( m[1] );
-        minlog = 2 * log(M_PI) - 4 * log(N);
-        double maxlog = -2 * log(M_PI);
-        step = (maxlog - minlog) / M;
 
-        stats.resize(2);
-        for ( auto& stat : stats ) {
-            stat.resize(M);
-        }
+        rxInputFileName.assign(R"(Fdata\..+\.np)"); // "Fdata.E.524288.10.np"
+        if ( !LoadSamplesDir(dirpath) ) { return false; }
 
-        std::regex rxInputFileName(R"(Fdata\..+\.np)"); // "Fdata.E.524288.10.np"
-        for ( const auto& entry : fs::directory_iterator(dirpath) ) {
-            auto filename = entry.path().filename().string();
-            if ( std::regex_match( filename, m, rxInputFileName ) ) {
-                if ( !ProcessSamples( entry.path() ) ) {
-                    return false;
-                }
-            }
-        }
         for ( size_t i = 0; i != 2; i++ ) {
+            stats.clear();
+            stats.resize( 1 << M );
+            ProcessSamples( samples[i] );
             fs::path outfilepath = dirpath / ("FDBins."s + (i == 0 ? "pos" : "neg") + ".np");
             std::ofstream fOut( outfilepath, std::ios::binary );
             for ( const auto& st : stats[i] ) {
@@ -108,8 +110,49 @@ public:
         return true;
     }
 
-    bool ProcessSamples( fs::path filepath ) {
-        fs::path dirpath = filepath.parent_path();
+    bool LoadSamplesDir( fs::path dirpath ) {
+        std::smatch m;
+        size_t nSamples = 0;
+        for ( const auto& entry : fs::directory_iterator(dirpath) ) {
+            auto filename = entry.path().filename().string();
+            if ( std::regex_match( filename, m, rxInputFileName ) ) {
+                nSamples += std::filesystem::file_size( entry.path() ) / sizeof(double) / 3;
+            }
+        }
+
+        for ( auto& smps : samples ) {
+            smps.reserve(nSamples * 0.6); // avoid dynamic alloc
+        }
+
+        for ( const auto& entry : fs::directory_iterator(dirpath) ) {
+            auto filename = entry.path().filename().string();
+            if ( std::regex_match( filename, m, rxInputFileName ) ) {
+                if ( !LoadSamplesFile( entry.path() ) ) {
+                    return false;
+                }
+            }
+        }
+    }
+
+    bool LoadSamplesFile( fs::path filepath ) {
+        size_t nSamples = std::filesystem::file_size(filepath) / sizeof(double) / 3;
+        Sample sample;
+        std::ifstream fIn( filepath, std::ios::binary );
+        if ( !fIn ) {
+            std::cerr << "Couldn't open file " << filepath << std::endl;
+            return false;
+        }
+        for ( size_t i = 0; i != nSamples; i++ ) {
+            fIn.read( (char*) &sample, sizeof sample );
+            int sgn = sample.oo > 0 ? POS : NEG;
+            samples[sgn].push_back(sample);
+        }
+    }
+
+    bool ProcessSamples( std::vector<Sample>& smpls ) {
+        ProcessSamplesRecur( smpls, 0 );
+
+        /*fs::path dirpath = filepath.parent_path();
         std::ifstream fIn( filepath, std::ios::binary );
         if ( !fIn ) {
             std::cerr << "Couldn't open file " << filepath << std::endl;
@@ -150,15 +193,30 @@ public:
             stats[i][bin].acc[0].Add( log_fabs );
             stats[i][bin].acc[1].Add( log( fabs( sample.field[1] ) ) );
             stats[i][bin].acc[2].Add( log( fabs( o_o ) ) );
-        }
+        }*/
         return true;
+    }
+
+    bool ProcessSamplesRecur( std::vector<Sample>& smpls, int beg, int end, int level, unsigned int treepath ) {
+        if ( level == LEVELS ) {
+            // TODO: collect stat
+            return;
+        }
+        if ( level < 5 ) {
+            // TODO: parallel recur
+            return;
+        }
+        // TODO: sequencial, no recur
     }
 private:
     size_t M;
     size_t zeros_count = 0;
     double minlog;
     double step;
-    std::vector<std::vector<Stats>> stats;
+    std::vector<Stats> stats;
+    std::vector<Sample> samples[2];
+    std::regex rxInputFileName;
+    const int LEVELS = 20; // 2^20 bins
 };
 
 
