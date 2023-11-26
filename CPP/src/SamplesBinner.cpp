@@ -30,6 +30,10 @@ struct accum {
         sum += x;
         sum2 += x * x;
     }
+    void Add( const accum &other) {
+        sum += other.sum;
+        sum2 += other.sum2;
+    }
 
     double Mean( size_t n ) const {
         return sum / n;
@@ -50,6 +54,12 @@ struct Stats {
     accum acc[3];
     Stats() : n(0) {
         std::memset( acc, 0, sizeof acc );
+    }
+    void Add(const Stat &other){
+        n += other.n;
+        for (int i =0; i < 3; i++) {
+            acc[i] += other.acc[i] ;
+        }
     }
     void Clear() {
         n = 0;
@@ -109,11 +119,10 @@ public:
             ProcessSamples( samples[i] );
             fs::path outfilepath = dirpath / ("FDBins."s + (i == 0 ? "pos" : "neg") + ".np");
             std::ofstream fOut( outfilepath, std::ios::binary );
-            for ( const auto& st : stats[i] ) {
+            for ( const auto& st : stats) {
                 fOut << st;
             }
         }
-        std::cout << zeros_count << " zero samples\n";
         return true;
     }
 
@@ -209,7 +218,7 @@ public:
         }*/
         return true;
     }
-    bool UpdateStat(Stat &stat, const Sample &sample) const{
+    bool UpdateStat(Stat &stat, const Sample &sample){
         double o_o = sample.field[2];
         if (!( std::isfinite(sample.field[0]) && std::isfinite(sample.field[1]) && std::isfinite(o_o) && sample.field[0] > 0 && sample.field[1] > 0 ))
         {
@@ -237,41 +246,40 @@ public:
         stat.acc[2].Add( log( fabs( o_o ) ) );
         return true;
     }
-    bool ProcessSamplesRecur(Sample** v, size_t len, int level, size_t treepath ) {
+    bool ProcessSamplesRecur(Sample** v, size_t len, int level, size_t index ) {
             //we pass v =V.begin() which is a pointer to the first element of pointers to Sample, 
             //i.e. pointer to a pointer to Sample
         #pragma omp parallel
         {
-        #pragma omp single{     
-            if ( level == LEVELS ) {
-                // TODO: collect stat : DONE, AM
-                Stats stat;
-                for(size_t i =0; i < len; i++){
-                    UpdateStat(stat, *(v[i]));
-                }
-                stats[treepath] = stat;
-                return;
+        if ( level == LEVELS ) {
+            // TODO: collect stat : DONE, AM
+            Stats &stat = stats[index];
+            for(size_t i =0; i < len; i++){
+                UpdateStat(stat, *(v[i]));
             }
+            return true;
         }
+    
         auto mid = v + len/2;
         std::nth_element(v, mid, v+len);
         if ( level < 5 ) {
             // TODO: parallel recur : DONE, AM
-            #pragma omp task shared(MH)
+            #pragma omp task 
             {
-                ProcessSamplesRecur(v, len/2, level+1,treepath*2);
+                ProcessSamplesRecur(v, len/2, level+1,index*2);
             }
-            #pragma omp task shared(MH)
+            #pragma omp task 
             {
-                ProcessSamplesRecur(mid,len - len/2, level+1,treepath*2+1);
+                ProcessSamplesRecur(mid,len - len/2, level+1,index*2+1);
             }
-            return;
+            return false;
         }
         // TODO: sequencial, no recur : DONE, AM
         #pragma omp single{ 
-            ProcessSamplesRecur(v, len/2, level+1,treepath*2);
-            ProcessSamplesRecur(mid,len - len/2, level+1,treepath*2+1);
+            ProcessSamplesRecur(v, len/2, level+1,index*2);
+            ProcessSamplesRecur(mid,len - len/2, level+1,index*2+1);
         }
+        return false;
     }
 private:
     size_t M;
@@ -281,7 +289,7 @@ private:
     std::vector<Stats> stats;
     std::vector<Sample> samples[2];
     std::regex rxInputFileName;
-    const int LEVELS = 20; // 2^20 bins
+    const int LEVELS = 20; // stats[treepath] bins
 };
 
 int main( int argc, const char* argv[] ) {
