@@ -5,6 +5,10 @@
 #include <regex>
 #include <iostream>
 #include <fstream>
+#include <cassert>
+#include <functional>
+#include <numeric>
+#include <vector>
 #include <experimental/filesystem>
 
 namespace fs = std::experimental::filesystem;
@@ -13,6 +17,9 @@ using namespace std::string_literals;
 #pragma pack(push, 1)
 struct Sample {
     double ctg, ds, oo;
+    bool operator <(const Sample *other) const{
+        return ctg < other->ctg;
+    }
 };
 
 struct accum {
@@ -98,7 +105,7 @@ public:
 
         for ( size_t i = 0; i != 2; i++ ) {
             stats.clear();
-            stats.resize( 1 << M );
+            stats.resize( 1 << LEVELS );
             ProcessSamples( samples[i] );
             fs::path outfilepath = dirpath / ("FDBins."s + (i == 0 ? "pos" : "neg") + ".np");
             std::ofstream fOut( outfilepath, std::ios::binary );
@@ -150,7 +157,13 @@ public:
     }
 
     bool ProcessSamples( std::vector<Sample>& smpls ) {
-        ProcessSamplesRecur( smpls, 0 );
+        std::vector<Sample*> V;
+        //array of pointers to samples
+        for(auto s: smpls){
+            V.push_back(&s);
+        }
+        //we pass V.begin() which is a pointer to the first element of pointers to Sample, i.e. pointer to a pointer to Sample
+        ProcessSamplesRecur(V.begin(), V.size(), 0 ,0);
 
         /*fs::path dirpath = filepath.parent_path();
         std::ifstream fIn( filepath, std::ios::binary );
@@ -196,17 +209,69 @@ public:
         }*/
         return true;
     }
+    bool UpdateStat(Stat &stat, const Sample &sample) const{
+        double o_o = sample.field[2];
+        if (!( std::isfinite(sample.field[0]) && std::isfinite(sample.field[1]) && std::isfinite(o_o) && sample.field[0] > 0 && sample.field[1] > 0 ))
+        {
+            std::cout << "Bad sample: " << sample.field[0] << ", " << sample.field[1] << ", " << o_o << std::endl;
+            ok = false;
+            return false;
+        }
+        int i;
+        if ( o_o > 0 ) {
+            i = 0;
+        } else if ( o_o < 0 ) {
+            i = 1;
+        } else {
+            return false;
+        }
+        double log_fabs = log( fabs( sample.field[0] ) );
+        if ( !std::isfinite(log_fabs) ) {
+            std::cout << "Infinite value detected on samples #" << j << ": " << sample.field[0] << ", " << sample.field[1] << ", " << o_o << std::endl;
+            return false;
+        }
 
-    bool ProcessSamplesRecur( std::vector<Sample>& smpls, int beg, int end, int level, unsigned int treepath ) {
-        if ( level == LEVELS ) {
-            // TODO: collect stat
-            return;
+        stat.n++;
+        stat.acc[0].Add( log_fabs );
+        stat.acc[1].Add( log( fabs( sample.field[1] ) ) );
+        stat.acc[2].Add( log( fabs( o_o ) ) );
+        return true;
+    }
+    bool ProcessSamplesRecur(Sample** v, size_t len, int level, size_t treepath ) {
+            //we pass v =V.begin() which is a pointer to the first element of pointers to Sample, 
+            //i.e. pointer to a pointer to Sample
+        #pragma omp parallel
+        {
+        #pragma omp single{     
+            if ( level == LEVELS ) {
+                // TODO: collect stat : DONE, AM
+                Stats stat;
+                for(size_t i =0; i < len; i++){
+                    UpdateStat(stat, *(v[i]));
+                }
+                stats[treepath] = stat;
+                return;
+            }
         }
+        auto mid = v + len/2;
+        std::nth_element(v, mid, v+len);
         if ( level < 5 ) {
-            // TODO: parallel recur
+            // TODO: parallel recur : DONE, AM
+            #pragma omp task shared(MH)
+            {
+                ProcessSamplesRecur(v, len/2, level+1,treepath*2);
+            }
+            #pragma omp task shared(MH)
+            {
+                ProcessSamplesRecur(mid,len - len/2, level+1,treepath*2+1);
+            }
             return;
         }
-        // TODO: sequencial, no recur
+        // TODO: sequencial, no recur : DONE, AM
+        #pragma omp single{ 
+            ProcessSamplesRecur(v, len/2, level+1,treepath*2);
+            ProcessSamplesRecur(mid,len - len/2, level+1,treepath*2+1);
+        }
     }
 private:
     size_t M;
@@ -218,7 +283,6 @@ private:
     std::regex rxInputFileName;
     const int LEVELS = 20; // 2^20 bins
 };
-
 
 int main( int argc, const char* argv[] ) {
     if ( argc != 3 ) {
