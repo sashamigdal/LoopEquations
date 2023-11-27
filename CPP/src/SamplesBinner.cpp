@@ -24,7 +24,7 @@ using namespace std::string_literals;
 struct Sample {
     double ctg, ds, oo;
     bool operator <(const Sample *other) const{
-        return ctg < other->ctg;
+        return fabs(ctg) < fabs(other->ctg);
     }
 };
 
