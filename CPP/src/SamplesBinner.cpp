@@ -18,8 +18,8 @@ using namespace std::string_literals;
 #pragma pack(push, 1)
 struct Sample {
     double ctg, ds, oo;
-    bool operator <(const Sample *other) const{
-        return fabs(ctg) < fabs(other->ctg);
+    bool operator< ( const Sample& other ) const {
+        return fabs(ctg) < fabs( other.ctg );
     }
 };
 
@@ -169,12 +169,11 @@ public:
         return true;
     }
 
-    bool ProcessSamples( std::vector<Sample>& smpls ) {
-        std::vector<Sample*> V;
-        //array of pointers to samples
-        for(auto s: smpls){
-            V.push_back(&s);
-        }
+    bool ProcessSamples( const std::vector<Sample>& smpls ) {
+        std::vector<const Sample*> V; // array of pointers to samples
+        V.reserve( smpls.size() );
+        std::transform( std::begin(smpls), std::end(smpls), std::back_inserter(V), [](const Sample& sample){ return &sample; } );
+
         //we pass V.begin() which is a pointer to the first element of pointers to Sample, i.e. pointer to a pointer to Sample
         ProcessSamplesRecur(V.begin(), V.size(), 0 ,0);
         return true;
@@ -207,7 +206,7 @@ public:
         return true;
     }
 
-    bool ProcessSamplesRecur( std::vector<Sample*>::iterator v, size_t len, int level, size_t index ) {
+    bool ProcessSamplesRecur( std::vector<const Sample*>::iterator v, size_t len, int level, size_t index ) {
             //we pass v =V.begin() which is a pointer to the first element of pointers to Sample, 
             //i.e. pointer to a pointer to Sample
         #pragma omp parallel
@@ -219,9 +218,9 @@ public:
                 }
                 return true;
             }
-    
+
             auto mid = v + len/2;
-            std::nth_element(v, mid, v+len,[(Sample *a, Sample *b)]{return *a < *b;});
+            std::nth_element( v, mid, v + len, []( const Sample* a, const Sample* b ) { return *a < *b; } );
             if ( level < 5 ) {
                 #pragma omp task
                 {
