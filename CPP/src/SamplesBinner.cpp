@@ -223,7 +223,7 @@ public:
                 }
                 #pragma omp task 
                 {
-                    ProcessSamplesRecur(mid,len - len/2, level+1,index*2+1);
+                    ProcessSamplesRecur( v + len / 2, len - len / 2, level + 1, index * 2 + 1 );
                 }
                 return;
             }
@@ -231,7 +231,7 @@ public:
             #pragma omp single
             {
                 ProcessSamplesRecur(v, len/2, level+1,index*2);
-                ProcessSamplesRecur(mid,len - len/2, level+1,index*2+1);
+                ProcessSamplesRecur( v + len / 2, len - len / 2, level + 1, index * 2 + 1 );
             }
         }
         return;
