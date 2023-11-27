@@ -9,9 +9,15 @@
 #include <functional>
 #include <numeric>
 #include <vector>
-#include <experimental/filesystem>
 
+#if _MSC_VER
+#include <filesystem>
+namespace fs = std::filesystem;
+#else
+#include <experimental/filesystem>
 namespace fs = std::experimental::filesystem;
+#endif
+
 using namespace std::string_literals;
 
 #pragma pack(push, 1)
@@ -55,10 +61,11 @@ struct Stats {
     Stats() : n(0) {
         std::memset( acc, 0, sizeof acc );
     }
-    void Add(const Stat &other){
+
+    void Add( const Stats& other ) {
         n += other.n;
         for (int i =0; i < 3; i++) {
-            acc[i] += other.acc[i] ;
+            acc[i].Add( other.acc[i] );
         }
     }
     void Clear() {
@@ -71,7 +78,7 @@ struct Stats {
 #pragma pack(pop)
 
 std::ostream& operator<< ( std::ostream& out, const Stats& st ) {
-    double dblN = st.n;
+    double dblN = static_cast<double>(st.n);
     out.write( (char*)&dblN, sizeof dblN );
     for ( size_t i = 0; i != 3; i++ ) {
         double val = st.acc[i].Mean(st.n);
@@ -115,7 +122,7 @@ public:
 
         for ( size_t i = 0; i != 2; i++ ) {
             stats.clear();
-            stats.resize( 1 << LEVELS );
+            stats.resize( size_t(1) << LEVELS );
             ProcessSamples( samples[i] );
             fs::path outfilepath = dirpath / ("FDBins."s + (i == 0 ? "pos" : "neg") + ".np");
             std::ofstream fOut( outfilepath, std::ios::binary );
@@ -137,7 +144,7 @@ public:
         }
 
         for ( auto& smps : samples ) {
-            smps.reserve(nSamples * 0.6); // avoid dynamic alloc
+            smps.reserve( static_cast<size_t>(nSamples * 0.6) ); // avoid dynamic alloc
         }
 
         for ( const auto& entry : fs::directory_iterator(dirpath) ) {
@@ -148,6 +155,7 @@ public:
                 }
             }
         }
+        return true;
     }
 
     bool LoadSamplesFile( fs::path filepath ) {
@@ -163,6 +171,7 @@ public:
             int sgn = sample.oo > 0 ? POS : NEG;
             samples[sgn].push_back(sample);
         }
+        return true;
     }
 
     bool ProcessSamples( std::vector<Sample>& smpls ) {
@@ -173,112 +182,68 @@ public:
         }
         //we pass V.begin() which is a pointer to the first element of pointers to Sample, i.e. pointer to a pointer to Sample
         ProcessSamplesRecur(V.begin(), V.size(), 0 ,0);
-
-        /*fs::path dirpath = filepath.parent_path();
-        std::ifstream fIn( filepath, std::ios::binary );
-        if ( !fIn ) {
-            std::cerr << "Couldn't open file " << filepath << std::endl;
-            return false;
-        }
-        const auto filesize = fs::file_size(filepath);
-        const auto T = filesize / sizeof(double) / 3;
-        std::vector<Sample> samples(T);
-        bool ok;
-        fIn.read( (char*) &samples[0], filesize );
-
-        for ( size_t j = 0; j != samples.size(); j++ ) {
-            Sample& sample = samples[j];
-            double o_o = sample.field[2];
-            if (!( std::isfinite(sample.field[0]) && std::isfinite(sample.field[1]) && std::isfinite(o_o) && sample.field[0] > 0 && sample.field[1] > 0 ))
-            {
-                std::cout << "Bad sample: " << sample.field[0] << ", " << sample.field[1] << ", " << o_o << std::endl;
-                ok = false;
-                continue;
-            }
-            int i;
-            if ( o_o > 0 ) {
-                i = 0;
-            } else if ( o_o < 0 ) {
-                i = 1;
-            } else {
-                zeros_count++;
-                continue;
-            }
-            double log_fabs = log( fabs( sample.field[0] ) );
-            if ( !std::isfinite(log_fabs) ) {
-                std::cout << "Infinite value detected on samples #" << j << ": " << sample.field[0] << ", " << sample.field[1] << ", " << o_o << std::endl;
-            }
-
-            long long bin = static_cast<long long>( (log_fabs - minlog) / step );
-            bin = std::max( 0LL, std::min( (long long)M - 1, bin ) );
-            stats[i][bin].n++;
-            stats[i][bin].acc[0].Add( log_fabs );
-            stats[i][bin].acc[1].Add( log( fabs( sample.field[1] ) ) );
-            stats[i][bin].acc[2].Add( log( fabs( o_o ) ) );
-        }*/
         return true;
     }
-    bool UpdateStat(Stat &stat, const Sample &sample){
-        double o_o = sample.field[2];
-        if (!( std::isfinite(sample.field[0]) && std::isfinite(sample.field[1]) && std::isfinite(o_o) && sample.field[0] > 0 && sample.field[1] > 0 ))
+
+    bool UpdateStat( Stats& stat, const Sample& sample ) {
+        if (!( std::isfinite(sample.ctg) && std::isfinite(sample.ds) && std::isfinite(sample.oo) && sample.ctg > 0 && sample.ds > 0 ))
         {
-            std::cout << "Bad sample: " << sample.field[0] << ", " << sample.field[1] << ", " << o_o << std::endl;
-            ok = false;
+            std::cout << "Bad sample: " << sample.ctg << ", " << sample.ds << ", " << sample.oo << std::endl;
             return false;
         }
         int i;
-        if ( o_o > 0 ) {
+        if ( sample.oo > 0 ) {
             i = 0;
-        } else if ( o_o < 0 ) {
+        } else if ( sample.oo < 0 ) {
             i = 1;
         } else {
             return false;
         }
-        double log_fabs = log( fabs( sample.field[0] ) );
+        double log_fabs = log( fabs( sample.ctg ) );
         if ( !std::isfinite(log_fabs) ) {
-            std::cout << "Infinite value detected on samples #" << j << ": " << sample.field[0] << ", " << sample.field[1] << ", " << o_o << std::endl;
+            std::cout << "Infinite value detected among samples" << ": " << sample.ctg << ", " << sample.ds << ", " << sample.oo << std::endl;
             return false;
         }
 
         stat.n++;
         stat.acc[0].Add( log_fabs );
-        stat.acc[1].Add( log( fabs( sample.field[1] ) ) );
-        stat.acc[2].Add( log( fabs( o_o ) ) );
+        stat.acc[1].Add( log( fabs( sample.ds ) ) );
+        stat.acc[2].Add( log( fabs( sample.oo ) ) );
         return true;
     }
-    bool ProcessSamplesRecur(Sample** v, size_t len, int level, size_t index ) {
+
+    bool ProcessSamplesRecur( std::vector<Sample*>::iterator v, size_t len, int level, size_t index ) {
             //we pass v =V.begin() which is a pointer to the first element of pointers to Sample, 
             //i.e. pointer to a pointer to Sample
         #pragma omp parallel
         {
-        if ( level == LEVELS ) {
-            // TODO: collect stat : DONE, AM
-            Stats &stat = stats[index];
-            for(size_t i =0; i < len; i++){
-                UpdateStat(stat, *(v[i]));
+            if ( level == LEVELS ) {
+                Stats &stat = stats[index];
+                for(size_t i =0; i < len; i++){
+                    UpdateStat(stat, *(v[i]));
+                }
+                return true;
             }
-            return true;
-        }
     
-        auto mid = v + len/2;
-        std::nth_element(v, mid, v+len);
-        if ( level < 5 ) {
-            // TODO: parallel recur : DONE, AM
-            #pragma omp task 
+            auto mid = v + len/2;
+            std::nth_element(v, mid, v+len);
+            if ( level < 5 ) {
+                #pragma omp task
+                {
+                    ProcessSamplesRecur(v, len/2, level+1,index*2);
+                }
+                #pragma omp task 
+                {
+                    ProcessSamplesRecur(mid,len - len/2, level+1,index*2+1);
+                }
+                return false;
+            }
+
+            #pragma omp single
             {
                 ProcessSamplesRecur(v, len/2, level+1,index*2);
-            }
-            #pragma omp task 
-            {
                 ProcessSamplesRecur(mid,len - len/2, level+1,index*2+1);
             }
-            return false;
-        }
-        // TODO: sequencial, no recur : DONE, AM
-        #pragma omp single{ 
-            ProcessSamplesRecur(v, len/2, level+1,index*2);
-            ProcessSamplesRecur(mid,len - len/2, level+1,index*2+1);
-        }
         }
         return false;
     }
