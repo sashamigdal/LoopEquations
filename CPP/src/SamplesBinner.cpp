@@ -210,12 +210,12 @@ public:
                     for(size_t i =0; i < len; i++){
                         UpdateStat(stat, *(v[i]));
                     }
+                    return;
                 }
-                return;
-            }
 
-            auto mid = v + len/2;
-            std::nth_element( v, mid, v + len, []( const Sample* a, const Sample* b ) { return *a < *b; } );
+                auto mid = v + len/2;
+                std::nth_element( v, mid, v + len, []( const Sample* a, const Sample* b ) { return *a < *b; } );
+            }
             if ( level < 5 ) {
                 #pragma omp task
                 {
