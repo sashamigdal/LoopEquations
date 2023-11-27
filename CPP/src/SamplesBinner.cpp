@@ -15,6 +15,8 @@ namespace fs = std::filesystem;
 
 using namespace std::string_literals;
 
+size_t GetBinLen( size_t bin, size_t len, size_t levels );
+
 #pragma pack(push, 1)
 struct Sample {
     double ctg, ds, oo;
@@ -232,21 +234,14 @@ public:
         return;
     }
 private:
-    size_t GetBinLen( size_t bin, size_t len ) {
-        for ( size_t l = 0; l != levels; l++ ) {
-            len = len / 2 + ((bin & (size_t(1) << (levels - l - 1))) != 0);
-        }
-        return len;
-    }
-
     void ProcessSamplesBySort( std::vector<Sample>& samples ) {
         std::sort( std::begin(samples), std::end(samples) );
         std::vector<size_t> binSizes;
         binSizes.reserve( size_t(1) << levels );
         size_t beg = 0;
         for ( size_t bin = 0; bin != size_t(1) << levels; bin++ ) {
-            size_t binlen = GetBinLen( bin, samples.size() );
-            stats[bin] = std::accumulate( &samples[beg], &samples[beg + binlen], Stats(), [this](Stats st, const Sample& sam){
+            size_t binlen = GetBinLen( bin, samples.size(), levels );
+            stats[bin] = std::accumulate( std::begin(samples) + beg, std::begin(samples) + beg + binlen, Stats(), [this](Stats st, const Sample& sam){
                                                                                                     UpdateStat(st, sam);
                                                                                                     return st;
                 } );
@@ -259,6 +254,25 @@ private:
     std::regex rxInputFileName;
     size_t levels; // stats[treepath] bins
 };
+
+size_t GetBinLen( size_t bin, size_t len, size_t levels ) {
+    for ( size_t l = 0; l != levels; l++ ) {
+        len = len / 2 + ((bin & (size_t(1) << (levels - l - 1))) != 0) * (len % 2);
+    }
+    return len;
+}
+
+void TestBinLen() {
+    size_t len = 8384356;
+    size_t levels = 20;
+    size_t beg = 0;
+    for ( size_t bin = 0; bin != size_t(1) << levels; bin++ ) {
+        size_t binlen = GetBinLen( bin, len, levels );
+        //std::cout << binlen << '\n';
+        beg += binlen;
+    }
+    std::cout << beg << '\n';
+}
 
 int main( int argc, const char* argv[] ) {
     if ( argc != 3 ) {
