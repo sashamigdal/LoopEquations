@@ -10,13 +10,8 @@
 #include <numeric>
 #include <vector>
 
-#if _MSC_VER
 #include <filesystem>
 namespace fs = std::filesystem;
-#else
-#include <experimental/filesystem>
-namespace fs = std::experimental::filesystem;
-#endif
 
 using namespace std::string_literals;
 
