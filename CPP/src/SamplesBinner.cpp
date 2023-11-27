@@ -226,7 +226,7 @@ public:
             }
     
             auto mid = v + len/2;
-            std::nth_element(v, mid, v+len);
+            std::nth_element(v, mid, v+len,[(Sample *a, Sample *b)]{return *a < *b;});
             if ( level < 5 ) {
                 #pragma omp task
                 {
