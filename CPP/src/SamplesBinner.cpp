@@ -98,26 +98,18 @@ enum SIGN { POS, NEG };
 
 class SamplesBinner {
 public:
-    bool ProcessSamplesDir( fs::path dirpath, size_t M ) {
-        this->M = M;
+    bool ProcessSamplesDir( fs::path dirpath, size_t levels ) {
+        this->levels = levels;
         if ( !dirpath.empty() && dirpath.generic_string().back() != '/' ) {
             dirpath += '/';
         }
-        auto last_dirname = dirpath.parent_path().filename().string();
-        std::smatch m;
-        std::regex rxDataDirName(R"(VorticityCorr\.(\d+)\..+\.\d+)"); // "VorticityCorr.100000000.GPU.1"
-        if ( !std::regex_match( last_dirname, m, rxDataDirName ) ) {
-            std::cerr << "[ERROR] Couldn't get N from directory path." << std::endl;
-            return false;
-        }
-        unsigned long long N = std::stoull( m[1] );
 
         rxInputFileName.assign(R"(Fdata\..+\.np)"); // "Fdata.E.524288.10.np"
         if ( !LoadSamplesDir(dirpath) ) { return false; }
 
         for ( size_t i = 0; i != 2; i++ ) {
             stats.clear();
-            stats.resize( size_t(1) << LEVELS );
+            stats.resize( size_t(1) << levels );
             ProcessSamples( samples[i] );
             fs::path outfilepath = dirpath / ("FDBins."s + (i == 0 ? "pos" : "neg") + ".np");
             std::ofstream fOut( outfilepath, std::ios::binary );
@@ -139,7 +131,7 @@ public:
         }
 
         for ( auto& smps : samples ) {
-            smps.reserve( static_cast<size_t>(nSamples * 0.6) ); // avoid dynamic alloc
+            smps.reserve( static_cast<size_t>(nSamples * 0.55) ); // avoid dynamic alloc
         }
 
         for ( const auto& entry : fs::directory_iterator(dirpath) ) {
@@ -206,17 +198,20 @@ public:
         return true;
     }
 
-    bool ProcessSamplesRecur( std::vector<const Sample*>::iterator v, size_t len, int level, size_t index ) {
+    void ProcessSamplesRecur( std::vector<const Sample*>::iterator v, size_t len, int level, size_t index ) {
             //we pass v =V.begin() which is a pointer to the first element of pointers to Sample, 
             //i.e. pointer to a pointer to Sample
         #pragma omp parallel
         {
-            if ( level == LEVELS ) {
-                Stats &stat = stats[index];
-                for(size_t i =0; i < len; i++){
-                    UpdateStat(stat, *(v[i]));
+            #pragma omp single
+            {
+                if ( level == levels ) {
+                    Stats &stat = stats[index];
+                    for(size_t i =0; i < len; i++){
+                        UpdateStat(stat, *(v[i]));
+                    }
                 }
-                return true;
+                return;
             }
 
             auto mid = v + len/2;
@@ -230,7 +225,7 @@ public:
                 {
                     ProcessSamplesRecur(mid,len - len/2, level+1,index*2+1);
                 }
-                return false;
+                return;
             }
 
             #pragma omp single
@@ -239,17 +234,13 @@ public:
                 ProcessSamplesRecur(mid,len - len/2, level+1,index*2+1);
             }
         }
-        return false;
+        return;
     }
 private:
-    size_t M;
-    size_t zeros_count = 0;
-    double minlog;
-    double step;
     std::vector<Stats> stats;
     std::vector<Sample> samples[2];
     std::regex rxInputFileName;
-    const int LEVELS = 20; // stats[treepath] bins
+    int levels; // stats[treepath] bins
 };
 
 int main( int argc, const char* argv[] ) {
@@ -258,7 +249,7 @@ int main( int argc, const char* argv[] ) {
         return 1;
     }
     fs::path dirpath( argv[1] );
-    const size_t M = std::atoi( argv[2] );
+    const size_t levels = std::atoi( argv[2] );
     SamplesBinner binner;
-    return binner.ProcessSamplesDir( dirpath, M ) ? 0 : -1;
+    return binner.ProcessSamplesDir( dirpath, levels ) ? 0 : -1;
 }
