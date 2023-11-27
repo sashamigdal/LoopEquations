@@ -110,7 +110,7 @@ public:
         for ( size_t i = 0; i != 2; i++ ) {
             stats.clear();
             stats.resize( size_t(1) << levels );
-            ProcessSamples( samples[i] );
+            ProcessSamplesBySort( samples[i] );
             fs::path outfilepath = dirpath / ("FDBins."s + (i == 0 ? "pos" : "neg") + ".np");
             std::ofstream fOut( outfilepath, std::ios::binary );
             for ( const auto& st : stats) {
@@ -177,12 +177,7 @@ public:
             std::cout << "Bad sample: " << sample.ctg << ", " << sample.ds << ", " << sample.oo << std::endl;
             return false;
         }
-        int i;
-        if ( sample.oo > 0 ) {
-            i = 0;
-        } else if ( sample.oo < 0 ) {
-            i = 1;
-        } else {
+        if ( sample.oo == 0 ) {
             return false;
         }
         double log_fabs = log( fabs( sample.ctg ) );
@@ -237,10 +232,32 @@ public:
         return;
     }
 private:
+    size_t GetBinLen( size_t bin, size_t len ) {
+        for ( size_t l = 0; l != levels; l++ ) {
+            len = len / 2 + ((bin & (size_t(1) << (levels - l - 1))) != 0);
+        }
+        return len;
+    }
+
+    void ProcessSamplesBySort( std::vector<Sample>& samples ) {
+        std::sort( std::begin(samples), std::end(samples) );
+        std::vector<size_t> binSizes;
+        binSizes.reserve( size_t(1) << levels );
+        size_t beg = 0;
+        for ( size_t bin = 0; bin != size_t(1) << levels; bin++ ) {
+            size_t binlen = GetBinLen( bin, samples.size() );
+            stats[bin] = std::accumulate( &samples[beg], &samples[beg + binlen], Stats(), [this](Stats st, const Sample& sam){
+                                                                                                    UpdateStat(st, sam);
+                                                                                                    return st;
+                } );
+            beg += binlen;
+        }
+    }
+
     std::vector<Stats> stats;
     std::vector<Sample> samples[2];
     std::regex rxInputFileName;
-    int levels; // stats[treepath] bins
+    size_t levels; // stats[treepath] bins
 };
 
 int main( int argc, const char* argv[] ) {
