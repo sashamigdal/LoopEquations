@@ -9,10 +9,10 @@
 #include <functional>
 #include <numeric>
 #include <vector>
-
+#include <future>
 #include <filesystem>
-namespace fs = std::filesystem;
 
+namespace fs = std::filesystem;
 using namespace std::string_literals;
 
 size_t GetBinLen( size_t bin, size_t len, size_t levels );
@@ -100,6 +100,14 @@ enum SIGN { POS, NEG };
 
 class SamplesBinner {
 public:
+    SamplesBinner() {
+        auto maxThreads = std::thread::hardware_concurrency();
+        if ( maxThreads == 0 ) {
+            maxThreads = 32;
+        }
+        maxThreadsLevel = int( log(maxThreads) / log(2) );
+    }
+
     bool ProcessSamplesDir( fs::path dirpath, size_t levels ) {
         this->levels = levels;
         if ( !dirpath.empty() && dirpath.generic_string().back() != '/' ) {
@@ -112,7 +120,7 @@ public:
         for ( size_t i = 0; i != 2; i++ ) {
             stats.clear();
             stats.resize( size_t(1) << levels );
-            ProcessSamplesBySort( samples[i] );
+            ProcessSamples( samples[i] );
             fs::path outfilepath = dirpath / ("FDBins."s + (i == 0 ? "pos" : "neg") + ".np");
             std::ofstream fOut( outfilepath, std::ios::binary );
             for ( const auto& st : stats) {
@@ -196,40 +204,27 @@ public:
     }
 
     void ProcessSamplesRecur( std::vector<const Sample*>::iterator v, size_t len, int level, size_t index ) {
-            //we pass v =V.begin() which is a pointer to the first element of pointers to Sample, 
-            //i.e. pointer to a pointer to Sample
-        #pragma omp parallel
-        {
-            #pragma omp single
-            {
-                if ( level == levels ) {
-                    Stats &stat = stats[index];
-                    for(size_t i =0; i < len; i++){
-                        UpdateStat(stat, *(v[i]));
-                    }
-                    return;
-                }
+        //we pass v =V.begin() which is a pointer to the first element of pointers to Sample, 
+        //i.e. pointer to a pointer to Sample
+        if ( level == levels ) {
+            Stats &stat = stats[index];
+            for(size_t i =0; i < len; i++){
+                UpdateStat(stat, *(v[i]));
+            }
+            return;
+        }
 
-                auto mid = v + len/2;
-                std::nth_element( v, mid, v + len, []( const Sample* a, const Sample* b ) { return *a < *b; } );
-            }
-            if ( level < 5 ) {
-                #pragma omp task
-                {
-                    ProcessSamplesRecur(v, len/2, level+1,index*2);
-                }
-                #pragma omp task 
-                {
-                    ProcessSamplesRecur( v + len / 2, len - len / 2, level + 1, index * 2 + 1 );
-                }
-                return;
-            }
-
-            #pragma omp single
-            {
-                ProcessSamplesRecur(v, len/2, level+1,index*2);
-                ProcessSamplesRecur( v + len / 2, len - len / 2, level + 1, index * 2 + 1 );
-            }
+        auto mid = v + len/2;
+        std::nth_element( v, mid, v + len, []( const Sample* a, const Sample* b ) { return *a < *b; } );
+        std::future<void> fut;
+        if ( level < maxThreadsLevel ) {
+            fut = std::async( std::launch::async, &SamplesBinner::ProcessSamplesRecur, this, v, len / 2, level + 1, index * 2 );
+        } else {
+            ProcessSamplesRecur( v, len / 2, level + 1, index * 2 );
+        }
+        ProcessSamplesRecur( v + len / 2, len - len / 2, level + 1, index * 2 + 1 );
+        if ( level < maxThreadsLevel ) {
+            fut.wait();
         }
         return;
     }
@@ -253,6 +248,7 @@ private:
     std::vector<Sample> samples[2];
     std::regex rxInputFileName;
     size_t levels; // stats[treepath] bins
+    unsigned int maxThreadsLevel;
 };
 
 size_t GetBinLen( size_t bin, size_t len, size_t levels ) {
