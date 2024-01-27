@@ -150,7 +150,7 @@ static __global__ void DoWorkKernel( size_t size, cudaRandomWalker* walkers, std
 
     S_nm /= real(m - n);
     S_mn /= real(n + M - m);
-    S = cuCabsr((S_nm - S_mn) / (2 * sin(beta / 2)));
+    S = cuCabsr((S_nm - S_mn) / (2 *  q * sin(beta / 2)));
 }
 
 template <class T>
