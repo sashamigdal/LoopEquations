@@ -13,4 +13,4 @@ cd ${PROJECT_DIR}
 
 source /share/apps/NYUAD/miniconda/3-4.11.0/bin/activate py39
 
-python -u VorticityCorrelation.py -M ${M} -T ${T} -EG E -C ${SLURM_ARRAY_TASK_ID} --compute GPU -NLAM 0 --run 2
+python -u VorticityCorrelation.py -M ${M} -T ${T} -EG E -C ${SLURM_ARRAY_TASK_ID} --compute GPU -NLAM 0 --run ${RUN_ID}

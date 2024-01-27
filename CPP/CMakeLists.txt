@@ -23,4 +23,4 @@ set(SOURCES src/Euler.cpp
 
 add_library(${PROJECT_NAME} SHARED ${SOURCES})
 add_executable(SamplesBinner src/SamplesBinner.cpp)
-target_link_libraries(SamplesBinner PUBLIC stdc++fs)
+target_link_libraries(SamplesBinner PUBLIC stdc++fs pthread)

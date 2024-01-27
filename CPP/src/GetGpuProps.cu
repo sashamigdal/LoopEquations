@@ -191,8 +191,8 @@ int main ( int argc, char * argv [] ) {
     }
 #endif
 
-    std::cout << "Sleeping 10 min...";
-    std::this_thread::sleep_for(10min);
+    std::cout << "Sleeping 5 min..." << std::flush;
+    std::this_thread::sleep_for(5min);
     std::cout << "[FINISHED]\n";
     return 0;
 }
