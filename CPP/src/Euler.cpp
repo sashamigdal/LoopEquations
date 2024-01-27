@@ -50,7 +50,7 @@ double DS(std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_neg
 
     S_nm /= double(m - n);
     S_mn /= double(n + M - m);
-    return abs((S_nm - S_mn) / (2 * q * sin(beta / 2)));
+    return abs((S_nm - S_mn) / (2 * sin(beta / 2)));
 }
 
 #if 0
