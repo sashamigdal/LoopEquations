@@ -2,7 +2,8 @@
 
 #SBATCH --output=/scratch/am10485/slurm-logs/run_gpu-%A_%a_%N_%J.out
 
-PROJECT_DIR=/scratch/${USER}/LoopEquations
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+PROJECT_DIR="$(dirname "${SCRIPT_DIR}")"
 
 echo SLURM_ARRAY_JOB_ID = ${SLURM_ARRAY_JOB_ID}
 echo SLURM_ARRAY_TASK_ID = ${SLURM_ARRAY_TASK_ID}

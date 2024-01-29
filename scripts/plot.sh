@@ -7,10 +7,9 @@
 #SBATCH --time=00:30:00
 #SBATCH --mem=100GB
 
-PROJECT_DIR=/scratch/${USER}/LoopEquations
-
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+PROJECT_DIR="$(dirname "${SCRIPT_DIR}")"
 echo PROJECT_DIR = ${PROJECT_DIR}
-
 cd ${PROJECT_DIR}
 
 source /share/apps/NYUAD/miniconda/3-4.11.0/bin/activate py39
@@ -18,4 +17,4 @@ source /share/apps/NYUAD/miniconda/3-4.11.0/bin/activate py39
 echo "Starting collecting script . . . "
 # python -u VorticityCorrelation.py -M ${M} -EG E -C 0 --run 2 --compute GPU
 cd CPP/cmake-build-release
-./SamplesBinner /scratch/am10485/LoopEquations/plots/VorticityCorr.${M}.GPU.${RUN_ID} 20
+./SamplesBinner ${PROJECT_DIR}/plots/VorticityCorr.${M}.GPU.${RUN_ID} 20
