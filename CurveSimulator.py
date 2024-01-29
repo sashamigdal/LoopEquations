@@ -218,20 +218,22 @@ class CurveSimulatorFDistribution(CurveSimulatorBase):
         partition = 0 if self.compute == "CPU" else 1
         # to make a unique seed for at least 1000 nodes
         np.random.seed(((partition * 100 + self.run) * 1000 + self.C) * self.nWorkers + workerId)
+        ncols = 4
         if self.compute == "CPU":
             beg = self.T * workerId // self.nWorkers
             end = self.T * (workerId + 1) // self.nWorkers
-            ar = np.zeros((end - beg) * 3, dtype=float).reshape(-1, 3)
+            ar = np.zeros((end - beg) * ncols, dtype=float).reshape(-1, ncols)
             for k in range(beg, end):
                 n, m, N_pos, N_neg, beta, q = self.GenerateEulerSet()
                 t = k - beg
                 ar[t, 0] = 1 / (q *tan(beta / 2)) ** 2
                 ar[t, 1], ar[t, 2] = DS_CPP(n, m, N_pos, N_neg, q, beta)
+                ar[t, 3] = q
         elif self.compute == "GPU":
             warp_size = DS_GetGpuWarpSize()
             beg = 0
             end = self.T
-            ar = np.zeros((end - beg) * warp_size * 3, dtype=float).reshape(-1, 3)
+            ar = np.zeros((end - beg) * warp_size * ncols, dtype=float).reshape(-1, ncols)
             ns = np.zeros(end - beg, dtype=np.int64)
             ms = np.zeros(end - beg, dtype=np.int64)
             N_poss = np.zeros(end - beg, dtype=np.int64)
@@ -240,7 +242,8 @@ class CurveSimulatorFDistribution(CurveSimulatorBase):
             qq = np.zeros(end - beg, dtype=np.int64)
             for k in range(end - beg):
                 ns[k], ms[k], N_poss[k], N_negs[k], betas[k], qq[k] = self.GenerateEulerSet()
-                ar[k * warp_size: (k + 1) * warp_size, 0] = 1 / (qq[k]*tan(betas[k] / 2) )** 2
+                ar[k * warp_size : (k + 1) * warp_size, 0] = 1 / (qq[k]*tan(betas[k] / 2) ) ** 2
+                ar[k * warp_size : (k + 1) * warp_size, 3] = qq[k]
             Ss, o_os = DS_GPU(warp_size, ns, ms, N_poss, N_negs, qq, betas)
             ar[:, 1] = Ss
             ar[:, 2] = o_os
