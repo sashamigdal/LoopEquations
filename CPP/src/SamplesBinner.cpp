@@ -17,9 +17,11 @@ using namespace std::string_literals;
 
 size_t GetBinLen( size_t bin, size_t len, size_t levels );
 
+constexpr int NUM_FIELDS = 4;
+
 #pragma pack(push, 1)
 struct Sample {
-    double ctg, ds, oo;
+    double ctg, ds, oo, q;
     bool operator< ( const Sample& other ) const {
         return fabs(ctg) < fabs( other.ctg );
     }
@@ -54,14 +56,14 @@ struct accum {
 
 struct Stats {
     size_t n;
-    accum acc[3];
+    accum acc[NUM_FIELDS];
     Stats() : n(0) {
         std::memset( acc, 0, sizeof acc );
     }
 
     void Add( const Stats& other ) {
         n += other.n;
-        for (int i =0; i < 3; i++) {
+        for (int i = 0; i != NUM_FIELDS; i++) {
             acc[i].Add( other.acc[i] );
         }
     }
@@ -77,7 +79,7 @@ struct Stats {
 std::ostream& operator<< ( std::ostream& out, const Stats& st ) {
     double dblN = static_cast<double>(st.n);
     out.write( (char*)&dblN, sizeof dblN );
-    for ( size_t i = 0; i != 3; i++ ) {
+    for ( size_t i = 0; i != NUM_FIELDS; i++ ) {
         double val = st.acc[i].Mean(st.n);
         out.write( (char*)&val, sizeof val );
         val = st.acc[i].Stdev(st.n);
@@ -88,7 +90,7 @@ std::ostream& operator<< ( std::ostream& out, const Stats& st ) {
 
 /*std::ostream& operator<< ( std::ostream& out, const Stats& st ) {
     out << st.n;
-    for ( size_t i = 0; i != 3; i++ ) {
+    for ( size_t i = 0; i != NUM_FIELDS; i++ ) {
         out << '\t' << st.acc[i].Mean(st.n);
         out << '\t' << st.acc[i].Stdev(st.n);
     }
@@ -136,7 +138,7 @@ public:
         for ( const auto& entry : fs::directory_iterator(dirpath) ) {
             auto filename = entry.path().filename().string();
             if ( std::regex_match( filename, m, rxInputFileName ) ) {
-                nSamples += std::filesystem::file_size( entry.path() ) / sizeof(double) / 3;
+                nSamples += std::filesystem::file_size( entry.path() ) / sizeof(double) / NUM_FIELDS;
             }
         }
 
@@ -156,7 +158,7 @@ public:
     }
 
     bool LoadSamplesFile( fs::path filepath ) {
-        size_t nSamples = std::filesystem::file_size(filepath) / sizeof(double) / 3;
+        size_t nSamples = std::filesystem::file_size(filepath) / sizeof(double) / NUM_FIELDS;
         Sample sample;
         std::ifstream fIn( filepath, std::ios::binary );
         if ( !fIn ) {
@@ -200,6 +202,7 @@ public:
         stat.acc[0].Add( log_fabs );
         stat.acc[1].Add( log( fabs( sample.ds ) ) );
         stat.acc[2].Add( log( fabs( sample.oo ) ) );
+        stat.acc[3].Add( log( sample.q ) );
         return true;
     }
 
