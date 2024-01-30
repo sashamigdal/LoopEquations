@@ -14,7 +14,7 @@ export T=524288
 export RUN_ID=1
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-PROJECT_DIR="$(dirname "${SCRIPT_DIR}")"
+export PROJECT_DIR="$(dirname "${SCRIPT_DIR}")"
 
 jobid=$(sbatch -p nvidia -q nvidia-xxl --array=1-${NJOBS} --cpus-per-task=${NCPUS} --mem=${MEM_SIZE}GB --gres=gpu:a100:${NGPUS} -t 3-00:00:00 --parsable run_gpu.sh)
 echo Submitted GPU jobs ${jobid}

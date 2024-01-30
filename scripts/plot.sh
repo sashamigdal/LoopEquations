@@ -7,9 +7,7 @@
 #SBATCH --time=00:30:00
 #SBATCH --mem=100GB
 
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-PROJECT_DIR="$(dirname "${SCRIPT_DIR}")"
-echo PROJECT_DIR = ${PROJECT_DIR}
+echo PROJECT_DIR=${PROJECT_DIR}
 cd ${PROJECT_DIR}
 
 source /share/apps/NYUAD/miniconda/3-4.11.0/bin/activate py39
