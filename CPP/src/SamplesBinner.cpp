@@ -17,19 +17,22 @@ using namespace std::string_literals;
 
 size_t GetBinLen( size_t bin, size_t len, size_t levels );
 
-constexpr int NUM_FIELDS = 4;
-
+// Corresponds to columns in "Fdata.*.*.*.np"
+// PACK because we read them from binary.
 #pragma pack(push, 1)
 struct Sample {
+    static constexpr int NUM_FIELDS = 4;
     double ctg, ds, oo, q;
     bool operator< ( const Sample& other ) const {
         return fabs(ctg) < fabs( other.ctg );
     }
 };
+#pragma pack(pop)
 
 struct accum {
     double sum;
     double sum2;
+
     accum() : sum(0), sum2(0) {}
     void Add( double x ) {
         sum += x;
@@ -55,48 +58,37 @@ struct accum {
 };
 
 struct Stats {
+    static constexpr int NUM_FIELDS = 5;
     size_t n;
     accum acc[NUM_FIELDS];
-    Stats() : n(0) {
-        std::memset( acc, 0, sizeof acc );
-    }
+
+    Stats() : n(0) {}
 
     void Add( const Stats& other ) {
         n += other.n;
-        for (int i = 0; i != NUM_FIELDS; i++) {
+        for ( int i = 0; i != NUM_FIELDS; i++ ) {
             acc[i].Add( other.acc[i] );
         }
     }
+
     void Clear() {
         n = 0;
         for ( accum& a : acc ) {
             a.Clear();
         }
     }
+
+    void Write( std::ostream& out, size_t num_fields ) const {
+        double dblN = static_cast<double>(n);
+        out.write( (char*)&dblN, sizeof dblN );
+        for ( size_t i = 0; i != num_fields; i++ ) {
+            double val = acc[i].Mean(n);
+            out.write( (char*)&val, sizeof val );
+            val = acc[i].Stdev(n);
+            out.write( (char*)&val, sizeof val );
+        }
+    }
 };
-#pragma pack(pop)
-
-std::ostream& operator<< ( std::ostream& out, const Stats& st ) {
-    double dblN = static_cast<double>(st.n);
-    out.write( (char*)&dblN, sizeof dblN );
-    for ( size_t i = 0; i != NUM_FIELDS; i++ ) {
-        double val = st.acc[i].Mean(st.n);
-        out.write( (char*)&val, sizeof val );
-        val = st.acc[i].Stdev(st.n);
-        out.write( (char*)&val, sizeof val );
-    }
-    return out;
-}
-
-/*std::ostream& operator<< ( std::ostream& out, const Stats& st ) {
-    out << st.n;
-    for ( size_t i = 0; i != NUM_FIELDS; i++ ) {
-        out << '\t' << st.acc[i].Mean(st.n);
-        out << '\t' << st.acc[i].Stdev(st.n);
-    }
-    out << '\n';
-    return out;
-}*/
 
 enum SIGN { POS, NEG };
 
@@ -111,6 +103,7 @@ public:
     }
 
     bool ProcessSamplesDir( fs::path dirpath, size_t levels ) {
+        const char *labels[] = {"pos", "neg", "nonzero"};
         this->levels = levels;
         if ( !dirpath.empty() && dirpath.generic_string().back() != '/' ) {
             dirpath += '/';
@@ -119,16 +112,20 @@ public:
         rxInputFileName.assign(R"(Fdata\..+\.np)"); // "Fdata.E.524288.10.np"
         if ( !LoadSamplesDir(dirpath) ) { return false; }
 
-        for ( size_t i = 0; i != 2; i++ ) {
+        for ( size_t i = 0; i != 3; i++ ) {
             stats.clear();
             stats.resize( size_t(1) << levels );
-            ProcessSamples( samples[i] );
-            fs::path outfilepath = dirpath / ("FDBins."s + (i == 0 ? "pos" : "neg") + ".np");
+            if ( i == 2 ) {
+                samples[0].insert( samples[0].end(), samples[1].begin(), samples[1].end() );
+            }
+            ProcessSamples( samples[i == 2 ? 0 : i] );
+            fs::path outfilepath = dirpath / ("FDBins."s + labels[i] + ".np");
             std::ofstream fOut( outfilepath, std::ios::binary );
-            for ( const auto& st : stats) {
-                fOut << st;
+            for ( const auto& st : stats ) {
+                st.Write( fOut, i == 2 ? Stats::NUM_FIELDS : Sample::NUM_FIELDS );
             }
         }
+
         return true;
     }
 
@@ -138,7 +135,7 @@ public:
         for ( const auto& entry : fs::directory_iterator(dirpath) ) {
             auto filename = entry.path().filename().string();
             if ( std::regex_match( filename, m, rxInputFileName ) ) {
-                nSamples += std::filesystem::file_size( entry.path() ) / sizeof(double) / NUM_FIELDS;
+                nSamples += std::filesystem::file_size( entry.path() ) / sizeof(double) / Sample::NUM_FIELDS;
             }
         }
 
@@ -158,7 +155,7 @@ public:
     }
 
     bool LoadSamplesFile( fs::path filepath ) {
-        size_t nSamples = std::filesystem::file_size(filepath) / sizeof(double) / NUM_FIELDS;
+        size_t nSamples = std::filesystem::file_size(filepath) / sizeof(double) / Sample::NUM_FIELDS;
         Sample sample;
         std::ifstream fIn( filepath, std::ios::binary );
         if ( !fIn ) {
@@ -203,10 +200,11 @@ public:
         stat.acc[1].Add( log( fabs( sample.ds ) ) );
         stat.acc[2].Add( log( fabs( sample.oo ) ) );
         stat.acc[3].Add( log( sample.q ) );
+        stat.acc[4].Add( sample.oo > 0 ? 1 : -1 );
         return true;
     }
 
-    void ProcessSamplesRecur( std::vector<const Sample*>::iterator v, size_t len, int level, size_t index ) {
+    void ProcessSamplesRecur( std::vector<const Sample*>::iterator v, size_t len, size_t level, size_t index ) {
         //we pass v =V.begin() which is a pointer to the first element of pointers to Sample, 
         //i.e. pointer to a pointer to Sample
         if ( level == levels ) {
