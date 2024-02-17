@@ -14,7 +14,7 @@ using namespace std::complex_literals;
 double DS(std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_neg, std::int64_t q, double beta, /*OUT*/ double *o_o) {
     assert(n < m);
     std::int64_t M = N_pos + N_neg;
-    int sigma_n, sigma_m, alpha_m, alpha_n;
+    int sigma_n, sigma_m;
     complex S_nm, S_mn;
 
     RandomWalker walker(N_pos, N_neg);
@@ -25,8 +25,7 @@ double DS(std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_neg
         walker.Advance();
     }
 
-    alpha_n = walker.get_alpha();
-    S_nm += expi(alpha_n * beta);
+    S_nm += expi(walker.get_alpha() * beta);
     sigma_n = walker.Advance(); // i = n
     for (i++; i != m; i++)
     { // i = (n, m)
@@ -34,8 +33,7 @@ double DS(std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_neg
         walker.Advance();
     }
 
-    alpha_m = walker.get_alpha();
-    S_mn += expi(alpha_m * beta);
+    S_mn += expi(walker.get_alpha() * beta);
     sigma_m = walker.Advance(); // i = m
     for (i++; i != M; i++)
     { // i = (m, M)
