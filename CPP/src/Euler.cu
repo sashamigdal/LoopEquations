@@ -116,7 +116,7 @@ static __global__ void DoWorkKernel( size_t size, cudaRandomWalker* walkers, std
 
     assert(n < m);
     std::int64_t M = N_pos + N_neg;
-    int sigma_n, sigma_m, alpha_m, alpha_n;
+    int sigma_n, sigma_m;
     cuAnyComplex S_nm = make_cuComplex(0, 0);
     cuAnyComplex S_mn = make_cuComplex(0, 0);
 
@@ -127,16 +127,14 @@ static __global__ void DoWorkKernel( size_t size, cudaRandomWalker* walkers, std
         walker.Advance();
     }
 
-    alpha_n = walker.get_alpha();
-    S_nm += expi( alpha_n * beta );
+    S_nm += expi( walker.get_alpha() * beta );
     sigma_n = walker.Advance(); // i = n
     for ( i++; i != m; i++ ) { // i = (n, m)
         S_nm += expi( walker.get_alpha() * beta );
         walker.Advance();
     }
 
-    alpha_m = walker.get_alpha();
-    S_mn += expi(alpha_m * beta);
+    S_mn += expi(walker.get_alpha() * beta);
     sigma_m = walker.Advance(); // i = m
     for ( i++; i != M; i++ ) { // i = (m, M)
         S_mn += expi(walker.get_alpha() * beta);
