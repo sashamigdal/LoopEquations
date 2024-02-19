@@ -11,7 +11,7 @@ using complex = std::complex<double>;
 using namespace std::complex_literals;
 
 
-double DS(std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_neg, std::int64_t q, double beta, /*OUT*/ double *o_o) {
+double DS( std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_neg, double beta, /*OUT*/ double* o_o ) {
     assert(n < m);
     std::int64_t M = N_pos + N_neg;
     int sigma_n, sigma_m;
