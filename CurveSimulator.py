@@ -202,7 +202,7 @@ class CurveSimulatorFDistribution(CurveSimulatorBase):
         return os.path.join(self.CurrentCorrFuncDir(), "Fdata." + str(self.EG)+ "."+ str(self.T) + "." + str(self.C) + ".np")
 
     def GenerateEulerSet(self):
-        M, p, q = self.EulerPairWithLogCot()
+        M, p, q = self.EulerPair()
         beta = (2 * pi * p) / float(q)
         r = 0
         N_pos = (M + q * r) // 2  # Number of 1's

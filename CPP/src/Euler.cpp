@@ -41,7 +41,7 @@ double DS(std::int64_t n, std::int64_t m, std::int64_t N_pos, std::int64_t N_neg
         walker.Advance();
     }
 
-    *o_o = -sigma_n * sigma_m / pow(2 * q * tan(beta / 2), 2);
+    *o_o = -sigma_n * sigma_m / pow(2 *  tan(beta / 2), 2);
 
     S_nm /= double(m - n);
     S_mn /= double(n + M - m);

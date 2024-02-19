@@ -141,7 +141,7 @@ static __global__ void DoWorkKernel( size_t size, cudaRandomWalker* walkers, std
         walker.Advance();
     }
 
-    o_o = -sigma_n * sigma_m / pow(2 * q * tan(beta / 2), real(2.0));
+    o_o = -sigma_n * sigma_m / pow(2 *  tan(beta / 2), real(2.0));
 
     S_nm /= real(m - n);
     S_mn /= real(n + M - m);

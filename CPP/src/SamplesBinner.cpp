@@ -181,7 +181,8 @@ public:
     }
 
     bool UpdateStat( Stats& stat, const Sample& sample ) {
-        if (!( std::isfinite(sample.ctg) && std::isfinite(sample.ds) && std::isfinite(sample.oo) && sample.ctg > 0 && sample.ds > 0 ))
+        if (!( std::isfinite(sample.ctg) && std::isfinite(sample.ds) 
+        && std::isfinite(sample.oo) && sample.ctg > 0 && sample.ds > 0 ))
         {
             std::cout << "Bad sample: " << sample.ctg << ", " << sample.ds << ", " << sample.oo << std::endl;
             return false;
@@ -198,9 +199,9 @@ public:
         stat.n++;
         stat.acc[0].Add( log_fabs );
         stat.acc[1].Add( log( fabs( sample.ds ) ) );
-        stat.acc[2].Add( log( fabs( sample.oo ) ) );
+        stat.acc[2].Add(  sample.oo );
         stat.acc[3].Add( log( sample.q ) );
-        stat.acc[4].Add( sample.oo > 0 ? 1 : -1 );
+    
         return true;
     }
 
