@@ -22,9 +22,12 @@ size_t GetBinLen( size_t bin, size_t len, size_t levels );
 #pragma pack(push, 1)
 struct Sample {
     static constexpr int NUM_FIELDS = 4;
-    double ctg, ds, oo, q;
+    double ctg2q2;  // ctg^2(beta/2) / q^2
+    double ds;      // |(S_nm - S_mn) / 2sin(beta/2)|
+    double oo;      // -1/4 sigma_n sigma_m ctg^2(beta/2)
+    double q;
     bool operator< ( const Sample& other ) const {
-        return fabs(ctg) < fabs( other.ctg );
+        return ds < other.ds;
     }
 };
 #pragma pack(pop)
@@ -58,7 +61,7 @@ struct accum {
 };
 
 struct Stats {
-    static constexpr int NUM_FIELDS = 5;
+    static constexpr int NUM_FIELDS = 4;
     size_t n;
     accum acc[NUM_FIELDS];
 
@@ -78,10 +81,10 @@ struct Stats {
         }
     }
 
-    void Write( std::ostream& out, size_t num_fields ) const {
+    void Write( std::ostream& out ) const {
         double dblN = static_cast<double>(n);
         out.write( (char*)&dblN, sizeof dblN );
-        for ( size_t i = 0; i != num_fields; i++ ) {
+        for ( size_t i = 0; i != NUM_FIELDS; i++ ) {
             double val = acc[i].Mean(n);
             out.write( (char*)&val, sizeof val );
             val = acc[i].Stdev(n);
@@ -89,8 +92,6 @@ struct Stats {
         }
     }
 };
-
-enum SIGN { POS, NEG };
 
 class SamplesBinner {
 public:
@@ -103,7 +104,6 @@ public:
     }
 
     bool ProcessSamplesDir( fs::path dirpath, size_t levels ) {
-        const char *labels[] = {"pos", "neg", "nonzero"};
         this->levels = levels;
         if ( !dirpath.empty() && dirpath.generic_string().back() != '/' ) {
             dirpath += '/';
@@ -112,18 +112,14 @@ public:
         rxInputFileName.assign(R"(Fdata\..+\.np)"); // "Fdata.E.524288.10.np"
         if ( !LoadSamplesDir(dirpath) ) { return false; }
 
-        for ( size_t i = 0; i != 3; i++ ) {
-            stats.clear();
-            stats.resize( size_t(1) << levels );
-            if ( i == 2 ) {
-                samples[0].insert( samples[0].end(), samples[1].begin(), samples[1].end() );
-            }
-            ProcessSamples( samples[i == 2 ? 0 : i] );
-            fs::path outfilepath = dirpath / ("FDBins."s + labels[i] + ".np");
-            std::ofstream fOut( outfilepath, std::ios::binary );
-            for ( const auto& st : stats ) {
-                st.Write( fOut, i == 2 ? Stats::NUM_FIELDS : Sample::NUM_FIELDS );
-            }
+        std::sort( std::begin(samples), std::end(samples) );
+        stats.clear();
+        stats.resize( size_t(1) << levels );
+        ProcessSamples(samples);
+        fs::path outfilepath = dirpath / ("FDBins.np");
+        std::ofstream fOut( outfilepath, std::ios::binary );
+        for ( const auto& st : stats ) {
+            st.Write(fOut);
         }
 
         return true;
@@ -138,10 +134,7 @@ public:
                 nSamples += std::filesystem::file_size( entry.path() ) / sizeof(double) / Sample::NUM_FIELDS;
             }
         }
-
-        for ( auto& smps : samples ) {
-            smps.reserve( static_cast<size_t>(nSamples * 0.55) ); // avoid dynamic alloc
-        }
+        samples.reserve(nSamples);
 
         for ( const auto& entry : fs::directory_iterator(dirpath) ) {
             auto filename = entry.path().filename().string();
@@ -164,8 +157,7 @@ public:
         }
         for ( size_t i = 0; i != nSamples; i++ ) {
             fIn.read( (char*) &sample, sizeof sample );
-            int sgn = sample.oo > 0 ? POS : NEG;
-            samples[sgn].push_back(sample);
+            samples.push_back(sample);
         }
         return true;
     }
@@ -181,27 +173,21 @@ public:
     }
 
     bool UpdateStat( Stats& stat, const Sample& sample ) {
-        if (!( std::isfinite(sample.ctg) && std::isfinite(sample.ds) 
-        && std::isfinite(sample.oo) && sample.ctg > 0 && sample.ds > 0 ))
+        if ( !( std::isfinite(sample.ctg2q2) && sample.ctg2q2 > 0
+             && std::isfinite(sample.ds)     && sample.ds > 0
+             && std::isfinite(sample.oo)
+             && std::isfinite(sample.q)      && sample.q > 0 ) )
         {
-            std::cout << "Bad sample: " << sample.ctg << ", " << sample.ds << ", " << sample.oo << std::endl;
-            return false;
-        }
-        if ( sample.oo == 0 ) {
-            return false;
-        }
-        double log_fabs = log( fabs( sample.ctg ) );
-        if ( !std::isfinite(log_fabs) ) {
-            std::cout << "Infinite value detected among samples" << ": " << sample.ctg << ", " << sample.ds << ", " << sample.oo << std::endl;
+            std::cout << "Bad sample: " << sample.ctg2q2 << ", " << sample.ds << ", " << sample.oo << ", " << sample.q << std::endl;
             return false;
         }
 
         stat.n++;
-        stat.acc[0].Add( log_fabs );
-        stat.acc[1].Add( log( fabs( sample.ds ) ) );
-        stat.acc[2].Add(  sample.oo );
+        stat.acc[0].Add( log( sample.ctg2q2 ) );
+        stat.acc[1].Add( log( sample.ds ) );
+        stat.acc[2].Add( sample.oo );
         stat.acc[3].Add( log( sample.q ) );
-    
+
         return true;
     }
 
@@ -247,7 +233,7 @@ private:
     }
 
     std::vector<Stats> stats;
-    std::vector<Sample> samples[2];
+    std::vector<Sample> samples;
     std::regex rxInputFileName;
     size_t levels; // stats[treepath] bins
     unsigned int maxThreadsLevel;
