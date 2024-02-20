@@ -11,27 +11,12 @@
 #include <vector>
 #include <future>
 #include <filesystem>
-#include "MergeSortedReader.h"
+#include "MergeSorter.h"
 
 namespace fs = std::filesystem;
 using namespace std::string_literals;
 
 size_t GetBinLen( size_t bin, size_t len, size_t levels );
-
-// Corresponds to columns in "Fdata.*.*.*.np"
-// PACK because we read them from binary.
-#pragma pack(push, 1)
-struct Sample {
-    static constexpr int NUM_FIELDS = 4;
-    double ctg2q2;  // ctg^2(beta/2) / q^2
-    double ds;      // |(S_nm - S_mn) / 2sin(beta/2)|
-    double oo;      // -1/4 sigma_n sigma_m ctg^2(beta/2)
-    double q;
-    bool operator< ( const Sample& other ) const {
-        return ds < other.ds;
-    }
-};
-#pragma pack(pop)
 
 struct accum {
     double sum;
@@ -185,7 +170,7 @@ public:
             return false;
         }
         for ( size_t i = 0; i != nSamples; i++ ) {
-            fIn.read( (char*) &sample, sizeof sample );
+            sample.ReadFromFile(fIn);
             samples.push_back(sample);
         }
         return true;
@@ -207,6 +192,8 @@ public:
         ProcessSamplesRecur(V.begin(), V.size(), 0 ,0);
         return true;
     }
+
+    void ProcessSortedSamples();
 
     bool UpdateStat( Stats& stat, const Sample& sample ) {
         if ( !( std::isfinite(sample.ctg2q2) && sample.ctg2q2 > 0
