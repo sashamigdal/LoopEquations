@@ -11,6 +11,7 @@
 #include <vector>
 #include <future>
 #include <filesystem>
+#include "MergeSortedReader.h"
 
 namespace fs = std::filesystem;
 using namespace std::string_literals;
@@ -110,6 +111,8 @@ public:
         }
 
         rxInputFileName.assign(R"(Fdata\..+\.np)"); // "Fdata.E.524288.10.np"
+        PartialSortSamplesFiles(dirpath);
+        MergeSortedReader msr(dirpath);
         if ( !LoadSamplesDir(dirpath) ) { return false; }
 
         std::sort( std::begin(samples), std::end(samples) );
@@ -125,13 +128,39 @@ public:
         return true;
     }
 
+    size_t GetNumSamples( fs::path filepath ) {
+        return std::filesystem::file_size(filepath) / sizeof(double) / Sample::NUM_FIELDS;
+    }
+
+    bool PartialSortSamplesFiles( fs::path dirpath ) {
+        std::smatch m;
+        for ( const auto& entry : fs::directory_iterator(dirpath) ) {
+            auto filename = entry.path().filename().string();
+            if ( std::regex_match( filename, m, rxInputFileName ) ) {
+                if ( !SortSamplesFile( entry.path() ) ) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    bool SortSamplesFile( fs::path filepath ) {
+        samples.clear();
+        samples.reserve( GetNumSamples(filepath) );
+        LoadSamplesFile(filepath);
+        std::sort( std::begin(samples), std::end(samples) );
+        filepath.replace_extension( "sorted.np" );
+        SaveSamplesFile(filepath);
+    }
+
     bool LoadSamplesDir( fs::path dirpath ) {
         std::smatch m;
         size_t nSamples = 0;
         for ( const auto& entry : fs::directory_iterator(dirpath) ) {
             auto filename = entry.path().filename().string();
             if ( std::regex_match( filename, m, rxInputFileName ) ) {
-                nSamples += std::filesystem::file_size( entry.path() ) / sizeof(double) / Sample::NUM_FIELDS;
+                nSamples += GetNumSamples( entry.path() );
             }
         }
         samples.reserve(nSamples);
@@ -148,7 +177,7 @@ public:
     }
 
     bool LoadSamplesFile( fs::path filepath ) {
-        size_t nSamples = std::filesystem::file_size(filepath) / sizeof(double) / Sample::NUM_FIELDS;
+        size_t nSamples = GetNumSamples(filepath);
         Sample sample;
         std::ifstream fIn( filepath, std::ios::binary );
         if ( !fIn ) {
@@ -160,6 +189,13 @@ public:
             samples.push_back(sample);
         }
         return true;
+    }
+
+    void SaveSamplesFile( fs::path filepath ) {
+        std::ofstream fOut( filepath, std::ios::binary );
+        for ( size_t i = 0; i != samples.size(); i++ ) {
+            fOut.write( (char*) &samples[i], sizeof samples[i] );
+        }
     }
 
     bool ProcessSamples( const std::vector<Sample>& smpls ) {
