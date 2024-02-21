@@ -1,5 +1,6 @@
 #include <iostream>
 #include <filesystem>
+#include "SamplesBinner.h"
 
 namespace fs = std::filesystem;
 
@@ -10,5 +11,5 @@ int main( int argc, const char* argv[] ) {
     }
     fs::path filepath( argv[1] );
     SamplesBinner binner;
-    return binner.ProcessSamplesDir( dirpath ) ? 0 : -1;
+    return binner.SortSamplesFile(filepath) ? 0 : -1;
 }
