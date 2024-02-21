@@ -1,4 +1,5 @@
 #pragma once
+#include <cmath>
 #include <regex>
 #include <iostream>
 #include <future>
@@ -19,7 +20,7 @@ struct Sample {
     }
 
     bool ReadFromStream( std::istream& stream ) {
-        stream.read( (char*) this, sizeof Sample );
+        stream.read( (char*) this, sizeof(Sample) );
         return (bool)stream;
     }
 };
