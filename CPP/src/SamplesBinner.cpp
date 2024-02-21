@@ -28,6 +28,9 @@ bool SamplesBinner::ProcessSamplesDir( std::filesystem::path dirpath, size_t lev
         size_t bin_idx = sample_idx * nStats / nSamples;
         UpdateStat( stats[bin_idx], sample );
         sample_idx++;
+        if ( sample_idx % 1'000'000 == 0 ) {
+            std::cout << "[DEBUG] Processed " << sample_idx << " samples out of " << nSamples << std::endl;
+        }
     }
     fs::path outfilepath = dirpath / ("FDBins.np");
     std::ofstream fOut( outfilepath, std::ios::binary );
