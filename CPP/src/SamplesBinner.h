@@ -89,31 +89,10 @@ struct Stats {
 
 class SamplesBinner {
 public:
-    SamplesBinner() {
-        auto maxThreads = std::thread::hardware_concurrency();
-        if ( maxThreads == 0 ) {
-            maxThreads = 32;
-        }
-        maxThreadsLevel = int( log(maxThreads) / log(2) );
-    }
-
     bool ProcessSamplesDir( std::filesystem::path dirpath, size_t levels );
 
-    size_t GetNumSamples( std::filesystem::path filepath ) {
+    static size_t GetNumSamples( std::filesystem::path filepath ) {
         return std::filesystem::file_size(filepath) / sizeof(double) / Sample::NUM_FIELDS;
-    }
-
-    bool PartialSortSamplesFiles( std::filesystem::path dirpath ) {
-        std::smatch m;
-        for ( const auto& entry : std::filesystem::directory_iterator(dirpath) ) {
-            auto filename = entry.path().filename().string();
-            if ( std::regex_match( filename, m, rxInputFileName ) ) {
-                if ( !SortSamplesFile( entry.path() ) ) {
-                    return false;
-                }
-            }
-        }
-        return true;
     }
 
     bool SortSamplesFile( std::filesystem::path filepath ) {
@@ -123,28 +102,6 @@ public:
         std::sort( std::begin(samples), std::end(samples) );
         filepath.replace_extension( "sorted.np" );
         SaveSamplesFile(filepath);
-        return true;
-    }
-
-    bool LoadSamplesDir( std::filesystem::path dirpath ) {
-        std::smatch m;
-        size_t nSamples = 0;
-        for ( const auto& entry : std::filesystem::directory_iterator(dirpath) ) {
-            auto filename = entry.path().filename().string();
-            if ( std::regex_match( filename, m, rxInputFileName ) ) {
-                nSamples += GetNumSamples( entry.path() );
-            }
-        }
-        samples.reserve(nSamples);
-
-        for ( const auto& entry : std::filesystem::directory_iterator(dirpath) ) {
-            auto filename = entry.path().filename().string();
-            if ( std::regex_match( filename, m, rxInputFileName ) ) {
-                if ( !LoadSamplesFile( entry.path() ) ) {
-                    return false;
-                }
-            }
-        }
         return true;
     }
 
@@ -170,18 +127,6 @@ public:
         }
     }
 
-    bool ProcessSamples( const std::vector<Sample>& smpls ) {
-        std::vector<const Sample*> V; // array of pointers to samples
-        V.reserve( smpls.size() );
-        std::transform( std::begin(smpls), std::end(smpls), std::back_inserter(V), [](const Sample& sample){ return &sample; } );
-
-        //we pass V.begin() which is a pointer to the first element of pointers to Sample, i.e. pointer to a pointer to Sample
-        ProcessSamplesRecur(V.begin(), V.size(), 0 ,0);
-        return true;
-    }
-
-    void ProcessSortedSamples();
-
     bool UpdateStat( Stats& stat, const Sample& sample ) {
         if ( !( std::isfinite(sample.ctg2q2) && sample.ctg2q2 > 0
              && std::isfinite(sample.ds)     && sample.ds > 0
@@ -200,38 +145,8 @@ public:
 
         return true;
     }
-
-    void ProcessSamplesRecur( std::vector<const Sample*>::iterator v, size_t len, size_t level, size_t index ) {
-        //we pass v =V.begin() which is a pointer to the first element of pointers to Sample, 
-        //i.e. pointer to a pointer to Sample
-        if ( level == levels ) {
-            Stats &stat = stats[index];
-            for(size_t i =0; i < len; i++){
-                UpdateStat(stat, *(v[i]));
-            }
-            return;
-        }
-
-        auto mid = v + len/2;
-        std::nth_element( v, mid, v + len, []( const Sample* a, const Sample* b ) { return *a < *b; } );
-        std::future<void> fut;
-        if ( level < maxThreadsLevel ) {
-            fut = std::async( std::launch::async, &SamplesBinner::ProcessSamplesRecur, this, v, len / 2, level + 1, index * 2 );
-        } else {
-            ProcessSamplesRecur( v, len / 2, level + 1, index * 2 );
-        }
-        ProcessSamplesRecur( v + len / 2, len - len / 2, level + 1, index * 2 + 1 );
-        if ( level < maxThreadsLevel ) {
-            fut.wait();
-        }
-        return;
-    }
 private:
-    void ProcessSamplesBySort( std::vector<Sample>& samples );
-
     std::vector<Stats> stats;
     std::vector<Sample> samples;
-    std::regex rxInputFileName;
     size_t levels; // stats[treepath] bins
-    unsigned int maxThreadsLevel;
 };
