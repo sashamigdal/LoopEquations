@@ -57,7 +57,7 @@ bool ProduceKeys( std::filesystem::path filepath ) {
     if ( std::regex_match( filename, m, rxInputFileName ) ) {
         jobId = std::stoi( m[1] );
     } else {
-        std::cerr << "[FATAL] Filename not in right format" << std::endl;
+        std::cerr << "[FATAL] Filename \"" << filename << "\" not in right format" << std::endl;
         return false;
     }
 
