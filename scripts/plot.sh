@@ -2,10 +2,10 @@
 
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=am10485@nyu.edu
-#SBATCH --cpus-per-task=32
+#SBATCH --cpus-per-task=1
 #SBATCH --output=/scratch/am10485/slurm-logs/plot-%A_%a.out
-#SBATCH --time=00:30:00
-#SBATCH --mem=100GB
+#SBATCH --time=4-00:00:00
+#SBATCH --mem=10GB
 
 echo PROJECT_DIR=${PROJECT_DIR}
 cd ${PROJECT_DIR}
