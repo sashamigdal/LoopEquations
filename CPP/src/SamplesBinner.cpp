@@ -57,6 +57,7 @@ bool ProduceKeys( std::filesystem::path filepath ) {
     if ( std::regex_match( filename, m, rxInputFileName ) ) {
         jobId = std::stoi( m[1] );
     } else {
+        std::cerr << "[FATAL] Filename not in right format" << std::endl;
         return false;
     }
 
@@ -67,7 +68,10 @@ bool ProduceKeys( std::filesystem::path filepath ) {
     output.reserve(nSamples);
 
     std::ios_base::sync_with_stdio(false);
-    if ( !SamplesBinner::AppendFromSamplesFile( samples, filepath ) ) { return false; }
+    if ( !SamplesBinner::AppendFromSamplesFile( samples, filepath ) ) {
+        std::cerr << "[FATAL] Couldn't read file " << filepath << std::endl;
+        return false;
+    }
     size_t idx = (jobId - 1) * nSamples;
     std::transform( samples.begin(), samples.end(), std::back_inserter(output), [&idx](const Sample& sample){ return KeyIdx<double>{sample.ds, idx++}; } );
 
@@ -85,6 +89,6 @@ int main( int argc, const char* argv[] ) {
             return 1;
         }
         fs::path filepath( argv[2] );
-        return ProduceKeys(filepath) ? 0 : -1;
+        return ProduceKeys(filepath) ? 0 : 1;
     }
 }
