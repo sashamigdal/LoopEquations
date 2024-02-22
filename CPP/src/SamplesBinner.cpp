@@ -41,13 +41,50 @@ bool SamplesBinner::ProcessSamplesDir( std::filesystem::path dirpath, size_t lev
     return true;
 }
 
-int main( int argc, const char* argv[] ) {
-    if ( argc != 3 ) {
-        std::cout << "Usage: " << argv[0] << " <file path> <M>" << std::endl;
-        return 1;
+#pragma pack(push, 1)
+template <typename T>
+struct KeyIdx {
+    T key;
+    size_t idx;
+};
+#pragma pack(pop)
+
+bool ProduceKeys( std::filesystem::path filepath ) {
+    int jobId; // 1-based
+    std::regex rxInputFileName(R"(Fdata\..+\.(\d+)\.sorted\.np)"); // "Fdata.E.524288.10.sorted.np"
+    std::smatch m;
+    auto filename = filepath.filename().string();
+    if ( std::regex_match( filename, m, rxInputFileName ) ) {
+        jobId = std::stoi( m[1] );
+    } else {
+        return false;
     }
-    fs::path dirpath( argv[1] );
-    const size_t levels = std::atoi( argv[2] );
-    SamplesBinner binner;
-    return binner.ProcessSamplesDir( dirpath, levels ) ? 0 : -1;
+
+    std::vector<Sample> samples;
+    std::vector<KeyIdx<double>> output;
+    size_t nSamples = SamplesBinner::GetNumSamples(filepath);
+    samples.reserve(nSamples);
+    output.reserve(nSamples);
+
+    std::ios_base::sync_with_stdio(false);
+    if ( !SamplesBinner::AppendFromSamplesFile( samples, filepath ) ) { return false; }
+    size_t idx = (jobId - 1) * nSamples;
+    std::transform( samples.begin(), samples.end(), std::back_inserter(output), [&idx](const Sample& sample){ return KeyIdx<double>{sample.ds, idx++}; } );
+
+    filepath.replace_extension();
+    filepath.replace_extension( "idx" );
+    std::ofstream fOut( filepath, std::ios::binary );
+    fOut.write( (char*) &output[0], nSamples * sizeof(output[0]) );
+    return true;
+}
+
+int main( int argc, const char* argv[] ) {
+    if ( strcmp( argv[1], "--keys" ) == 0 ) {
+        if ( argc != 3 ) {
+            std::cout << "Usage: " << argv[0] << " --keys <file_path>" << std::endl;
+            return 1;
+        }
+        fs::path filepath( argv[2] );
+        return ProduceKeys(filepath) ? 0 : -1;
+    }
 }

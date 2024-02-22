@@ -98,14 +98,14 @@ public:
     bool SortSamplesFile( std::filesystem::path filepath ) {
         samples.clear();
         samples.reserve( GetNumSamples(filepath) );
-        if ( !LoadSamplesFile(filepath) ) { return false; }
+        if ( !AppendFromSamplesFile( samples, filepath ) ) { return false; }
         std::sort( std::begin(samples), std::end(samples) );
         filepath.replace_extension( "sorted.np" );
         SaveSamplesFile(filepath);
         return true;
     }
 
-    bool LoadSamplesFile( std::filesystem::path filepath ) {
+    static bool AppendFromSamplesFile( std::vector<Sample>& samples, std::filesystem::path filepath ) {
         size_t nSamples = GetNumSamples(filepath);
         Sample sample;
         std::ifstream fIn( filepath, std::ios::binary );
