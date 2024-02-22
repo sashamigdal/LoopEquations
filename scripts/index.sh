@@ -12,4 +12,4 @@ cd ${PROJECT_DIR}
 
 echo "Starting indexing . . . "
 cd CPP/cmake-build-release
-./SamplesBinner --keys ${PROJECT_DIR}/plots/VorticityCorr.${M}.GPU.${RUN_ID}/Fdata.E.${T}.${SLURM_ARRAY_TASK_ID}.np
+./SamplesBinner --keys ${PROJECT_DIR}/plots/VorticityCorr.${M}.GPU.${RUN_ID}/Fdata.E.${T}.${SLURM_ARRAY_TASK_ID}.sorted.np
