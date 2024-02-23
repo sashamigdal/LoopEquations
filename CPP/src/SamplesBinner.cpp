@@ -161,6 +161,7 @@ bool Inverse( std::filesystem::path filepath, size_t nFiles ) {
         std::ofstream fOut( outfilepath, std::ios::binary );
         fOut.write( (char*) &inverse[i * nSamplesPerFile], nSamplesPerFile * sizeof(size_t) );
     }
+    return true;
 }
 
 int main( int argc, const char* argv[] ) {
