@@ -1,4 +1,5 @@
 #pragma once
+#include <cassert>
 #include <cmath>
 #include <regex>
 #include <iostream>
@@ -26,104 +27,29 @@ struct Sample {
 };
 
 struct accum {
-    double sum;
-    double sum2;
-
-    accum() : sum(0), sum2(0) {}
-    void Add( double x ) {
-        sum += x;
-        sum2 += x * x;
-    }
-    void Add( const accum &other) {
-        sum += other.sum;
-        sum2 += other.sum2;
-    }
-
-    double Mean( size_t n ) const {
-        return sum / n;
-    }
-
-    double Stdev( size_t n ) const {
-        return n == 1 ? 0 : sqrt((sum2 - sum * sum / n) / (n - 1));
-    }
-
-    void Clear() {
-        sum = 0;
-        sum2 = 0;
-    }
-};
-
-struct Stats1 {
-    static constexpr int NUM_FIELDS = 4;
-
-    Stats1() : n(0) {}
-
-    void Add( double a, double b, double c, double d ) {
-        n++;
-        acc[0].Add(a);
-        acc[1].Add(b);
-        acc[2].Add(c);
-        acc[3].Add(d);
-    }
-
-    void Add( const Stats1& other ) {
-        n += other.n;
-        for ( int i = 0; i != NUM_FIELDS; i++ ) {
-            acc[i].Add( other.acc[i] );
-        }
-    }
-
-    void Clear() {
-        n = 0;
-        for ( accum& a : acc ) {
-            a.Clear();
-        }
-    }
-
-    void Write( std::ostream& out ) const {
-        double dblN = static_cast<double>(n);
-        out.write( (char*)&dblN, sizeof dblN );
-        for ( size_t i = 0; i != NUM_FIELDS; i++ ) {
-            double val = acc[i].Mean(n);
-            out.write( (char*)&val, sizeof val );
-            val = acc[i].Stdev(n);
-            out.write( (char*)&val, sizeof val );
-        }
-    }
-
-    // Dumps raw state of accums
-    void Save( std::ostream& out ) const {
-        out.write( (char*)this, sizeof(Stats1) );
-    }
-
-    void Load( std::istream& stream ) {
-        stream.read( (char*)this, sizeof(Stats1) );
-    }
-private:
-    size_t n;
-    accum acc[NUM_FIELDS];
-};
-
-struct accum2 {
     double mean, n, sigma;
 
-    accum2() : mean(0), sigma(0) ,n(0){}
+    accum() : mean(0), sigma(0) ,n(0){}
 
     void Add( double x ) {
+        double old_n = n;
         n++;
         double delta = (x-mean);
         double newmean = mean + delta/n; 
-        sigma += (x-newmean)*delta;
+        sigma += old_n / n * delta * delta;
+        assert(sigma >= 0);
         mean = newmean;
     }
 
-    void Add( const accum2 &other) {
+    void Add( const accum& other ) {
+        if ( other.n == 0 ) { return; }
         double oldn =n;
         n += other.n;
         double delta = other.mean-mean;
         double tmp = delta * other.n/n;
         mean += tmp;
         sigma += other.sigma + delta*tmp*oldn;
+        assert(sigma >= 0);
     }
 
     double Mean() const {
@@ -131,7 +57,7 @@ struct accum2 {
     }
 
     double Stdev( ) const {
-        return n == 1 ? 0 : sqrt(sigma / (n - 1));
+        return n <= 1 ? 0 : sqrt( sigma / (n - 1) );
     }
 
     void Clear() {
@@ -139,10 +65,10 @@ struct accum2 {
     }
 };
 
-struct Stats2 {
+struct Stats {
     static constexpr int NUM_FIELDS = 4;
 
-    Stats2() {}
+    Stats() {}
 
     void Add( double a, double b, double c, double d ) {
         acc[0].Add(a);
@@ -151,14 +77,14 @@ struct Stats2 {
         acc[3].Add(d);
     }
 
-    void Add( const Stats2& other ) {
+    void Add( const Stats& other ) {
         for ( int i = 0; i != NUM_FIELDS; i++ ) {
             acc[i].Add( other.acc[i] );
         }
     }
 
     void Clear() {
-        for ( accum2& a : acc ) {
+        for ( accum& a : acc ) {
             a.Clear();
         }
     }
@@ -183,11 +109,9 @@ struct Stats2 {
         stream.read( (char*)this, sizeof(*this) );
     }
 private:
-    accum2 acc[NUM_FIELDS];
+    accum acc[NUM_FIELDS];
 };
 #pragma pack(pop)
-
-using Stats = Stats2;
 
 class SamplesBinner {
 public:
