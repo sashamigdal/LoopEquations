@@ -47,7 +47,6 @@ else
   echo "FAIL"
   exit 1
 fi
-fi
 
 # 4. Bin each file
 if jobid=$(sbatch --wait --array=1-${NJOBS} --parsable bin.sh ${NJOBS}) ; then
@@ -56,5 +55,12 @@ else
   echo "FAIL"
   exit 1
 fi
+fi
 
 # 5. Collect bins
+if jobid=$(sbatch --wait --parsable collect.sh) ; then
+  echo "Collecting job ${jobid} completed."
+else
+  echo "FAIL"
+  exit 1
+fi
