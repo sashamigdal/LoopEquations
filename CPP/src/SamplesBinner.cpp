@@ -41,6 +41,47 @@ bool SamplesBinner::ProcessSamplesDir( std::filesystem::path dirpath, size_t lev
     return true;
 }
 
+bool SamplesBinner::ProcessSortedSamplesFile( std::filesystem::path filepath, size_t nFiles, size_t nBins ) {
+    std::regex rxInputFileName(R"(Fdata\..+\.\d+\.sorted\.np)"); // "Fdata.E.524288.10.sorted.np"
+    std::smatch m;
+    auto filename = filepath.filename().string();
+    if ( !std::regex_match( filename, m, rxInputFileName ) ) {
+        std::cerr << "[FATAL] Filename \"" << filename << "\" not in right format" << std::endl;
+        return false;
+    }
+    std::filesystem::path idxfilepath = filepath;
+    idxfilepath.replace_extension().replace_extension( "inv" );
+
+    std::ifstream fIn( filepath, std::ios::binary );
+    if ( !fIn ) {
+        std::cerr << "Couldn't open file " << filepath << std::endl;
+        return false;
+    }
+    std::ifstream finIdx( idxfilepath, std::ios::binary );
+    if ( !finIdx ) {
+        std::cerr << "Couldn't open index file " << idxfilepath << std::endl;
+        return false;
+    }
+    size_t nSamples = GetNumSamples(filepath);
+    size_t nSamplesTotal = nSamples * nFiles;
+    Sample sample;
+    size_t sampleIdx;
+    std::vector<Stats> stats(nBins);
+    for ( size_t i = 0; i != nSamples; i++ ) {
+        sample.ReadFromStream(fIn);
+        finIdx.read( (char*) &sampleIdx, sizeof(size_t) );
+        size_t binIdx = sampleIdx * nBins / nSamplesTotal; // TODO: Silently breaks on 64bit overflow
+        UpdateStat( stats[binIdx], sample );
+    }
+    std::filesystem::path outfilepath = filepath;
+    outfilepath.replace_extension().replace_extension( "acc" );
+    std::ofstream fOut( outfilepath, std::ios::binary );
+    for ( const auto& st : stats ) {
+        st.Dump(fOut);
+    }
+    return true;
+}
+
 #pragma pack(push, 1)
 template <typename T>
 struct KeyIdx {
@@ -79,8 +120,7 @@ bool ProduceKeys( std::filesystem::path filepath ) {
     size_t idx = (jobId - 1) * nSamples;
     std::transform( samples.begin(), samples.end(), std::back_inserter(output), [&idx](const Sample& sample){ return KeyIdx<double>{sample.ds, idx++}; } );
 
-    filepath.replace_extension();
-    filepath.replace_extension( "idx" );
+    filepath.replace_extension().replace_extension( "idx" );
     std::ofstream fOut( filepath, std::ios::binary );
     fOut.write( (char*) &output[0], nSamples * sizeof(output[0]) );
     return true;
@@ -187,5 +227,14 @@ int main( int argc, const char* argv[] ) {
         fs::path filepath( argv[2] );
         int nFiles = std::atoi( argv[3] );
         return Inverse( filepath, nFiles ) ? 0 : 1;
+    } else if ( strcmp( argv[1], "--bin" ) == 0 ) {
+        if ( argc != 5 ) {
+            std::cout << "Usage: " << argv[0] << " --bin <file_path> <num_files> <num_bins>" << std::endl;
+            return 1;
+        }
+        fs::path filepath( argv[2] );
+        int nFiles = std::atoi( argv[3] );
+        int nBins = std::atoi( argv[4] );
+        return SamplesBinner::ProcessSortedSamplesFile( filepath, nFiles, nBins ) ? 0 : 1;
     }
 }

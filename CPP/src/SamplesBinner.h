@@ -85,11 +85,21 @@ struct Stats {
             out.write( (char*)&val, sizeof val );
         }
     }
+
+    // Dumps raw state of accums
+    void Dump( std::ostream& out ) const {
+        out.write( (char*)&n, sizeof n );
+        for ( const auto& a : acc ) {
+            out.write( (char*)&a.sum,  sizeof a.sum  );
+            out.write( (char*)&a.sum2, sizeof a.sum2 );
+        }
+    }
 };
 
 class SamplesBinner {
 public:
     bool ProcessSamplesDir( std::filesystem::path dirpath, size_t levels );
+    static bool ProcessSortedSamplesFile( std::filesystem::path filepath, size_t nFiles, size_t nBins );
 
     static size_t GetNumSamples( std::filesystem::path filepath ) {
         return std::filesystem::file_size(filepath) / sizeof(double) / Sample::NUM_FIELDS;
@@ -127,7 +137,7 @@ public:
         }
     }
 
-    bool UpdateStat( Stats& stat, const Sample& sample ) {
+    static bool UpdateStat( Stats& stat, const Sample& sample ) {
         if ( !( std::isfinite(sample.ctg2q2) && sample.ctg2q2 > 0
              && std::isfinite(sample.ds)     && sample.ds > 0
              && std::isfinite(sample.oo)
