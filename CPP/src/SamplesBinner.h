@@ -96,6 +96,76 @@ struct Stats {
     }
 };
 
+struct accum2 {
+    double mean, n, sigma;
+
+    accum2() : mean(0), sigma(0) ,n(0){}
+    void Add( double x ) {
+        n++;
+        double delta = (x-mean);
+        double newmean = mean + delta/n; 
+        sigma += (x-newmean)*delta;
+    }
+    void Add( const accum2 &other) {
+        double oldn =n;
+        n += other.n;
+        double delta = other.mean-mean;
+        double tmp = delta * other.n/n;
+        mean += tmp;
+        sigma += other.sigma + delta*tmp*oldn;
+    }
+
+    double Mean() const {
+        return mean;
+    }
+
+    double Stdev( ) const {
+        return n == 1 ? 0 : sqrt(sigma / (n - 1));
+    }
+
+    void Clear() {
+        mean = sigma=n =0;
+    }
+};
+struct Stats2 {
+    static constexpr int NUM_FIELDS = 4;
+    accum2 acc[NUM_FIELDS];
+
+    Stats2() : {}
+
+    void Add( const Stats2& other ) {
+        for ( int i = 0; i != NUM_FIELDS; i++ ) {
+            acc[i].Add( other.acc[i] );
+        }
+    }
+
+    void Clear() {
+        for ( accum2& a : acc ) {
+            a.Clear();
+        }
+    }
+
+    void Write( std::ostream& out ) const {
+        double dblN = acc[0].n;
+        out.write( (char*)&dblN, sizeof dblN );
+        for ( size_t i = 0; i != NUM_FIELDS; i++ ) {
+            double val = acc[i].Mean();
+            out.write( (char*)&val, sizeof val );
+            val = acc[i].Stdev();
+            out.write( (char*)&val, sizeof val );
+        }
+    }
+
+    // Dumps raw state of accums
+    void Dump( std::ostream& out ) const {
+        for ( const auto& a : acc ) {
+            out.write( (char*)&a.n,  sizeof a.n  );
+            out.write( (char*)&a.mean,  sizeof a.mean  );
+            out.write( (char*)&a.sigma, sizeof a.sigma );
+        }
+    }
+};
+
 class SamplesBinner {
 public:
     bool ProcessSamplesDir( std::filesystem::path dirpath, size_t levels );
