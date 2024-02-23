@@ -1,11 +1,12 @@
 #define _USE_MATH_DEFINES
-#include <algorithm>
+#include <vector>
 #include <cstring>
 #include <iostream>
 #include <cassert>
 #include <functional>
+#include <algorithm>
 #include <numeric>
-#include <vector>
+#include <random>
 #include <filesystem>
 #include "SortedMerger.h"
 
@@ -77,7 +78,7 @@ bool SamplesBinner::ProcessSortedSamplesFile( std::filesystem::path filepath, si
     outfilepath.replace_extension().replace_extension( "acc" );
     std::ofstream fOut( outfilepath, std::ios::binary );
     for ( const auto& st : stats ) {
-        st.Dump(fOut);
+        st.Save(fOut);
     }
     return true;
 }
@@ -204,7 +205,52 @@ bool Inverse( std::filesystem::path filepath, size_t nFiles ) {
     return true;
 }
 
+bool Collect( std::filesystem::path dirpath ) {
+    std::regex rxAccFileName(R"(Fdata\..\.\d+\.\d+\.acc)"); // "Fdata.E.524288.4.acc"
+    
+    std::smatch m;
+    size_t nBins = 0;
+    std::vector<Stats> stats;
+    for ( const auto& entry : std::filesystem::directory_iterator(dirpath) ) {
+        auto filename = entry.path().filename().string();
+        if ( std::regex_match( filename, m, rxAccFileName ) ) {
+            if ( nBins == 0 ) {
+                nBins = std::filesystem::file_size( entry.path() ) / sizeof(Stats);
+                stats.resize(nBins);
+            }
+            std::ifstream fIn( entry.path(), std::ios::binary );
+            Stats stat;
+            for ( size_t i = 0; i != nBins; i++ ) {
+                stat.Load(fIn);
+                stats[i].Add(stat);
+            }
+        }
+    }
+    std::filesystem::path outfilepath = dirpath / "FDBins.np";
+    std::ofstream fOut( outfilepath, std::ios::binary );
+    for ( const auto& st : stats ) {
+        st.Write(fOut);
+    }
+    return true;
+}
+
+void CompareAccumVsAccum2() {
+    accum a;
+    accum2 a2;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> distrib( -50, 100 );
+
+    for ( int n = 0; n < 50; ++n ) {
+        auto val = distrib(gen);
+        a.Add(val);
+        a2.Add(val);
+    }
+    std::cout << a.Mean(50) << '\t' << a2.Mean() << '\t' << a.Mean(50) - a2.Mean() << std::endl;
+}
+
 int main( int argc, const char* argv[] ) {
+    CompareAccumVsAccum2(); return 0;
     if ( strcmp( argv[1], "--keys" ) == 0 ) {
         if ( argc != 3 ) {
             std::cout << "Usage: " << argv[0] << " --keys <file_path>" << std::endl;
@@ -236,5 +282,12 @@ int main( int argc, const char* argv[] ) {
         int nFiles = std::atoi( argv[3] );
         int nBins = std::atoi( argv[4] );
         return SamplesBinner::ProcessSortedSamplesFile( filepath, nFiles, nBins ) ? 0 : 1;
+    } else if ( strcmp( argv[1], "--collect" ) == 0 ) {
+        if ( argc != 3 ) {
+            std::cout << "Usage: " << argv[0] << " --collect <dir_path>" << std::endl;
+            return 1;
+        }
+        fs::path dirpath( argv[2] );
+        return Collect(dirpath) ? 0 : 1;
     }
 }

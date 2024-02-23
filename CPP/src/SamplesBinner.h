@@ -24,7 +24,6 @@ struct Sample {
         return (bool)stream;
     }
 };
-#pragma pack(pop)
 
 struct accum {
     double sum;
@@ -54,14 +53,20 @@ struct accum {
     }
 };
 
-struct Stats {
+struct Stats1 {
     static constexpr int NUM_FIELDS = 4;
-    size_t n;
-    accum acc[NUM_FIELDS];
 
-    Stats() : n(0) {}
+    Stats1() : n(0) {}
 
-    void Add( const Stats& other ) {
+    void Add( double a, double b, double c, double d ) {
+        n++;
+        acc[0].Add(a);
+        acc[1].Add(b);
+        acc[2].Add(c);
+        acc[3].Add(d);
+    }
+
+    void Add( const Stats1& other ) {
         n += other.n;
         for ( int i = 0; i != NUM_FIELDS; i++ ) {
             acc[i].Add( other.acc[i] );
@@ -87,13 +92,16 @@ struct Stats {
     }
 
     // Dumps raw state of accums
-    void Dump( std::ostream& out ) const {
-        out.write( (char*)&n, sizeof n );
-        for ( const auto& a : acc ) {
-            out.write( (char*)&a.sum,  sizeof a.sum  );
-            out.write( (char*)&a.sum2, sizeof a.sum2 );
-        }
+    void Save( std::ostream& out ) const {
+        out.write( (char*)this, sizeof(Stats1) );
     }
+
+    void Load( std::istream& stream ) {
+        stream.read( (char*)this, sizeof(Stats1) );
+    }
+private:
+    size_t n;
+    accum acc[NUM_FIELDS];
 };
 
 struct accum2 {
@@ -127,11 +135,18 @@ struct accum2 {
         mean = sigma=n =0;
     }
 };
+
 struct Stats2 {
     static constexpr int NUM_FIELDS = 4;
-    accum2 acc[NUM_FIELDS];
 
     Stats2() {}
+
+    void Add( double a, double b, double c, double d ) {
+        acc[0].Add(a);
+        acc[1].Add(b);
+        acc[2].Add(c);
+        acc[3].Add(d);
+    }
 
     void Add( const Stats2& other ) {
         for ( int i = 0; i != NUM_FIELDS; i++ ) {
@@ -157,14 +172,19 @@ struct Stats2 {
     }
 
     // Dumps raw state of accums
-    void Dump( std::ostream& out ) const {
-        for ( const auto& a : acc ) {
-            out.write( (char*)&a.n,  sizeof a.n  );
-            out.write( (char*)&a.mean,  sizeof a.mean  );
-            out.write( (char*)&a.sigma, sizeof a.sigma );
-        }
+    void Save( std::ostream& out ) const {
+        out.write( (char*)this, sizeof(*this) );
     }
+
+    void Load( std::istream& stream ) {
+        stream.read( (char*)this, sizeof(*this) );
+    }
+private:
+    accum2 acc[NUM_FIELDS];
 };
+#pragma pack(pop)
+
+using Stats = Stats2;
 
 class SamplesBinner {
 public:
@@ -217,12 +237,7 @@ public:
             return false;
         }
 
-        stat.n++;
-        stat.acc[0].Add( log( sample.ctg2q2 ) );
-        stat.acc[1].Add( log( sample.ds ) );
-        stat.acc[2].Add( sample.oo );
-        stat.acc[3].Add( log( sample.q ) );
-
+        stat.Add( log( sample.ctg2q2 ), log( sample.ds ), sample.oo, log( sample.q ) );
         return true;
     }
 private:
