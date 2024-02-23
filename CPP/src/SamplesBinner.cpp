@@ -136,6 +136,33 @@ bool Merge( std::filesystem::path filepath ) {
     return true;
 }
 
+bool Inverse( std::filesystem::path filepath, size_t nFiles ) {
+    std::regex rxInputFileName(R"((Fdata\..\.\d+\.)1\.idx)"); // "Fdata.E.524288.1.idx"
+    std::smatch m;
+    auto filename = filepath.filename().string();
+    if ( !std::regex_match( filename, m, rxInputFileName ) ) {
+        std::cerr << "[FATAL] Filename \"" << filename << "\" not in right format" << std::endl;
+        return false;
+    }
+    size_t nSamples = std::filesystem::file_size(filepath) / sizeof(KeyIdx<double>);
+    std::vector<size_t> inverse; // old idx --> new idx
+    inverse.resize(nSamples);
+    KeyIdx<double> key;
+    std::ios_base::sync_with_stdio(false);
+    std::ifstream fIn( filepath, std::ios::binary );
+    for ( size_t i = 0; i != nSamples; i++ ) {
+        fIn.read( (char*) &key, sizeof(KeyIdx<double>) );
+        inverse[key.idx] = i;
+    }
+    size_t nSamplesPerFile = nSamples / nFiles;
+    for ( size_t i = 0; i != nFiles; i++ ) {
+        size_t fileIdx = i + 1; // 1-based
+        std::filesystem::path outfilepath = filepath.parent_path() / (m[1].str() + std::to_string(fileIdx) + ".inv");
+        std::ofstream fOut( outfilepath, std::ios::binary );
+        fOut.write( (char*) &inverse[i * nSamplesPerFile], nSamplesPerFile * sizeof(size_t) );
+    }
+}
+
 int main( int argc, const char* argv[] ) {
     if ( strcmp( argv[1], "--keys" ) == 0 ) {
         if ( argc != 3 ) {
@@ -151,5 +178,13 @@ int main( int argc, const char* argv[] ) {
         }
         fs::path filepath( argv[2] );
         return Merge(filepath) ? 0 : 1;
+    } else if ( strcmp( argv[1], "--inverse" ) == 0 ) {
+        if ( argc != 4 ) {
+            std::cout << "Usage: " << argv[0] << " --inverse <file_path> <num_files>" << std::endl;
+            return 1;
+        }
+        fs::path filepath( argv[2] );
+        int nFiles = std::atoi( argv[3] );
+        return Inverse( filepath, nFiles ) ? 0 : 1;
     }
 }
