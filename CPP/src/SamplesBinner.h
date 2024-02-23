@@ -131,7 +131,7 @@ struct Stats2 {
     static constexpr int NUM_FIELDS = 4;
     accum2 acc[NUM_FIELDS];
 
-    Stats2() : {}
+    Stats2() {}
 
     void Add( const Stats2& other ) {
         for ( int i = 0; i != NUM_FIELDS; i++ ) {
