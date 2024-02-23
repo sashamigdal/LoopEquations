@@ -241,12 +241,13 @@ void CompareAccumVsAccum2() {
     std::mt19937 gen(rd());
     std::uniform_real_distribution<> distrib( -50, 100 );
 
-    for ( int n = 0; n < 50; ++n ) {
+    for ( int n = 0; n < 100000000; ++n ) {
         auto val = distrib(gen);
         a.Add(val);
         a2.Add(val);
     }
     std::cout << a.Mean(50) << '\t' << a2.Mean() << '\t' << a.Mean(50) - a2.Mean() << std::endl;
+    std::cout << a.Stdev(50) << '\t' << a2.Stdev() << '\t' << a.Stdev(50) - a2.Stdev() << std::endl;
 }
 
 int main( int argc, const char* argv[] ) {

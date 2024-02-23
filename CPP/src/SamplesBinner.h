@@ -108,12 +108,15 @@ struct accum2 {
     double mean, n, sigma;
 
     accum2() : mean(0), sigma(0) ,n(0){}
+
     void Add( double x ) {
         n++;
         double delta = (x-mean);
         double newmean = mean + delta/n; 
         sigma += (x-newmean)*delta;
+        mean = newmean;
     }
+
     void Add( const accum2 &other) {
         double oldn =n;
         n += other.n;
