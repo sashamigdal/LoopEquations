@@ -1,0 +1,185 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2487.5">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; min-height: 14.0px}
+  </style>
+</head>
+<body>
+<p class="p1">&lt;!DOCTYPE html&gt;</p>
+<p class="p1">&lt;html lang="en"&gt;</p>
+<p class="p1">&lt;head&gt;</p>
+<p class="p1">&lt;meta charset="UTF-8"&gt;</p>
+<p class="p1">&lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;</p>
+<p class="p1">&lt;title&gt;Table of Contents Tree&lt;/title&gt;</p>
+<p class="p1">&lt;style&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.tree ul {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>padding-top: 20px;<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">    </span>position: relative;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>transition: all 0.5s;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>-webkit-transition: all 0.5s;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>-moz-transition: all 0.5s;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>.tree li {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>float: left;<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">    </span>text-align: center;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>list-style-type: none;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>position: relative;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>padding: 20px 5px 0 5px;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>transition: all 0.5s;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>-webkit-transition: all 0.5s;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>-moz-transition: all 0.5s;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>.tree li::before, .tree li::after {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>content: '';</p>
+<p class="p1"><span class="Apple-converted-space">    </span>position: absolute;<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">    </span>top: 0;<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">    </span>right: 50%;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>border-top: 1px solid #ccc;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>width: 50%;<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">    </span>height: 20px;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>.tree li::after{</p>
+<p class="p1"><span class="Apple-converted-space">    </span>right: auto;<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">    </span>left: 50%;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>border-left: 1px solid #ccc;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>.tree li:only-child::after, .tree li:only-child::before {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>display: none;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>.tree li:only-child {<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">    </span>padding-top: 0;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>.tree li:first-child::before, .tree li:last-child::after {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>border: 0 none;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>.tree li:last-child::before {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>border-right: 1px solid #ccc;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>border-radius: 0 5px 0 0;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>.tree li:first-child::after {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>border-radius: 5px 0 0 0;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>.tree ul ul::before {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>content: '';</p>
+<p class="p1"><span class="Apple-converted-space">    </span>position: absolute;<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">    </span>top: 0;<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">    </span>left: 50%;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>border-left: 1px solid #ccc;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>width: 0;<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">    </span>height: 20px;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>.tree li a {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>border: 1px solid #ccc;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>padding: 5px 10px;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>text-decoration: none;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>color: #666;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>font-family: arial, verdana, tahoma;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>font-size: 11px;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>display: inline-block;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>border-radius: 5px;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>transition: all 0.5s;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>-webkit-transition: all 0.5s;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>-moz-transition: all 0.5s;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>.tree li a:hover, .tree li a:hover+ul li a {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>background: #c8e4f8;<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">    </span>color: #000;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>border: 1px solid #94a0b4;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>.tree li a:hover+ul li::after,<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">  </span>.tree li a:hover+ul li::before,<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">  </span>.tree li a:hover+ul::before,<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">  </span>.tree li a:hover+ul ul::before {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>border-color:<span class="Apple-converted-space">  </span>#94a0b4;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p1">&lt;/style&gt;</p>
+<p class="p1">&lt;/head&gt;</p>
+<p class="p1">&lt;body&gt;</p>
+<p class="p1">&lt;div class="tree"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;ul&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;li&gt;&lt;a href="#"&gt;I. Prologue&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;li&gt;&lt;a href="#"&gt;II. Definitions and notations&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;li&gt;&lt;a href="#"&gt;III. Summary. All the basic results summarized&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;a href="#"&gt;IV. Introduction. The hierarchical structure of the paper and its messages for various readers&lt;/a&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;ul&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;li&gt;&lt;a href="#"&gt;A. Physical Introduction: The Energy Flow and Random Vorticity Structures&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;li&gt;&lt;a href="#"&gt;B. Mathematical Introduction. The loop equation and its solution&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;li&gt;&lt;a href="#"&gt;C. The big and small Euler ensembles. Deeper analysis of the mathematical structure of the solution&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/ul&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;li&gt;&lt;a href="#"&gt;V. The Fermi ring and its continuum limit. Using the Markov chain, we derive the Fermionic representation of the Euler ensemble&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;li&gt;&lt;a href="#"&gt;VI. Instanton in the path integral. The classical limit of the Fermion ring in turbulent regime&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;a href="#"&gt;VII. The decaying energy in a finite system. The energy spectrum in a finite system, with energy spectrum matched by k2 law at small k&lt;/a&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;ul&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;li&gt;&lt;a href="#"&gt;A. Computation of the energy dissipation&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;li&gt;&lt;a href="#"&gt;B. The energy normalization problem&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/ul&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;li&gt;&lt;a href="#"&gt;VIII. Comparing our theory with the DNS. The moment of truth: how does our theory compare with DNS?&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;a href="#"&gt;IX. The spectrum of scaling dimensions. Mathematical definition of scaling laws via Mellin transform and infinite spectrum of scaling indexes&lt;/a&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;ul&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;li&gt;&lt;a href="#"&gt;A. The energy spectrum&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;li&gt;&lt;a href="#"&gt;B. The energy decay&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;li&gt;&lt;a href="#"&gt;C. The velocity correlation function in coordinate space&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/ul&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;a href="#"&gt;X. Discussion. This theory contradicts accepted paradigms about energy cascades, scaling laws, etc. Let us discuss it.&lt;/a&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;ul&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;li&gt;&lt;a href="#"&gt;A. Myth and Reality of Turbulent Scaling Laws. Most of the phenomenological theories in the past were myths, based on stretching the data and wishful thinking.&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;li&gt;&lt;a href="#"&gt;B. Stochastic solution of the Navier-Stokes equation and ergodic hypothesis. Our theory is an exact stochastic solution of the Navier-Stokes equation. What is the analog of ergodic hypothesis?&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;li&gt;&lt;a href="#"&gt;C. The physical meaning of the loop equation and dimensional reduction. How come the 3D classical turbulence reduced to a one-dimensional system?&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;li&gt;&lt;a href="#"&gt;D. Classical Flow and Quantum Mechanics. The most important section. Spontaneous quantization of nonlinear classical system&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;li&gt;&lt;a href="#"&gt;E. Renormalizability of the Inviscid Limit of the Loop Equation. Analogy with QCD. How the parameters in the loop equation must be tuned to get nontrivial continuum limit?&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;li&gt;&lt;a href="#"&gt;F. Relation of Our Solution to Weak Turbulence. In the Navier-Stokes equation, Wylde diagrams can represent the terms of the expansion in inverse viscosity powers. Our solution can be regarded as an exact summation of that expansion with extrapolation to zero viscosity.&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/ul&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;li&gt;&lt;a href="#"&gt;XI. Remaining problems. Short list of unsolved problems&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;li&gt;&lt;a href="#"&gt;XII. Conclusion. The big picture of what was accomplished in this work&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;li&gt;&lt;a href="#"&gt;Acknowledgments&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;li&gt;&lt;a href="#"&gt;Data Availability&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;li&gt;&lt;a href="#"&gt;References&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;a href="#"&gt;Appendices&lt;/a&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;ul&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;li&gt;&lt;a href="#"&gt;A. Global Random rotation and Momentum Loop Space. An instructive example of exact fixed point of the loop equation&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;li&gt;&lt;a href="#"&gt;B. The Markov chain and its Fermionic representation. Exact mathematical transformation of the Markov chain to the Fermionic trace&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;li&gt;&lt;a href="#"&gt;C. Path integral over Markov histories. From discrete Markov chain to the path integral using generating functions&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;li&gt;&lt;a href="#"&gt;D. Matching path integral with combinatorial sums. Verifying the continuum results against exact combinatorial computations&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;li&gt;&lt;a href="#"&gt;E. Small Euler ensemble in statistical limit. New formulas in the Number Theory: statistical distribution of fractions with large denominators.&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;li&gt;&lt;a href="#"&gt;F. The velocity correlation in Fourier space. Transformation of the backtracking loop functional to the two-point vorticity correlation&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;li&gt;&lt;a href="#"&gt;G. Turbulent viscosity and the local limit. Deep technical details of the instanton calculation. Eigenvalues of the quadratic functional of fluctuations.&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;li&gt;&lt;a href="#"&gt;H. Linearized classical trajectory. The harmonic fluctuations around instanton in the turbulent limit. All-in depth technical calculations&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;li&gt;&lt;a href="#"&gt;I. Functional determinant in the path integral. The beautiful part. The zeta regularization of functional determinant and exact topological formula for the critical index&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;li&gt;&lt;a href="#"&gt;J. The fluctuation term in α′(ξ1)α′(ξ2). Adding a term into the instanton contribution&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;li&gt;&lt;a href="#"&gt;K. Mellin integral for the energy spectrum and energy decay. Putting together instanton contribution to the energy spectrum on a form of Mellin integral&lt;/a&gt;&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/ul&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/li&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;/ul&gt;</p>
+<p class="p1">&lt;/div&gt;</p>
+<p class="p1">&lt;/body&gt;</p>
+<p class="p1">&lt;/html&gt;</p>
+</body>
+</html>
