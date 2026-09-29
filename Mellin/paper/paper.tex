@@ -459,6 +459,27 @@ that makes them visible in the spectrum. The index therefore has log-periodic os
 small separations, $\rho<C_{\min}$, and with amplitude below $1.5\times10^{-6}$. At large separations, where the structure
 function is a convergent series in real inverse powers of $\rho$, they vanish identically.
 
+The small-$\rho$ structure has a direct meaning in time. Since $\rho=r/\sqrt{\tilde\nu(t+t_0)}$, the limit $\rho\to0$ is
+reached at small separations for fixed $t$ or, within the validity of the Navier--Stokes description, at fixed $r$ for
+$t\to\infty$. For $\rho<C_{\min}$ the structure function is the convergent sum of its right residues,
+\begin{equation}
+    D(\rho)=\sum_j c_j\,\rho^{q_j}+\sum_{n}2\,\mathrm{Re}\left[R_n\,\rho^{7+\I\gamma_n}\right]
+    +\sum_{m\ne0}2\,\mathrm{Re}\left[R'_m\,\rho^{15/2+2\pi\I m/\log2}\right],
+    \label{eq:smallrho}
+\end{equation}
+where $q_j=2,\tfrac52,4,\tfrac{11}{2},6,\ldots$ are the real poles. At fixed $r$ the wall terms oscillate in $\log t$ with the
+frequencies $\gamma_n/2$, set by the non-trivial zeros of $\zeta(s)$, and $\pi m/\log2$, set by the prime-$2$ Euler factor of the
+odd ensemble. Their amplitude relative to the leading term decreases as $\rho^{5}\propto t^{-5/2}$. This infinite set of
+incommensurate complex exponents makes $t=\infty$, equivalently $\rho=0$, an essentially singular point of the structure
+function, exactly as $\kappa=\infty$ is for the energy spectrum~\cite{migdal2026Riemann}. Under $p=-1-q$ the exponents
+$-8\pm\I\gamma_n$ and $-\tfrac{17}{2}\pm2\pi\I m/\log2$ of the spectrum map one to one onto $7\mp\I\gamma_n$ and
+$\tfrac{15}{2}\mp2\pi\I m/\log2$. The infinite-time singularity of the velocity structure function is therefore dictated by the
+same number theory as the spectral singularity. Only the order of the Stokes activations differs. In the spectrum the thimble
+captures the Riemann-wall poles one by one, at times $t_n\propto\gamma_n^3/(\tilde\nu k^2)$ at fixed
+$k$~\cite{migdal2026Riemann}. In the structure function, where the Fourier kernel cancels $\Gamma(-p)$, the thimble captures
+the whole walls at once, for $\log\rho\lesssim-3.85$. In both representations the singular structure of decaying turbulence at
+infinite time is encoded by the zeros of the Riemann zeta function: number theory decodes turbulent intermittency.
+
 The small oscillations of the index observed at the largest separations in the Max Planck wind tunnel are reproduced by the
 finite width of the tunnel. They disappear when the data are extrapolated to infinite Reynolds number, and they are of the
 order of the statistical scatter or below it. They are not a property of decaying turbulence in infinite space. The extrapolated tail of
