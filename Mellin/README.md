@@ -8,6 +8,8 @@ These files are distributed with the arXiv paper as ancillary files (`anc/`), an
 [`Mellin`](https://github.com/sashamigdal/LoopEquations/tree/master/Mellin) of the GitHub repository
 `sashamigdal/LoopEquations`. The two copies have the same layout, and all paths below are relative to that folder.
 
+Version v1.0 of this folder is archived on Zenodo: [doi:10.5281/zenodo.23046503](https://doi.org/10.5281/zenodo.23046503).
+
 The code evaluates the Mellin–Barnes integrals of the odd Euler ensemble
 
 ```
