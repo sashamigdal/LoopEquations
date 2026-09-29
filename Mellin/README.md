@@ -67,3 +67,27 @@ which should agree to about 10⁻¹⁰.
   * The Re_λ = 5779 fit reproduces the old log10 shift 5.5.
   * The theory has no inertial plateau (α ≈ 0.7), so only the large-r tail can be compared.
   * The residual wiggles (±0.05) are much larger than anything this model produces.
+
+## Finite box: the small-k cutoff as the tunnel width
+
+The cutoff k > k_min = π/L can stand for the finite width L of the tunnel:
+D_L(r) = 2∫_{k_min}^∞ (1 − sin kr/(kr)) H(k) dk = D_∞(r) − ΔD(r).
+
+* D_∞ is the thimble result.
+* ΔD = 2∫_0^{k_min} (1 − sin kr/(kr)) H(k) dk.
+* H(k) is an entire function of k. Closing the p-contour to the right, only the Γ(−p) poles p = n contribute:
+  H(k) = Σ (−1)ⁿ Aₙ kⁿ/n!. This series matches the Mellin line integral to 10⁻¹⁵, and (π/2)H(0) equals the large-r coefficient of f.
+* The endpoint k_min makes α_L oscillate about 0 with period 2π/k_min in r. The first dip is near r ≈ L. These oscillations are
+  periodic in r, not log-periodic.
+
+Fit to the Max Planck runs (`python/finite_box.py`, `results/mpi_fit_box*.json`, figures 9–11):
+
+| model | free parameters | pooled rms of α |
+|---|---|---|
+| infinite system, shift s per run | 11 | 0.0302 |
+| finite box, one common size L = Λ·r_max for all runs (best Λ ≈ 1.0–1.1) | 12 | 0.0255 |
+| finite box, own (s, k_min) per run | 22 | 0.0184 |
+
+* The finite box reproduces the negative dips of α at the largest r.
+* The per-run L/η grows with Re_λ and tracks the largest measured separation (L/r_max = 0.3–2.5).
+* The highest-Re runs (Re_λ = 3070, 4998, 5779) gain little; for 5779 the fit prefers no cutoff.

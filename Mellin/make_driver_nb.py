@@ -160,6 +160,40 @@ Show[ListPlot[Table[{#[[1]] - fits[[i]]["shift"], #[[2]]} & /@ fits[[i]]["alpha"
   FrameLabel -> {"Log(r/\\[Eta]) - s", "\\[Alpha] = d Log S_2/d Log r"}, ImageSize -> 800, GridLines -> Automatic]
 LinearModelFit[{Log[#["Re"]], #["shift"]} & /@ fits, x, x]["BestFitParameters"]   (* slope ~ 1.35 in Python; K41: 1.5 *)
 """)
+C("Section", "Finite box (tunnel width L): k > k_min = \\[Pi]/L")
+C("Text", """
+D_L(r) = D_inf(r) - DeltaIR(r), DeltaIR = 2\\[Integral]_0^k_min (1-Sin[k r]/(k r)) H(k) dk with the exact entire series for H(k).
+The lower endpoint makes \\[Alpha]_L oscillate about 0 with period 2\\[Pi]/k_min in r (first dip near r ~ L). Each run is fitted with (s, k_min);
+then one common box size L = \\[CapitalLambda] r_max for all runs is tested (Python: best \\[CapitalLambda] = 1.0-1.1, pooled rms 0.0255 vs 0.0302 without box, 0.0184 with free k_min).
+""")
+C("Input", """
+{HK[0.], "Python: 0.0371525387 (= 2/\\[Pi] x large-r coefficient of f)"}
+DInfInterp = Interpolation[{#["xi"], #["F"]} & /@ resD];
+AlphaBox[xi_?NumericQ, kmin_?NumericQ] := Module[{d = DeltaIR[Exp[xi], kmin], Dv = DInfInterp[xi]},
+   (Dv alphaDInterp[xi] - d[[2]])/(Dv - d[[1]])];
+{AlphaBox[0., 0.1], "Python: 0.0560762 (old xi2[1], htab with k in [0.1,1000]: 0.0562551)"}
+""")
+C("Input", """
+fitBox[f_] := Module[{a = f["alpha"], i0, tail, err, sol},
+   i0 = First[FirstPosition[Transpose[{a[[All, 2]], a[[All, 1]]}], {x_ /; x < 0.355, y_ /; y > Mean[a[[All, 1]]]}]];
+   tail = a[[i0 ;;]];
+   err[s_?NumericQ, km_?NumericQ] := Total[(tail[[All, 2]] - (AlphaBox[# - s, Abs[km]] & /@ tail[[All, 1]]))^2];
+   sol = NMinimize[{err[s, km], f["shift"] - 1 <= s <= f["shift"] + 1, 0 <= km <= 10}, {s, km}, Method -> "NelderMead"];
+   <|"Re" -> f["Re"], "s" -> (s /. sol[[2]]), "kmin" -> (km /. sol[[2]]), "rmsBox" -> Sqrt[sol[[1]]/Length[tail]], "rmsInf" -> f["rms"],
+     "LoverEta" -> Pi Exp[s /. sol[[2]]]/(km /. sol[[2]]), "rmaxOverEta" -> Exp[a[[-1, 1]]], "tail" -> tail|>];
+boxFits = ParallelMap[fitBox, fits];
+Grid[Prepend[{#["Re"], #["s"], #["kmin"], #["rmsInf"], #["rmsBox"], #["LoverEta"], #["rmaxOverEta"]} & /@ boxFits,
+   {"Re_lambda", "s", "k_min", "rms (no box)", "rms (box)", "L/\\[Eta]", "r_max/\\[Eta]"}], Frame -> All]
+""")
+C("Input", """
+GraphicsGrid[Partition[Table[With[{b = boxFits[[i]], f = fits[[i]]},
+     Show[ListPlot[f["alpha"], PlotStyle -> Gray],
+      Plot[{alphaDInterp[x - f["shift"]], AlphaBox[x - b["s"], b["kmin"]]}, {x, b["tail"][[1, 1]] - 1.5, b["tail"][[-1, 1]] + 0.4},
+       PlotStyle -> {{Dashed, Black}, {Thick, Blue}}],
+      PlotRange -> {{b["tail"][[1, 1]] - 1.5, b["tail"][[-1, 1]] + 0.4}, {-0.15, 0.6}}, Frame -> True,
+      PlotLabel -> Row[{"Re_\\[Lambda]=", Round[b["Re"]], "  rms ", NumberForm[b["rmsInf"], 2], " \\[Rule] ", NumberForm[b["rmsBox"], 2]}]]],
+    {i, Length[boxFits]}], 3, 3, {1, 1}, Null], ImageSize -> 1100]
+""")
 C("Section", "Fixes needed in the original MellinOscillationsOdd.nb cells (for reference)")
 C("Text", """
 1. S1Interp[q] = -df1approx[q] + S1Analytic[q]   (was +df1approx: d/dq Log DF[-1-q,0] = -DF1/DF0).

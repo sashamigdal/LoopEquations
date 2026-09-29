@@ -222,6 +222,27 @@ DirectLineAlpha[xi_?NumericQ, kind_String] := Module[{c = If[kind === "f", -0.5,
 
 
 (* ::Section:: *)
+(*8. Finite box (tunnel width L): infrared cutoff k > k_min = Pi/L*)
+
+
+(* D_L(r) = 2 Integrate[(1 - Sin[k r]/(k r)) H(k), {k, k_min, Infinity}] = D_inf(r) - DeltaIR(r).
+   H(k) = (1/2 Pi I) Integrate[k^p M(p) dp] (the old p-problem) is ENTIRE in k: closing right only the Gamma(-p) poles
+   p = n contribute, so H(k) = Sum_n (-1)^n k^n/n! A_n,  A_n = DF(n) Zeta[n+15/2]/(Zeta[n+17/2](2n+7)(2n+17)(1-2^-(n+17/2))).
+   (Checked in Python against the Mellin line integral to 1e-15 for k <= 40; (Pi/2) H(0) = large-r coefficient of f.) *)
+hCoef = N[Table[(-1)^n/n! Re[DF0[N[n]]] Zeta[n + 15/2]/(Zeta[n + 17/2] (2 n + 7) (2 n + 17) (1 - 2^-(n + 17/2))), {n, 0, 120}]];
+HK[k_?NumericQ] := Fold[#1 k + #2 &, 0., Reverse[hCoef]];
+
+glUnit[n_Integer] := glUnit[n] = GaussianQuadratureWeights[n, -1, 1];
+(* {DeltaIR, r d/dr DeltaIR} = 2 Integrate[{1 - Sin[x]/x, -Cos[x] + Sin[x]/x} H(k), {k, 0, k_min}],  x = k r *)
+DeltaIR[r_?NumericQ, kmin_?NumericQ] := Module[{n, xw, k, w, x, sx},
+    If[kmin <= 0, Return[{0., 0.}]];
+    n = 10 Ceiling[(80 + 2 kmin r)/10];
+    xw = glUnit[n]; k = kmin (xw[[All, 1]] + 1)/2; w = kmin/2 xw[[All, 2]] (HK /@ k);
+    x = k r; sx = Sin[x]/x;
+    {2 Total[w (1 - sx)], 2 Total[w (-Cos[x] + sx)]}];
+
+
+(* ::Section:: *)
 (*7. Plot helpers*)
 
 
