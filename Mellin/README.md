@@ -108,3 +108,20 @@ fitted shift is s = ln(ℓ_D/η), and a physical width W gives k_min = π ℓ_D/
   (weighted rms 0.017, s = ln(ℓ_D/L) = 1.96). A box does not improve this: k_min → 0.6.
 * The extrapolation uses Re_λ^{−1}; Re_λ^{−1/2} fits worse (χ²/dof 4.5). With only the four highest-Re runs the extrapolation is
   ill-conditioned, because Re_λ^{−1} spans only a factor 2.
+
+### Adopted comparison: extrapolation in 1/Re_λ (figure 13, `python/extrap_invRe.py`)
+
+At fixed x = log(r/L), α(x, Re_λ) = α_∞(x) + c(x)/Re_λ is fitted over the runs, and α_D(x − s) is fitted to α_∞ with weights
+1/err² over the large-r tail (α_∞ < 0.355):
+
+| runs used | s = ln(ℓ_D/L) | ℓ_D/L | χ²/dof | weighted rms of α |
+|---|---|---|---|---|
+| all 11 (Re_λ ≥ 413) | 2.075 ± 0.024 | 7.97 | 2.8 | 0.018 |
+| Re_λ ≥ 1046 (adopted) | 1.956 ± 0.021 | 7.07 | 2.4 | 0.017 |
+| Re_λ ≥ 1305 | 1.943 ± 0.020 | 6.98 | 1.3 | 0.015 |
+| Re_λ ≥ 2033 | 1.847 ± 0.015 | 6.34 | 1.9 | 0.016 |
+| Re_λ ≥ 2398 | 1.823 ± 0.017 | 6.19 | 2.0 | 0.012 |
+
+* The infinite-Re theory describes the extrapolated tail within its errors. No finite-box term is needed at Re_λ → ∞.
+* The fitted scale ratio ℓ_D/L drifts from 8.0 to 6.2 as the lower-Re runs are dropped. That is more than the statistical errors,
+  so part of the Re dependence is not captured by the 1/Re_λ term. The linearity panel shows the run-to-run scatter at fixed r/L.
