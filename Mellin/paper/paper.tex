@@ -1,6 +1,7 @@
 \documentclass[aps,pre,preprint,superscriptaddress,nofootinbib,amsmath,amssymb]{revtex4-2}
 
 \usepackage{graphicx}
+\graphicspath{{figs/}{./}}   % figures may sit in figs/ or next to paper.tex
 \usepackage{amsmath,amssymb,mathtools}
 \usepackage{booktabs}
 \usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
@@ -94,7 +95,7 @@ cancels identically on the compact spherical target~\cite{migdal2026Riemann}.
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=0.62\columnwidth]{figs/RegularPolygons.png}
+    \includegraphics[width=0.62\columnwidth]{RegularPolygons.png}
     \caption{Examples of the regular star polygons $\{q/p\}$ that form the discrete target space of the momentum loop. The
     turbulent state, the Euler ensemble, is a statistical average over random walks on all such polygons (from
     Ref.~\cite{ReviewPaperAM}).}
@@ -240,7 +241,7 @@ above its crossing height. The first dyadic pole, at height $2\pi/\log2=9.06$, i
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=0.78\columnwidth]{figs/fig4_thimbles.png}
+    \includegraphics[width=0.78\columnwidth]{fig4_thimbles.png}
     \caption{Lefschetz thimbles of $\rho^{q}(-2Z_\eta(q))$ (odd ensemble) through the real saddles $q_0\in(0,2)$, for
     $\log\rho=1,-2,-2.8,-3,-3.5,-4.5,-6$. Crosses are poles: the Riemann wall $7\pm\I\gamma_n$, the dyadic wall
     $15/2\pm2\pi\I m/\log2$, and the real poles. Circles are the zeros $6\pm\I\gamma_n$ and $13/2+2n$. Dotted lines mark
@@ -250,7 +251,7 @@ above its crossing height. The first dyadic pole, at height $2\pi/\log2=9.06$, i
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=0.78\columnwidth]{figs/fig3_staircase.png}
+    \includegraphics[width=0.78\columnwidth]{fig3_staircase.png}
     \caption{Stokes staircases of the structure function: the number of trapped Riemann poles (of $60$) and dyadic poles
     (of $40$), and the index $n$ of the zero $6+\I\gamma_n$ on which the thimble parks.}
     \label{fig:staircase}
@@ -267,7 +268,7 @@ $-5\lesssim\log\rho\lesssim0$.
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=0.8\columnwidth]{figs/fig1_D_alpha.png}
+    \includegraphics[width=0.8\columnwidth]{fig1_D_alpha.png}
     \caption{The structure function $D(\rho)$ and the effective index $\alpha(\rho)$ of the odd Euler ensemble (lines: direct
     contour integration; circles: thimbles with Gauss--Hermite quadrature and Stokes terms). The shaded bands mark the
     zero-parking (orange) and wall-trapping (violet) regimes.}
@@ -293,7 +294,7 @@ large separations, $\rho>C_{\max}$, they are absent.
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=0.8\columnwidth]{figs/osc_compare.png}
+    \includegraphics[width=0.8\columnwidth]{osc_compare.png}
     \caption{Log-periodic (wall-pole) part of the local index: energy spectrum, $\delta\left(d\log H/d\log\kappa\right)$ (solid),
     against structure function, $\delta\alpha$ (dashed), for the dyadic and Riemann walls of the odd ensemble. The horizontal
     axis is the distance from the edge of convergence of the corresponding residue series, $\log\kappa>-\log C_{\min}$ for the
@@ -303,7 +304,7 @@ large separations, $\rho>C_{\max}$, they are absent.
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=0.66\columnwidth]{figs/StokesOddStaircase.png}
+    \includegraphics[width=0.66\columnwidth]{StokesOddStaircase.png}
     \caption{Stokes staircase of the energy spectrum in the odd Euler ensemble, from Ref.~\cite{migdal2026Riemann}: the
     total number of trapped poles (black, dots), Riemann-wall poles (blue) and dyadic-wall poles (dashed) as functions of
 $\xi=\log\kappa$. Each trapped
@@ -340,7 +341,7 @@ finite-size oscillations of~\eqref{eq:DW} with $\kappa_{\min}=0.1$.
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=0.8\columnwidth]{figs/fig10_finite_box_theory.png}
+    \includegraphics[width=0.8\columnwidth]{fig10_finite_box_theory.png}
     \caption{The effective index of the finite system, Eq.~\eqref{eq:DW}, for several infrared cutoffs $\kappa_{\min}=\pi L/W$,
     compared with the infinite system.}
     \label{fig:box}
@@ -375,7 +376,7 @@ the data at the largest $r$, and they are not properties of decaying turbulence 
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=\columnwidth]{figs/fig9_finite_box_runs.png}
+    \includegraphics[width=\columnwidth]{fig9_finite_box_runs.png}
     \caption{Large-$r$ index of the Max Planck runs~\cite{GregXi2} (circles) against the infinite-system theory (dashed), the
     finite-width theory with $\kappa_{\min}$ fitted per run (blue), and one physical width $W=2.34$~m for all runs,
     $\kappa_{\min}=\pi\eta e^{s}/W$ (orange). The vertical line marks the start of the fitted tail. The labels give the rms
@@ -421,7 +422,7 @@ It is fully consistent with the odd ensemble, the only stable one.
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=\columnwidth]{figs/fig13_invRe_extrapolation.png}
+    \includegraphics[width=\columnwidth]{fig13_invRe_extrapolation.png}
     \caption{Left: the Max Planck index extrapolated to $Re_\lambda\to\infty$ in $1/Re_\lambda$ (circles, runs
     $Re_\lambda\ge1046$) against the odd-ensemble theory with one scale parameter (blue). Dashed lines use the shifts fitted to
     the extrapolations with all runs and with $Re_\lambda\ge2398$ only. The fit uses the tail outside the shaded region; the
@@ -440,7 +441,7 @@ small~\cite{ReviewPaperAM}. They are the numerical counterpart of the finite-wid
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=0.72\columnwidth]{figs/BSSpectra_clean.png}
+    \includegraphics[width=0.72\columnwidth]{BSSpectra_clean.png}
     \caption{Effective index $\VEV{r\,\partial_r\log(\Delta v^2)}$ of the $4096^3$ DNS of decaying turbulence by Sreenivasan and
     Rodhiya~\cite{SreeniAkash2025} (Birkhoff--Saffman initial spectrum) against the Euler-ensemble prediction (from
     Ref.~\cite{ReviewPaperAM}).}
