@@ -31,11 +31,23 @@ o = np.load(cache('oscill.npy'))                   # full wall sum W(xi) from os
 full = [r for r in S if r['nR'] == len(GAMMA) and r['nD'] == len(DYAD)]
 dev = max(abs(r['dI']-np.interp(r['xi'], o[0], o[3]))/r['I'] for r in full)
 print('where all %d + %d wall poles are trapped (%d points): Stokes terms vs full wall sum, max |diff|/D = %.1e' % (len(GAMMA), len(DYAD), len(full), dev))
+# the three regimes (Sec. II C)
+none = [r['xi'] for r in S if r['nR']+r['nD'] == 0 and r['zero'] is None]
+x_left = min(x for x in none if all(r['nR']+r['nD'] == 0 and r['zero'] is None for r in S if r['xi'] >= x))
+zb = [r for r in S if r['zero'] is not None]
+seq = []
+for r in sorted(zb, key=lambda r: r['xi']):
+    if not seq or seq[-1] != r['zero']+1: seq.append(r['zero']+1)
+vert = [r for r in S if max(r['xi'] for r in zb) < r['xi'] < x_left]
+walls = [r['xi'] for r in S if r['nR']+r['nD'] > 0 and r['zero'] is None and r['xi'] < min(r['xi'] for r in zb)]
+print('regime 1: nothing trapped for log rho >= %.2f; for %.2f <= log rho <= %.2f the near-vertical thimble traps only poles high'
+      ' on the walls, |Stokes terms|/D <= %.0e' % (x_left, min(r['xi'] for r in vert), max(r['xi'] for r in vert),
+                                                   max(abs(r['dI']/r['I']) for r in vert)))
+print('regime 2: thimble ends on a zero 6 + i gamma_n for %.2f <= log rho <= %.2f; n = %s as log rho increases'
+      % (min(r['xi'] for r in zb), max(r['xi'] for r in zb), ', '.join(map(str, seq))))
 fd = max(r['xi'] for r in S if r['nD'] == len(DYAD))
-print('the lowest dyadic pole (height 2 pi/log 2 = %.2f) is trapped for log rho <= %.2f' % (DYAD[0], fd))
-print('regimes: zero-terminated for log rho in [%.2f, %.2f]; walls trapped for log rho <= %.2f' % (
-    min(r['xi'] for r in S if r['zero'] is not None), max(r['xi'] for r in S if r['zero'] is not None),
-    max(r['xi'] for r in S if r['nR']+r['nD'] > 0 and r['zero'] is None)))
+print('regime 3: walls trapped for log rho <= %.2f; the lowest dyadic pole (height 2 pi/log 2 = %.2f) for log rho <= %.2f'
+      % (max(walls), DYAD[0], fd))
 with open(res('pythonReference_D.csv'), 'w') as fh:
     fh.write('log r,D,alpha,q0,trapped Riemann,trapped dyadic,terminal zero n (1-based)\n')
     for x0 in [3.0, 0.0, -2.0, -3.0, -3.5, -4.5, -6.0]:
