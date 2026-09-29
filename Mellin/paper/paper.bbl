@@ -120,9 +120,10 @@
   {Migdal}(2026{\natexlab{c}})}]{migdal2026EulerStability}%
   \BibitemOpen
   \bibfield  {author} {\bibinfo {author} {\bibfnamefont {A.}~\bibnamefont
-  {Migdal}},\ }\href@noop {} {\bibinfo {title} {Stability of the {Euler}
-  ensemble as a turbulent attractor}} (\bibinfo {year} {2026}{\natexlab{c}}),\
-  \bibinfo {note} {to appear on arXiv}\BibitemShut {NoStop}%
+  {Migdal}},\ }\href@noop {} {\bibinfo {title} {{Euler Ensemble as Decaying
+  Turbulence Attractor: Universality, Stability and Parity Classes}}} (\bibinfo
+  {year} {2026}{\natexlab{c}}),\ \Eprint {https://arxiv.org/abs/2607.05745}
+  {arXiv:2607.05745} \BibitemShut {NoStop}%
 \bibitem [{\citenamefont {K\"uchler}\ \emph {et~al.}(2023)\citenamefont
   {K\"uchler}, \citenamefont {Bewley},\ and\ \citenamefont
   {Bodenschatz}}]{GregXi2}%
