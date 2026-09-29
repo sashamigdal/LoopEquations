@@ -27,10 +27,11 @@ structure function $\VEV{(\Delta\vect v)^2}(r,t)$ as a Mellin--Barnes integral i
 $\rho=r/\sqrt{\tilde\nu(t+t_0)}$. We evaluate this integral for the odd Euler ensemble, the only marginally stable turbulent
 attractor, by steepest descent along Lefschetz thimbles with Gauss--Hermite quadrature, including the Stokes phenomenon:
 the residues of the Riemann-wall and dyadic-wall poles trapped by the thimble, and the thimbles that terminate on the paired
-zeros. The computation agrees with a direct contour integration to $5\times10^{-10}$. In contrast with the energy spectrum,
-where the same poles produce visible log-periodic oscillations, the effective index
-$\alpha(\rho)=\rho\,\partial_\rho\log\VEV{(\Delta\vect v)^2}$ is smooth: for $\rho>C_{\max}$ the structure function is a
-convergent series in real powers of $1/\rho$, and at small $\rho$ the log-periodic part of $\alpha$ never exceeds $1.5\times10^{-6}$.
+zeros. The computation agrees with a direct contour integration to $5\times10^{-10}$. The same Riemann-wall and dyadic-wall poles that produce the log-periodic oscillations of the energy spectrum also produce
+log-periodic oscillations of the effective index $\alpha(\rho)=\rho\,\partial_\rho\log\VEV{(\Delta\vect v)^2}$. They appear only
+at small separations, $\rho<C_{\min}$, with an amplitude below $1.5\times10^{-6}$, eight to nine orders of magnitude smaller than
+in the spectrum. For $\rho>C_{\max}$ the structure function is a convergent series in real powers of $1/\rho$, with no
+oscillations at all.
 Finite-size effects of a system of width $W$ are included exactly by subtracting the infrared part $k<\pi/W$ of the spectrum,
 whose small-$k$ expansion converges for all $k$. We compare the theory with the Max Planck wind-tunnel measurements of
 Küchler, Bewley and Bodenschatz at $Re_\lambda=413$--$5779$. The small oscillations of the measured index at the largest
@@ -171,8 +172,11 @@ $d=3$, with the odd-ensemble factor. Its poles in $q$ are:
 All complex singularities lie to the \emph{right}, at small $\rho$.
 
 The entire function $f(p)$ is an integral over the polygon parameter $\Delta$,
-$f(p)=20\int_{\Delta_1}^{\Delta_2}d\Delta\,(1-\Delta)\,C^{p-1}\left(AC-Bp\right)$, with $A(\Delta),B(\Delta),C(\Delta)$ given in
-Ref.~\cite{migdal2024quantum}. We evaluate it on a fixed Gauss--Legendre grid in $\Delta$, which makes $f(p)$, $f'(p)$ and
+\begin{equation}
+    f(p)=20\int_{\Delta_1}^{\Delta_2}d\Delta\,(1-\Delta)\,C^{p-1}\left(AC-Bp\right),
+    \label{eq:fp}
+\end{equation}
+with $A(\Delta),B(\Delta),C(\Delta)$ given in Ref.~\cite{migdal2024quantum}. We evaluate it on a fixed Gauss--Legendre grid in $\Delta$, which makes $f(p)$, $f'(p)$ and
 $f''(p)$ exact and cheap for every complex $p$. Since $C(\Delta)\in[C_{\min},C_{\max}]=[e^{-2.915},e^{-2.763}]$, the factor
 $f(-1-q)\sim C^{-2-q}$ fixes the convergence of the residue expansions:
 \begin{itemize}
@@ -256,8 +260,8 @@ above its crossing height. The first dyadic pole, at height $2\pi/\log2=9.06$, i
 
 With $80$ Gauss--Hermite nodes, the thimble plus Stokes terms~\eqref{eq:Stokes} reproduce the direct integration
 of~\eqref{eq:Drho} along $\mathrm{Re}\,q=1$ over $-8\le\log\rho\le8$. The relative deviation is at most $5\times10^{-10}$ for
-$D$, and the absolute deviation at most $4\times10^{-10}$ for $\alpha$ (Fig.~\ref{fig:Dalpha}). The effective index falls
-monotonically from the dissipative value $\alpha\to2$ at $\rho\to0$ to $\alpha\to0$ at $\rho\to\infty$, where
+$D$, and the absolute deviation at most $4\times10^{-10}$ for $\alpha$ (Fig.~\ref{fig:Dalpha}). Apart from the tiny log-periodic corrections discussed below, the effective
+index falls monotonically from the dissipative value $\alpha\to2$ at $\rho\to0$ to $\alpha\to0$ at $\rho\to\infty$, where
 $\alpha=a_1/(G(0)\rho)+O(\rho^{-2})$. There is no inertial plateau: the whole crossover takes place within
 $-5\lesssim\log\rho\lesssim0$.
 
@@ -270,7 +274,7 @@ $-5\lesssim\log\rho\lesssim0$.
     \label{fig:Dalpha}
 \end{figure}
 
-\paragraph*{Smooth structure function versus oscillating spectrum.}
+\paragraph*{Oscillations of the structure function and of the spectrum.}
 The log-periodic part of $\alpha$ is the sum of all wall residues. It is shown in Fig.~\ref{fig:osc}, together with the
 log-periodic part of the spectral index $d\log H/d\log\kappa$ computed from the same walls of~\eqref{eq:Mtheor}. The
 dyadic wall dominates both, with period $\log2$. Where every wall pole is trapped, the thimble's Stokes terms reproduce the
@@ -281,9 +285,11 @@ The reason is the factor $\Gamma(-p)$ in $M_\eta(p)$. At the walls its power gro
 the exponential decay $e^{-\pi|\mathrm{Im}\,p|/2}$, for example $|\Gamma(\tfrac{17}{2}-2\pi\I/\log2)|=1.8\times10^{2}$. In
 coordinate space this Gamma function is cancelled by the Fourier kernel, and only
 $|\csc(\pi q/2)|=1.3\times10^{-6}$ remains at the first dyadic pole ($|\Gamma(8-\I\gamma_1)|=0.33$ against
-$|\csc|=4.6\times10^{-10}$ at the first Riemann pole). The number theory of the Euler ensemble is thus clearly visible in the
-spectrum~\cite{migdal2026Riemann} (Fig.~\ref{fig:spectrumStaircase}). In the structure function it is present but
-unobservably small, and it is completely absent at large separations.
+$|\csc|=4.6\times10^{-10}$ at the first Riemann pole). The number theory of the Euler ensemble is thus clearly visible in the spectrum~\cite{migdal2026Riemann}
+(Fig.~\ref{fig:spectrumStaircase}). The structure function has the same log-periodic oscillations, with the same periods:
+$\log2$ in $\log\rho$ for the dyadic wall and $2\pi/\gamma_n$ for the Riemann wall. They appear only at small separations,
+$\rho<C_{\min}$, the Fourier image of the large-$\kappa$ tail of the spectrum, and with amplitude at most $1.4\times10^{-6}$. At
+large separations, $\rho>C_{\max}$, they are absent.
 
 \begin{figure}[t]
     \centering
@@ -358,8 +364,8 @@ length is $\ell_D\approx(7$--$9)\,L$ in every run.
 
 Each run's large-$r$ tail ($\alpha_{\exp}<0.355$, beyond the inertial plateau, which the theory does not contain) is fitted by
 $\alpha(\rho)$ with rms deviation $0.014$--$0.045$. At the largest separations several runs show small oscillations of
-$\alpha_{\exp}$, with dips to $-0.03\ldots-0.1$ (Fig.~\ref{fig:runs}). The infinite-system index cannot produce them: it is
-positive and monotone there, and its intrinsic oscillations are below $10^{-6}$. The finite-width correction~\eqref{eq:DW}
+$\alpha_{\exp}$, with dips to $-0.03\ldots-0.1$ (Fig.~\ref{fig:runs}). The infinite-system index cannot produce them: at these
+separations, $\rho>C_{\max}$, it is positive and monotone, with no oscillations at all. The finite-width correction~\eqref{eq:DW}
 reproduces them. With $\kappa_{\min}=\pi\ell_D/W$ fitted per run, the rms deviation drops by up to a factor of $2.5$. The
 implied physical width is $W=2.25$--$2.6$~m for five of the seven runs with $Re_\lambda\le2398$, of the order of the largest
 measured separations ($2.3$--$3.6$~m). A single $W=2.34$~m for these seven runs lowers their pooled rms deviation from $0.035$
@@ -448,8 +454,9 @@ Stokes phenomenon, gives the Euler-ensemble structure function and its effective
 $10^{-9}$. The same
 Riemann and dyadic walls that produce the Stokes staircase and the log-periodic oscillations of the energy
 spectrum~\cite{migdal2026Riemann} are present in the structure function. There the Fourier kernel cancels the Gamma function
-that makes them visible in the spectrum. The index is therefore smooth: its log-periodic part is below $10^{-6}$ and vanishes
-identically at large separations, where the structure function is a convergent series in real inverse powers of $\rho$.
+that makes them visible in the spectrum. The index therefore has log-periodic oscillations with the same periods, but only at
+small separations, $\rho<C_{\min}$, and with amplitude below $1.5\times10^{-6}$. At large separations, where the structure
+function is a convergent series in real inverse powers of $\rho$, they vanish identically.
 
 The small oscillations of the index observed at the largest separations in the Max Planck wind tunnel are reproduced by the
 finite width of the tunnel. They disappear when the data are extrapolated to infinite Reynolds number, and they are of the
@@ -461,6 +468,7 @@ Wind-tunnel experiments with a larger cross-section, reaching larger separations
 higher Reynolds numbers, would separate the finite-size effects from the bulk dynamics. They would also test the predicted
 tail $\alpha\simeq a_1/(G(0)\rho)$ over a longer range.
 
+\clearpage
 \begin{acknowledgments}
 I am grateful to Christian Küchler, Gregory Bewley and Eberhard Bodenschatz for the full data sets of their wind-tunnel
 measurements~\cite{GregXi2}, and to Katepalli Sreenivasan and Akash Rodhiya for the $4096^3$ DNS data~\cite{SreeniAkash2025}.

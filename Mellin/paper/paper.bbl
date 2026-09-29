@@ -91,16 +91,15 @@
   {howpublished} {Forthcoming in Philosophical Transactions of the Royal
   Society A, Special Issue "Frontiers of Turbulence and Statistical Physics
   Meet"} (\bibinfo {year} {2026}{\natexlab{a}}),\ \bibinfo {note} {accepted},\
-  \Eprint {https://arxiv.org/abs/https://doi.org/10.48550/arXiv.2511.02165}
-  {arXiv:https://doi.org/10.48550/arXiv.2511.02165 [physics.flu-dyn]}
-  \BibitemShut {NoStop}%
+  \Eprint {https://arxiv.org/abs/2511.02165} {arXiv:2511.02165
+  [physics.flu-dyn]} \BibitemShut {NoStop}%
 \bibitem [{\citenamefont {Migdal}(2026{\natexlab{b}})}]{migdal2026Riemann}%
   \BibitemOpen
   \bibfield  {author} {\bibinfo {author} {\bibfnamefont {A.}~\bibnamefont
   {Migdal}},\ }\href {https://arxiv.org/abs/2604.12207v5} {\bibinfo {title}
-  {Decaying turbulence and the riemann hypothesis: The number theory behind the
-  infinite-time singularity}} (\bibinfo {year} {2026}{\natexlab{b}}),\ \Eprint
-  {https://arxiv.org/abs/2604.12207v5} {arXiv:2604.12207v5 [hep-th]}
+  {{Decaying Turbulence and the Riemann Hypothesis: The number theory behind
+  the infinite-time singularity}}} (\bibinfo {year} {2026}{\natexlab{b}}),\
+  \Eprint {https://arxiv.org/abs/2604.12207v5} {arXiv:2604.12207v5 [hep-th]}
   \BibitemShut {NoStop}%
 \bibitem [{\citenamefont {Brué}\ and\ \citenamefont
   {De~Lellis}(2026)}]{DeLellisInprep}%
@@ -133,8 +132,8 @@
 \bibitem [{\citenamefont {Migdal}(2024{\natexlab{b}})}]{MB46}%
   \BibitemOpen
   \bibfield  {author} {\bibinfo {author} {\bibfnamefont {A.}~\bibnamefont
-  {Migdal}},\ }\href@noop {} {\bibinfo {title} {"corroscillations"}},\ \bibinfo
-  {howpublished}
+  {Migdal}},\ }\href@noop {} {\bibinfo {title} {{CorrelationOscillation.nb}}},\
+  \bibinfo {howpublished}
   {\url{https://www.wolframcloud.com/obj/sasha.migdal/Published/CorrelationOscillation.nb}}
   (\bibinfo {year} {2024}{\natexlab{b}})\BibitemShut {NoStop}%
 \bibitem [{\citenamefont {Sreenivasan}\ and\ \citenamefont
@@ -144,24 +143,22 @@
   {Sreenivasan}}\ and\ \bibinfo {author} {\bibfnamefont {A.}~\bibnamefont
   {Rodhiya}},\ }\href@noop {} {\bibinfo {title} {{Asymptotic State of Decaying
   Turbulence}}} (\bibinfo {year} {2026}),\ \bibinfo {note} {forthcoming in
-  \textit{Philosophical Transactions of the Royal Society A}, Special Issue
-  ``Frontiers of Turbulence and Statistical Physics Meet''. Preprint available
-  at \texttt{arXiv:2602.12501} [physics.flu-dyn]},\ \Eprint
+  \textit{Philosophical Transactions of the Royal Society A}},\ \Eprint
   {https://arxiv.org/abs/2602.12501v1} {arXiv:2602.12501v1 [physics.flu-dyn]}
   \BibitemShut {NoStop}%
 \bibitem [{\citenamefont {Migdal}(2026{\natexlab{d}})}]{LoopEquationsRepo}%
   \BibitemOpen
   \bibfield  {author} {\bibinfo {author} {\bibfnamefont {A.}~\bibnamefont
-  {Migdal}},\ }\href@noop {} {\bibinfo {title} {{LoopEquations}: thimble,
-  gauss--hermite and stokes computation of the decaying-turbulence structure
-  function (folder {Mellin})}},\ \bibinfo {howpublished}
+  {Migdal}},\ }\href@noop {} {\bibinfo {title} {{LoopEquations: thimble,
+  Gauss--Hermite and Stokes computation of the decaying-turbulence structure
+  function (folder Mellin)}}},\ \bibinfo {howpublished}
   {\url{https://github.com/sashamigdal/LoopEquations}} (\bibinfo {year}
   {2026}{\natexlab{d}})\BibitemShut {NoStop}%
 \bibitem [{\citenamefont {Migdal}(2026{\natexlab{e}})}]{MBMellinDT}%
   \BibitemOpen
   \bibfield  {author} {\bibinfo {author} {\bibfnamefont {A.}~\bibnamefont
-  {Migdal}},\ }\href@noop {} {\bibinfo {title} {"mellin integral in decaying
-  turbulence"}},\ \bibinfo {howpublished}
+  {Migdal}},\ }\href@noop {} {\bibinfo {title}
+  {{MellinIntegralInDecayingTurbulence.nb}}},\ \bibinfo {howpublished}
   {\url{https://www.wolframcloud.com/obj/sasha.migdal/Published/MellinIntegralInDecayingTurbulence.nb}}
   (\bibinfo {year} {2026}{\natexlab{e}})\BibitemShut {NoStop}%
 \bibitem [{\citenamefont {Migdal}(2023{\natexlab{b}})}]{DecayTurb23}%
