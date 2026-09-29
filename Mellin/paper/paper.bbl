@@ -6,7 +6,7 @@
 %Control: page (0) single
 %Control: year (1) truncated
 %Control: production of eprint (0) enabled
-\begin{thebibliography}{15}%
+\begin{thebibliography}{16}%
 \makeatletter
 \providecommand \@ifxundefined [1]{%
  \@ifx{#1\undefined}
@@ -57,6 +57,13 @@
   {journal} {\bibinfo  {journal} {Proceedings of the Royal Society A}\ }\textbf
   {\bibinfo {volume} {195}},\ \bibinfo {pages} {402} (\bibinfo {year}
   {1948})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Hopf}(1948)}]{Hopf1948}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {E.}~\bibnamefont
+  {Hopf}},\ }\href {https://doi.org/10.1002/cpa.3160010401} {\bibfield
+  {journal} {\bibinfo  {journal} {Commun. Pure Appl. Math.}\ }\textbf {\bibinfo
+  {volume} {1}},\ \bibinfo {pages} {303} (\bibinfo {year} {1948})}\BibitemShut
+  {NoStop}%
 \bibitem [{\citenamefont {Migdal}(1995)}]{M93}%
   \BibitemOpen
   \bibfield  {author} {\bibinfo {author} {\bibfnamefont {A.}~\bibnamefont
