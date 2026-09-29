@@ -1,4 +1,4 @@
-\documentclass[aps,pre,preprint,superscriptaddress,nofootinbib,amsmath,amssymb]{revtex4-2}
+\documentclass[floatfix,aps,pre,preprint,superscriptaddress,nofootinbib,amsmath,amssymb]{revtex4-2}
 
 \usepackage{graphicx}
 \graphicspath{{figs/}{./}}   % figures may sit in figs/ or next to paper.tex
@@ -103,7 +103,7 @@ energy dissipation rate finite~\cite{migdal2023exact, ReviewPaperAM}. The Euler 
 exactly, as confirmed by the rigorous analysis of Bru\'e and De Lellis~\cite{DeLellisInprep}. The nonlinear advection term
 cancels identically on the compact spherical target~\cite{migdal2026Riemann}.
 
-\begin{figure}[t]
+\begin{figure}[tbp]
     \centering
     \includegraphics[width=0.62\columnwidth]{RegularPolygons.png}
     \caption{Examples of the regular star polygons $\{q/p\}$ that form the discrete target space of the momentum loop. The
@@ -249,7 +249,7 @@ structure function (Fig.~\ref{fig:staircase}).
 above its crossing height. The first dyadic pole, at height $2\pi/\log2=9.06$, is trapped for $\log\rho<-4.2$.
 \end{enumerate}
 
-\begin{figure}[t]
+\begin{figure}[tbp]
     \centering
     \includegraphics[width=0.78\columnwidth]{fig4_thimbles.png}
     \caption{Lefschetz thimbles of $\rho^{q}(-2Z_\eta(q))$ (odd ensemble) through the real saddles $q_0\in(0,2)$, for
@@ -259,7 +259,7 @@ above its crossing height. The first dyadic pole, at height $2\pi/\log2=9.06$, i
     \label{fig:thimbles}
 \end{figure}
 
-\begin{figure}[t]
+\begin{figure}[tbp]
     \centering
     \includegraphics[width=0.78\columnwidth]{fig3_staircase.png}
     \caption{Stokes staircases of the structure function: the number of trapped Riemann poles (of $60$) and dyadic poles
@@ -276,7 +276,7 @@ index falls monotonically from the dissipative value $\alpha\to2$ at $\rho\to0$ 
 $\alpha=a_1/(G(0)\rho)+O(\rho^{-2})$. There is no inertial plateau: the whole crossover takes place within
 $-5\lesssim\log\rho\lesssim0$.
 
-\begin{figure}[t]
+\begin{figure}[tbp]
     \centering
     \includegraphics[width=0.8\columnwidth]{fig1_D_alpha.png}
     \caption{The structure function $D(\rho)$ and the effective index $\alpha(\rho)$ of the odd Euler ensemble (lines: direct
@@ -302,7 +302,7 @@ $\log2$ in $\log\rho$ for the dyadic wall and $2\pi/\gamma_n$ for the Riemann wa
 $\rho<C_{\min}$, the Fourier image of the large-$\kappa$ tail of the spectrum, and with amplitude at most $1.4\times10^{-6}$. At
 large separations, $\rho>C_{\max}$, they are absent.
 
-\begin{figure}[t]
+\begin{figure}[tbp]
     \centering
     \includegraphics[width=0.8\columnwidth]{osc_compare.png}
     \caption{Log-periodic (wall-pole) part of the local index: energy spectrum, $\delta\left(d\log H/d\log\kappa\right)$ (solid),
@@ -312,7 +312,7 @@ large separations, $\rho>C_{\max}$, they are absent.
     \label{fig:osc}
 \end{figure}
 
-\begin{figure}[t]
+\begin{figure}[tbp]
     \centering
     \includegraphics[width=0.66\columnwidth]{StokesOddStaircase.png}
     \caption{Stokes staircase of the energy spectrum in the odd Euler ensemble, from Ref.~\cite{migdal2026Riemann}: the
@@ -349,7 +349,7 @@ $2\pi/\kappa_{\min}\approx2W/L$ in $\rho$, periodic rather than log-periodic, an
 with the spectrum integrated over $0.1<\kappa<1000$~\cite{MB46} found exactly such oscillations at large $\rho$; they are the
 finite-size oscillations of~\eqref{eq:DW} with $\kappa_{\min}=0.1$.
 
-\begin{figure}[t]
+\begin{figure}[tbp]
     \centering
     \includegraphics[width=0.8\columnwidth]{fig10_finite_box_theory.png}
     \caption{The effective index of the finite system, Eq.~\eqref{eq:DW}, for several infrared cutoffs $\kappa_{\min}=\pi L/W$,
@@ -384,7 +384,7 @@ to $0.023$. The runs with $Re_\lambda\ge3070$ show no dip and do not
 constrain $\kappa_{\min}$. We conclude that the observed oscillations are finite-size effects. Their amplitude does not exceed the statistical scatter of
 the data at the largest $r$, and they are not properties of decaying turbulence in infinite space.
 
-\begin{figure}[t]
+\begin{figure}[tbp]
     \centering
     \includegraphics[width=\columnwidth]{fig9_finite_box_runs.png}
     \caption{Large-$r$ index of the Max Planck runs~\cite{GregXi2} (circles) against the infinite-system theory (dashed), the
@@ -412,7 +412,7 @@ Reynolds dependence of the integral scale is not captured by the $1/Re_\lambda$ 
 $0.0035$ of the odd one on this range and the same $\chi^2$ ($2.422$ against $2.423$), so the tail does not resolve the parity.
 It is fully consistent with the odd ensemble, the only stable one.
 
-\begin{table}[t]
+\begin{table}[tbp]
     \centering
     \begin{tabular}{lccc}
     \toprule
@@ -430,7 +430,7 @@ It is fully consistent with the odd ensemble, the only stable one.
     \label{tab:extrap}
 \end{table}
 
-\begin{figure}[t]
+\begin{figure}[tbp]
     \centering
     \includegraphics[width=\columnwidth]{fig13_invRe_extrapolation.png}
     \caption{Left: the Max Planck index extrapolated to $Re_\lambda\to\infty$ in $1/Re_\lambda$ (circles, runs
@@ -449,7 +449,7 @@ $r/L(t)$~\cite{ReviewPaperAM}. The parameter-free theory reproduces the whole no
 (Fig.~\ref{fig:dns}). The deviations at the largest $r/L$ come from the finite box and from early times, when $L(t)$ is still
 small~\cite{ReviewPaperAM}. They are the numerical counterpart of the finite-width effect in the wind tunnel.
 
-\begin{figure}[t]
+\begin{figure}[tbp]
     \centering
     \includegraphics[width=0.72\columnwidth]{BSSpectra_clean.png}
     \caption{Effective index $\VEV{r\,\partial_r\log(\Delta v^2)}$ of the $4096^3$ DNS of decaying turbulence by Rodhiya and
