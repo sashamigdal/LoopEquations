@@ -433,8 +433,8 @@ It is fully consistent with the odd ensemble, the only stable one.
 
 \subsection{Direct numerical simulation}
 
-The same theoretical index has been compared with the $4096^3$ DNS of freely decaying turbulence by Sreenivasan and
-Rodhiya~\cite{SreeniAkash2025}, where the time dependence is available directly and the scaling variable is
+The same theoretical index has been compared with the $4096^3$ DNS of freely decaying turbulence by Rodhiya and
+Sreenivasan~\cite{SreeniAkash2025}, where the time dependence is available directly and the scaling variable is
 $r/L(t)$~\cite{ReviewPaperAM}. The parameter-free theory reproduces the whole nonlinear curve of the effective index
 (Fig.~\ref{fig:dns}). The deviations at the largest $r/L$ come from the finite box and from early times, when $L(t)$ is still
 small~\cite{ReviewPaperAM}. They are the numerical counterpart of the finite-width effect in the wind tunnel.
@@ -442,11 +442,44 @@ small~\cite{ReviewPaperAM}. They are the numerical counterpart of the finite-wid
 \begin{figure}[t]
     \centering
     \includegraphics[width=0.72\columnwidth]{BSSpectra_clean.png}
-    \caption{Effective index $\VEV{r\,\partial_r\log(\Delta v^2)}$ of the $4096^3$ DNS of decaying turbulence by Sreenivasan and
-    Rodhiya~\cite{SreeniAkash2025} (Birkhoff--Saffman initial spectrum) against the Euler-ensemble prediction (from
+    \caption{Effective index $\VEV{r\,\partial_r\log(\Delta v^2)}$ of the $4096^3$ DNS of decaying turbulence by Rodhiya and
+    Sreenivasan~\cite{SreeniAkash2025} (Birkhoff--Saffman initial spectrum) against the Euler-ensemble prediction (from
     Ref.~\cite{ReviewPaperAM}).}
     \label{fig:dns}
 \end{figure}
+
+\subsection{Why only the tail of the index is compared}\label{sec:tail}
+
+The comparison of Secs.~\ref{sec:data}\,A--B uses only the large-$r$ tail, $\alpha_{\exp}<0.355$, that is $r\gtrsim L$. At
+smaller separations the measured index lies far below the theory (the shaded region of Fig.~\ref{fig:extrap}). At $r=L/e$ the
+extrapolated index is $\alpha_\infty=0.50\pm0.01$ against the predicted $0.89$, and at $r=e^{-4}L$ it is $0.65\pm0.01$ against
+$1.85$. The data have an inertial plateau, $\alpha_{\exp}\approx0.6$--$0.7$, which the theory does not contain: its index
+decreases monotonically from $2$ to $0$ within $-5\lesssim\log\rho\lesssim0$.
+
+The finite width of the tunnel cannot produce this difference. The correction~\eqref{eq:DW} removes only the wave numbers
+$\kappa<\kappa_{\min}$. Even for the largest fitted $\kappa_{\min}\approx3.6$ it changes $\alpha$ by less than $10^{-3}$ for
+$\log\rho\le-3$ and by $0.02$ at $\log\rho=-1$, while the observed differences are $0.4$--$1.2$. Nor is the difference a
+finite-Reynolds correction that disappears as $1/Re_\lambda$ at fixed $r/L$. At fixed $r/L<1$ the measured index moves \emph{away}
+from the theory as the Reynolds number grows: at $r=e^{-4}L$ it falls from $0.79$ at $Re_\lambda=1046$ to $0.66$ at
+$Re_\lambda=5779$, because the plateau widens toward small $r/L$ as $L/\eta$ grows. The extrapolation in $1/Re_\lambda$ is
+therefore meaningful only in the tail, where the Reynolds dependence at fixed $r/L$ is weak (Fig.~\ref{fig:extrap}, right).
+
+The reason is the second length of the experimental flow. Küchler \emph{et al.} found that for
+$10^2\eta<r<10^4\eta$ the index is a Reynolds-independent function of $r/\eta$~\cite{GregXi2}. In units of $L$ this range
+extends over all $r<L$ at $Re_\lambda\approx10^3$, where $L\approx3\times10^3\eta$, and over $r\lesssim0.2L$ at
+$Re_\lambda=5779$, where $L\approx4\times10^4\eta$. At fixed $r/L$ it therefore moves with the Reynolds number and recedes
+only as $L/\eta\propto Re_\lambda^{3/2}$ grows; a $1/Re_\lambda$ extrapolation at fixed $r/L$ cannot remove it. The Euler
+ensemble has a single length, the diffusion length $\ell_D=\sqrt{\tilde\nu(t+t_0)}$, and describes the asymptotic state of
+the decay, $t\to\infty$, in which $\ell_D$ and the integral scale grow together as $\sqrt t$. The wind-tunnel flow is measured
+at one station, $8.3$~m downstream of the active grid, after a finite decay time, with an integral scale that stays
+approximately constant along the test section~\cite{GregXi2}. It has not reached the self-similar diffusive state, and its
+small scales still carry the inertial range produced by the grid. The DNS of Sec.~\ref{sec:data}\,C, followed over very long
+times~\cite{SreeniAkash2025}, has reached this state and reproduces the whole index curve. We therefore attribute the
+mismatch at $r<L$ to the finite Reynolds number and the finite age of the wind-tunnel flow, which in decaying turbulence
+are two sides of the same approach to the attractor, and not to the finite width. The tail $r\gtrsim L$ is the part of the
+measured index that has already relaxed to the asymptotic state. This interpretation can be tested: at fixed Reynolds number,
+measurements at increasing distance from the grid should show the agreement with the theory extending from the tail
+toward smaller $r/L$, together with the growth $L\propto\sqrt t$.
 
 \section{Conclusion}
 
@@ -484,11 +517,23 @@ The small oscillations of the index observed at the largest separations in the M
 finite width of the tunnel. They disappear when the data are extrapolated to infinite Reynolds number, and they are of the
 order of the statistical scatter or below it. They are not a property of decaying turbulence in infinite space. The extrapolated tail of
 the measured index matches the odd Euler ensemble, the only stable turbulent attractor, with a single scale parameter. The
-$4096^3$ DNS reproduces the whole index curve. This is one more verification of the number theory of turbulence.
+$4096^3$ DNS reproduces the whole index curve. At smaller separations the measured index shows an inertial plateau that the
+theory does not contain. It is not a finite-size effect, and it is not a finite-Reynolds correction that vanishes as
+$1/Re_\lambda$ at fixed $r/L$: it is a universal function of $r/\eta$~\cite{GregXi2}, which recedes only as $L/\eta$ grows. We
+attribute it to the finite Reynolds number and the finite age of the wind-tunnel flow, which at the measuring station has
+relaxed to the asymptotic Euler-ensemble state only at the largest scales (Sec.~\ref{sec:tail}).
+
+The same attractor also fixes the decay of the turbulent kinetic energy, $E\propto t^{-5/4}$~\cite{migdal2024quantum}. In grid
+turbulence $t=z/\bar v_z$, so the law reads $E\propto z^{-5/4}$. The classic grid-turbulence experiment of Comte-Bellot and
+Corrsin~\cite{GridTurbulence_1966} found the decay exponent $n\simeq1.25$~\cite{ReviewPaperAM}, and the long-time DNS of
+Ref.~\cite{SreeniAkash2025} agree with the theory once the subleading terms of its Mellin--Barnes expansion are
+included~\cite{ReviewPaperAM}. The energy decay and the tail of the structure function test different consequences of the
+same solution. Together they are one more verification of the number theory of turbulence.
 
 Wind-tunnel experiments with a larger cross-section, reaching larger separations in units of the diffusion length, and at
 higher Reynolds numbers, would separate the finite-size effects from the bulk dynamics. They would also test the predicted
-tail $\alpha\simeq a_1/(G(0)\rho)$ over a longer range.
+tail $\alpha\simeq a_1/(G(0)\rho)$ over a longer range. Measurements at several distances from the grid at fixed Reynolds
+number would follow the approach of the whole index curve to the asymptotic state.
 
 \clearpage
 \begin{acknowledgments}

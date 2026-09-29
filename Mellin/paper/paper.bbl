@@ -6,7 +6,7 @@
 %Control: page (0) single
 %Control: year (1) truncated
 %Control: production of eprint (0) enabled
-\begin{thebibliography}{14}%
+\begin{thebibliography}{15}%
 \makeatletter
 \providecommand \@ifxundefined [1]{%
  \@ifx{#1\undefined}
@@ -134,16 +134,25 @@
   \bibinfo {howpublished}
   {\url{https://www.wolframcloud.com/obj/sasha.migdal/Published/CorrelationOscillation.nb}}
   (\bibinfo {year} {2024}{\natexlab{b}})\BibitemShut {NoStop}%
-\bibitem [{\citenamefont {Sreenivasan}\ and\ \citenamefont
-  {Rodhiya}(2026)}]{SreeniAkash2025}%
+\bibitem [{\citenamefont {Rodhiya}\ and\ \citenamefont
+  {Sreenivasan}(2026)}]{SreeniAkash2025}%
   \BibitemOpen
-  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {K.~R.}\ \bibnamefont
-  {Sreenivasan}}\ and\ \bibinfo {author} {\bibfnamefont {A.}~\bibnamefont
-  {Rodhiya}},\ }\href {https://doi.org/10.1098/rsta.2025.0021} {\bibfield
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {A.}~\bibnamefont
+  {Rodhiya}}\ and\ \bibinfo {author} {\bibfnamefont {K.~R.}\ \bibnamefont
+  {Sreenivasan}},\ }\href {https://doi.org/10.1098/rsta.2025.0021} {\bibfield
   {journal} {\bibinfo  {journal} {Phil. Trans. R. Soc. A}\ }\textbf {\bibinfo
   {volume} {384}},\ \bibinfo {pages} {20250021} (\bibinfo {year} {2026})},\
   \Eprint {https://arxiv.org/abs/2602.12501} {arXiv:2602.12501
   [physics.flu-dyn]} \BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Comte-Bellot}\ and\ \citenamefont
+  {Corrsin}(1966)}]{GridTurbulence_1966}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {G.}~\bibnamefont
+  {Comte-Bellot}}\ and\ \bibinfo {author} {\bibfnamefont {S.}~\bibnamefont
+  {Corrsin}},\ }\href {https://doi.org/10.1017/S0022112066000338} {\bibfield
+  {journal} {\bibinfo  {journal} {Journal of Fluid Mechanics}\ }\textbf
+  {\bibinfo {volume} {25}},\ \bibinfo {pages} {657–682} (\bibinfo {year}
+  {1966})}\BibitemShut {NoStop}%
 \bibitem [{\citenamefont {Migdal}(2026{\natexlab{d}})}]{LoopEquationsRepo}%
   \BibitemOpen
   \bibfield  {author} {\bibinfo {author} {\bibfnamefont {A.}~\bibnamefont

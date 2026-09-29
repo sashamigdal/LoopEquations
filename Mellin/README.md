@@ -71,7 +71,7 @@ Sec. III and figures 8 and 9. The committed tables in `results/` hold the fitted
 | Fig. 7 | `fig10_finite_box_theory.png` | `paper_figures.py` | `finite_box.py` (`alphaL`), `hseries.py` |
 | Fig. 8 | `fig9_finite_box_runs.png` | `paper_figures.py` (MPI data) | `finite_box.py`, `physical_units.py`; W = 2.34 m from `finite_box_W2.py` |
 | Fig. 9 | `fig13_invRe_extrapolation.png` | `paper_figures.py` (MPI data) | `extrapolate_Re.py`, `extrap_invRe.py` |
-| Fig. 10 | `BSSpectra_clean.png` | reproduced from the review; DNS of Sreenivasan & Rodhiya (Phil. Trans. R. Soc. A **384**, 20250021) | — |
+| Fig. 10 | `BSSpectra_clean.png` | reproduced from the review; DNS of Rodhiya & Sreenivasan (Phil. Trans. R. Soc. A **384**, 20250021) | — |
 
 ### Numbers quoted in the paper
 
@@ -94,6 +94,7 @@ Sec. III and figures 8 and 9. The committed tables in `results/` hold the fitted
 | s = 1.956 ± 0.021, χ²/dof = 2.4, weighted rms 0.017; Table I (abstract, III B) | `extrap_invRe.py` |
 | with a box term at Re_λ → ∞: κ_min → 0.6, no improvement (III B) | `extrapolate_Re.py` (line `mid+high … beta=1.0`) |
 | even vs odd ensemble: \|Δα\| ≤ 0.0035, χ²/dof 2.422 vs 2.423 (III B) | `even_vs_odd.py` |
+| below r = L: α_∞ = 0.50 vs 0.89 at r = L/e, 0.65 vs 1.85 at r = e⁻⁴L; α(e⁻⁴L) = 0.79 → 0.66 for Re_λ = 1046 → 5779; finite width changes α by < 10⁻³ for log ρ ≤ −3 and 0.02 at log ρ = −1 (III D) | `tail_check.py` |
 
 ## The Python implementation (`python/`)
 
@@ -112,6 +113,7 @@ Sec. III and figures 8 and 9. The committed tables in `results/` hold the fitted
 | `physical_units.py`, `finite_box_W.py`, `finite_box_W2.py` | physical units of each run and one physical width W |
 | `extrapolate_Re.py`, `extrap_invRe.py` | integral scale, extrapolation to Re_λ → ∞ (adopted: in 1/Re_λ) and the one-parameter theory fit |
 | `even_vs_odd.py` | the same fit for the even ensemble |
+| `tail_check.py` | why only the tail r ≳ L is compared (Sec. III D) |
 | `paper_figures.py` | the computed figures of the paper |
 | `make_figures.py`, `fig_box.py`, `fig_extrap.py`, `fig_invRe.py`, `mpi_fit_tail.py`, `finite_box_global.py`, `cutoff_test.py` | README figures and side checks (`run_all.sh --readme`) |
 | `htab_CorrelationOscillation.csv` | the table `htab` of `CorrelationOscillation.nb`, used by `cutoff_test.py` |

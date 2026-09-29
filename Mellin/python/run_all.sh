@@ -35,6 +35,7 @@ else
   echo; echo "=== Max Planck data not found in $MPI_DATA_DIR: Sec. III fits skipped (the committed tables in ../results are used)"
 fi
 step even_vs_odd.py         # odd vs even ensemble fitted to the Re -> infinity tail (uses ../results/mpi_extrap_invRe.json)
+step tail_check.py          # Sec. III D: index below r = L vs theory, Re trend at fixed r/L, finite width at small rho
 
 # 3. Figures of the paper -> ../paper/figs
 step paper_figures.py
