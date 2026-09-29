@@ -1,27 +1,18 @@
-"""Figures for the MellinOscillationsOdd thimble computation (writes PNGs into ../results)."""
+"""Figures 1-8 of the README (with titles; the paper versions are made by paper_figures.py). Writes PNGs into ../results."""
 import json, os, sys, numpy as np
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
+from common import *
+plt = style()
 from thimble import Thimble, GAMMA, DYAD
 
-OUT = sys.argv[1] if len(sys.argv) > 1 else '../results'
+OUT = sys.argv[1] if len(sys.argv) > 1 else RESULTS
 os.makedirs(OUT, exist_ok=True)
-INK, INK2, GRID, SURF = '#0b0b0b', '#52514e', '#e4e3df', '#fcfcfb'
-C1, C2, C3, C4, C5, C6, C7 = '#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7'
-SEQ = ['#86b6ef', '#6da7ec', '#5598e7', '#3987e5', '#2a78d6', '#256abf', '#1c5cab', '#184f95', '#104281', '#0d366b', '#0a2a55']
-plt.rcParams.update({'figure.facecolor': SURF, 'axes.facecolor': SURF, 'axes.edgecolor': INK2, 'axes.labelcolor': INK,
-                     'xtick.color': INK2, 'ytick.color': INK2, 'text.color': INK, 'axes.grid': True, 'grid.color': GRID,
-                     'grid.linewidth': 0.6, 'lines.linewidth': 2, 'font.size': 10.5, 'axes.spines.top': False,
-                     'axes.spines.right': False, 'legend.frameon': False, 'savefig.dpi': 160, 'savefig.bbox': 'tight'})
 
-R = json.load(open('scan_D.json')); RF = json.load(open('scan_f.json')) if os.path.exists('scan_f.json') else None
+R = load_json(res('scan_D.json')); RF = load_json(res('scan_f.json')) if os.path.exists(res('scan_f.json')) else None
 xs = np.array([r['xi'] for r in R]); DD = np.array([r['I'] for r in R]); aa = np.array([r['alpha'] for r in R])
 zer = [r['zero'] for r in R]; nR = np.array([r['nR'] for r in R]); nD = np.array([r['nD'] for r in R])
-osc = np.load('oscill.npy')           # xi, D, alpha, wall part of D, dalpha_wall, dalpha_Riemann, dalpha_dyadic (exact line integral)
+osc = np.load(cache('oscill.npy'))           # xi, D, alpha, wall part of D, dalpha_wall, dalpha_Riemann, dalpha_dyadic (exact line integral)
 xo, Do, ao = osc[0], osc[1], osc[2]
 zB = [x for x, z in zip(xs, zer) if z is not None]; zC = [x for x, n1, n2, z in zip(xs, nR, nD, zer) if n1+n2 > 0 and z is None]
-LOGCMIN, LOGCMAX = -2.9153, -2.7635   # log of min/max C(Delta)
 
 
 def bands(ax, ylab=None):
@@ -95,7 +86,7 @@ ax.set_title('Lefschetz thimbles of r^q(−2ZR(q)) through the real saddles q₀
 fig.savefig(f'{OUT}/fig4_thimbles.png'); plt.close(fig)
 
 # ---------- 5. cutoff artifact ----------
-cut = np.load('xi2_cut.npy')
+cut = np.load(cache('xi2_cut.npy'))
 fig, ax = plt.subplots(figsize=(8.4, 4.4))
 L = np.linspace(0.5, 2.5, 400)
 ax.plot(L, np.interp(L*np.log(10), xo, ao), color=C1, label='exact α_D (Mellin integral, no cutoff)')
@@ -107,27 +98,28 @@ ax.set_title('The large-r oscillations of the old index come from the k-integrat
 fig.savefig(f'{OUT}/fig5_cutoff_artifact.png'); plt.close(fig)
 
 # ---------- 6. Max Planck comparison ----------
-fits = json.load(open('../mpi/fit_tail.json'))
-fig, (a1, a2) = plt.subplots(2, 1, figsize=(8.4, 8.2), gridspec_kw={'hspace': 0.25, 'height_ratios': [2.2, 1]})
-xx = np.linspace(-8, 3, 800)
-for k, f in enumerate(fits):
-    lr, a = np.array(f['lr']), np.array(f['a'])
-    a1.plot(lr-f['shift'], a, '.', ms=3.2, color=SEQ[k], label='Re_λ = %d' % round(f['Re']))
-    i0 = f['i0']; X = lr[i0:]-f['shift']
-    a2.plot(X, a[i0:]-np.interp(X, xo, ao), '.-', ms=3, lw=0.6, color=SEQ[k])
-a1.plot(xx, np.interp(xx, xo, ao), color=INK, lw=2.2, label='theory α_D')
-a1.set_xlim(-8, 3); a1.set_ylim(-0.15, 2.1); a1.set_xlabel('log(r/η) − s'); a1.set_ylabel('α = d log S₂ / d log r')
-a1.legend(loc='upper right', fontsize=8, ncol=2)
-a1.set_title('Max Planck wind tunnel (E_Kohler): measured index, each run shifted by its fitted s', fontsize=10.5, loc='left')
-a2.axhline(0, color=INK2, lw=0.8); a2.set_xlim(-2.2, 0.8); a2.set_xlabel('log(r/η) − s  (fitted tail, α_exp < 0.355)'); a2.set_ylabel('α_exp − α_D')
-fig.savefig(f'{OUT}/fig6_maxplanck.png'); plt.close(fig)
-fig, ax = plt.subplots(figsize=(6.0, 4.0))
-Re = np.array([f['Re'] for f in fits]); S = np.array([f['shift'] for f in fits]); pf = np.polyfit(np.log(Re), S, 1)
-ax.plot(np.log(Re), S, 'o', color=C1, ms=7, mec=SURF, mew=1.5)
-xl = np.linspace(np.log(Re).min()-0.2, np.log(Re).max()+0.2, 10)
-ax.plot(xl, np.polyval(pf, xl), color=INK2, lw=1.2, ls='--', label='slope %.2f  (L/η ∝ Re_λ^{3/2} ⇒ 1.5)' % pf[0])
-ax.set_xlabel('log Re_λ'); ax.set_ylabel('fitted shift s = log(r/η) − log r_theory'); ax.legend(loc='upper left', fontsize=9)
-fig.savefig(f'{OUT}/fig7_shift_vs_Re.png'); plt.close(fig)
+fits = load_json(cache('mpi_fit_tail_full.json')) if os.path.exists(cache('mpi_fit_tail_full.json')) else []   # mpi_fit_tail.py (needs the MPI data)
+if fits:
+    fig, (a1, a2) = plt.subplots(2, 1, figsize=(8.4, 8.2), gridspec_kw={'hspace': 0.25, 'height_ratios': [2.2, 1]})
+    xx = np.linspace(-8, 3, 800)
+    for k, f in enumerate(fits):
+        lr, a = np.array(f['lr']), np.array(f['a'])
+        a1.plot(lr-f['shift'], a, '.', ms=3.2, color=SEQ[k], label='Re_λ = %d' % round(f['Re']))
+        i0 = f['i0']; X = lr[i0:]-f['shift']
+        a2.plot(X, a[i0:]-np.interp(X, xo, ao), '.-', ms=3, lw=0.6, color=SEQ[k])
+    a1.plot(xx, np.interp(xx, xo, ao), color=INK, lw=2.2, label='theory α_D')
+    a1.set_xlim(-8, 3); a1.set_ylim(-0.15, 2.1); a1.set_xlabel('log(r/η) − s'); a1.set_ylabel('α = d log S₂ / d log r')
+    a1.legend(loc='upper right', fontsize=8, ncol=2)
+    a1.set_title('Max Planck wind tunnel (E_Kohler): measured index, each run shifted by its fitted s', fontsize=10.5, loc='left')
+    a2.axhline(0, color=INK2, lw=0.8); a2.set_xlim(-2.2, 0.8); a2.set_xlabel('log(r/η) − s  (fitted tail, α_exp < 0.355)'); a2.set_ylabel('α_exp − α_D')
+    fig.savefig(f'{OUT}/fig6_maxplanck.png'); plt.close(fig)
+    fig, ax = plt.subplots(figsize=(6.0, 4.0))
+    Re = np.array([f['Re'] for f in fits]); S = np.array([f['shift'] for f in fits]); pf = np.polyfit(np.log(Re), S, 1)
+    ax.plot(np.log(Re), S, 'o', color=C1, ms=7, mec=SURF, mew=1.5)
+    xl = np.linspace(np.log(Re).min()-0.2, np.log(Re).max()+0.2, 10)
+    ax.plot(xl, np.polyval(pf, xl), color=INK2, lw=1.2, ls='--', label='slope %.2f  (L/η ∝ Re_λ^{3/2} ⇒ 1.5)' % pf[0])
+    ax.set_xlabel('log Re_λ'); ax.set_ylabel('fitted shift s = log(r/η) − log r_theory'); ax.legend(loc='upper left', fontsize=9)
+    fig.savefig(f'{OUT}/fig7_shift_vs_Re.png'); plt.close(fig)
 
 # ---------- 8. f(r) ----------
 if RF:

@@ -1,10 +1,10 @@
+"""README figure 12: Re -> infinity extrapolations in 1/Re and Re^-1/2 (needs the MPI data)."""
 import json, sys, numpy as np
-import matplotlib; matplotlib.use('Agg'); import matplotlib.pyplot as plt
+from common import *
+plt = style()
 from finite_box import alphaL
-_st = open('make_figures.py').read().split("R = json.load")[0]
-exec('\n'.join(l for l in _st.splitlines() if not l.startswith(('from thimble', 'OUT =', 'os.makedirs'))))
-OUT = sys.argv[1]
-J = json.load(open('../mpi/extrapolate_Re.json')); runs = J['runs']
+OUT = sys.argv[1] if len(sys.argv) > 1 else RESULTS
+J = load_json(cache('mpi_extrapolate_Re_full.json')); runs = J['runs']
 fig, axs = plt.subplots(1, 2, figsize=(13, 6.0), sharey=True, gridspec_kw={'wspace': 0.06})
 for ax, key, title in [(axs[0], 'mid+high (Re>=1046)|1.0', 'extrapolated from Re_λ = 1046 … 5779 in 1/Re_λ'),
                        (axs[1], 'mid+high (Re>=1046)|0.5', 'extrapolated from Re_λ = 1046 … 5779 in Re_λ^{-1/2}')]:

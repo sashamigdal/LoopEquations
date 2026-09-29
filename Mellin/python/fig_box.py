@@ -1,10 +1,10 @@
+"""README figures 9-11: finite box vs the Max Planck runs (needs the MPI data)."""
 import json, sys, numpy as np
-import matplotlib; matplotlib.use('Agg'); import matplotlib.pyplot as plt
+from common import *
+plt = style()
 from finite_box import alphaL
-_st = open('make_figures.py').read().split("R = json.load")[0]
-exec('\n'.join(l for l in _st.splitlines() if not l.startswith(('from thimble', 'OUT =', 'os.makedirs'))))   # style + palette only
-OUT = sys.argv[1]
-F = json.load(open('../mpi/fit_box.json')); G = json.load(open('../mpi/fit_box_global.json')); Lam = G['best']['Lambda']
+OUT = sys.argv[1] if len(sys.argv) > 1 else RESULTS
+F = load_json(cache('mpi_fit_box_full.json')); G = load_json(res('mpi_fit_box_global.json')); Lam = G['best']['Lambda']
 # ---- 9: per-run comparison, small multiples ----
 fig, axs = plt.subplots(4, 3, figsize=(11, 12), sharey=True)
 for ax, (j, f) in zip(axs.flat, enumerate(F)):

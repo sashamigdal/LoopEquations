@@ -86,13 +86,11 @@
 \bibitem [{\citenamefont {Migdal}(2026{\natexlab{a}})}]{ReviewPaperAM}%
   \BibitemOpen
   \bibfield  {author} {\bibinfo {author} {\bibfnamefont {A.}~\bibnamefont
-  {Migdal}},\ }\href {https://doi.org/10.1098/rsta.2025.0032} {\bibinfo {title}
-  {Geometric solution of turbulence as diffusion in loop space}},\ \bibinfo
-  {howpublished} {Forthcoming in Philosophical Transactions of the Royal
-  Society A, Special Issue "Frontiers of Turbulence and Statistical Physics
-  Meet"} (\bibinfo {year} {2026}{\natexlab{a}}),\ \bibinfo {note} {accepted},\
-  \Eprint {https://arxiv.org/abs/2511.02165} {arXiv:2511.02165
-  [physics.flu-dyn]} \BibitemShut {NoStop}%
+  {Migdal}},\ }\href {https://doi.org/10.1098/rsta.2025.0032} {\bibfield
+  {journal} {\bibinfo  {journal} {Phil. Trans. R. Soc. A}\ }\textbf {\bibinfo
+  {volume} {384}},\ \bibinfo {pages} {20250032} (\bibinfo {year}
+  {2026}{\natexlab{a}})},\ \Eprint {https://arxiv.org/abs/2511.02165}
+  {arXiv:2511.02165 [physics.flu-dyn]} \BibitemShut {NoStop}%
 \bibitem [{\citenamefont {Migdal}(2026{\natexlab{b}})}]{migdal2026Riemann}%
   \BibitemOpen
   \bibfield  {author} {\bibinfo {author} {\bibfnamefont {A.}~\bibnamefont
@@ -141,19 +139,20 @@
   \BibitemOpen
   \bibfield  {author} {\bibinfo {author} {\bibfnamefont {K.~R.}\ \bibnamefont
   {Sreenivasan}}\ and\ \bibinfo {author} {\bibfnamefont {A.}~\bibnamefont
-  {Rodhiya}},\ }\href@noop {} {\bibinfo {title} {{Asymptotic State of Decaying
-  Turbulence}}} (\bibinfo {year} {2026}),\ \bibinfo {note} {forthcoming in
-  \textit{Philosophical Transactions of the Royal Society A}},\ \Eprint
-  {https://arxiv.org/abs/2602.12501v1} {arXiv:2602.12501v1 [physics.flu-dyn]}
-  \BibitemShut {NoStop}%
+  {Rodhiya}},\ }\href {https://doi.org/10.1098/rsta.2025.0021} {\bibfield
+  {journal} {\bibinfo  {journal} {Phil. Trans. R. Soc. A}\ }\textbf {\bibinfo
+  {volume} {384}},\ \bibinfo {pages} {20250021} (\bibinfo {year} {2026})},\
+  \Eprint {https://arxiv.org/abs/2602.12501} {arXiv:2602.12501
+  [physics.flu-dyn]} \BibitemShut {NoStop}%
 \bibitem [{\citenamefont {Migdal}(2026{\natexlab{d}})}]{LoopEquationsRepo}%
   \BibitemOpen
   \bibfield  {author} {\bibinfo {author} {\bibfnamefont {A.}~\bibnamefont
-  {Migdal}},\ }\href@noop {} {\bibinfo {title} {{LoopEquations: thimble,
-  Gauss--Hermite and Stokes computation of the decaying-turbulence structure
-  function (folder Mellin)}}},\ \bibinfo {howpublished}
-  {\url{https://github.com/sashamigdal/LoopEquations}} (\bibinfo {year}
-  {2026}{\natexlab{d}})\BibitemShut {NoStop}%
+  {Migdal}},\ }\href@noop {} {\bibinfo {title} {{LoopEquations}, folder
+  {Mellin}: thimble, {Gauss--Hermite} and {Stokes} computation of the
+  decaying-turbulence structure function and its comparison with wind-tunnel
+  data}},\ \bibinfo {howpublished}
+  {\url{https://github.com/sashamigdal/LoopEquations/tree/master/Mellin}}
+  (\bibinfo {year} {2026}{\natexlab{d}})\BibitemShut {NoStop}%
 \bibitem [{\citenamefont {Migdal}(2026{\natexlab{e}})}]{MBMellinDT}%
   \BibitemOpen
   \bibfield  {author} {\bibinfo {author} {\bibfnamefont {A.}~\bibnamefont

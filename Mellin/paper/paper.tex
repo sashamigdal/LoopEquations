@@ -139,7 +139,7 @@ by the same thimble method used for the spectrum~\cite{migdal2026Riemann}. We wo
 finite-size correction of a tunnel of finite width. We then compare the result with the Max Planck wind-tunnel
 data~\cite{GregXi2} extrapolated to infinite Reynolds number.
 
-\section{The method}
+\section{The method}\label{sec:method}
 
 \subsection{Mellin--Barnes representation of the structure function}
 
@@ -347,7 +347,7 @@ finite-size oscillations of~\eqref{eq:DW} with $\kappa_{\min}=0.1$.
     \label{fig:box}
 \end{figure}
 
-\section{Wind tunnel and DNS data}
+\section{Wind tunnel and DNS data}\label{sec:data}
 
 \subsection{The Max Planck measurements}
 
@@ -497,16 +497,25 @@ measurements~\cite{GregXi2}, and to Katepalli Sreenivasan and Akash Rodhiya for 
 \end{acknowledgments}
 
 \section*{Declaration of generative AI in the writing process}
-The numerical cross-check in Python, the analysis of the wind-tunnel data and the first draft of this manuscript were
+The Python implementation of the computations, the analysis of the wind-tunnel data and the first draft of this manuscript were
 prepared with the assistance of generative AI (Claude, Anthropic), following the author's instructions and his \Mathematica{}
 notebooks. The author verified the scientific content and takes full responsibility for the manuscript.
 
-\section*{Data availability}
-The \Mathematica{} package, the driver notebook and the independent Python implementation of the thimble computation, together
-with the scan tables and figures, are available in Ref.~\cite{LoopEquationsRepo} (folder \texttt{Mellin}); see
-also~\cite{MBMellinDT, MB46, DecayTurb23}. The Max Planck data of Ref.~\cite{GregXi2} were provided by the authors on request
-and are quoted with their permission; they are available from the authors. The DNS data of Ref.~\cite{SreeniAkash2025} are
-available on request from their authors.
+\section*{Code and data availability}
+The code that produced every number and every computed figure of this paper is provided as ancillary files with the arXiv
+version of the paper (directory \texttt{anc}) and is maintained in the folder \texttt{Mellin} of the GitHub
+repository~\cite{LoopEquationsRepo}. It contains
+(i) the Python implementation used for all results: the table of $A,B,C(\Delta)$ and the function $f(p)$, the saddles,
+thimbles, Gauss--Hermite sums and Stokes terms of Sec.~\ref{sec:method}, the direct contour integrals used as checks, the
+finite-width correction~\eqref{eq:DW}, the analysis of the wind-tunnel data of Sec.~\ref{sec:data}, and the script
+\texttt{run\_all.sh}, which regenerates Figs.~\ref{fig:thimbles}--\ref{fig:osc} and~\ref{fig:box} and, given the
+Max Planck data, Figs.~\ref{fig:runs}, \ref{fig:extrap} and Table~\ref{tab:extrap};
+(ii) a \Mathematica{} package and driver notebook implementing the same algorithm;
+(iii) the scan tables and fitted parameters.
+The file \texttt{README.md} there lists the script behind each figure, table and quoted number. Earlier notebooks are
+in Refs.~\cite{MBMellinDT, MB46, DecayTurb23}. The Max Planck data of Ref.~\cite{GregXi2} were provided by the authors on
+request and are quoted with their permission; they are not redistributed and are available from the authors. The DNS data
+of Ref.~\cite{SreeniAkash2025} are available on request from their authors.
 
 \bibliographystyle{apsrev4-2}
 \bibliography{paper}

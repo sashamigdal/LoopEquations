@@ -1,4 +1,6 @@
+"""One physical width W for the runs with Re_lambda <= 2398 (the runs that show a finite-size dip), and the range of W allowed by each run."""
 import json, numpy as np
+from common import res
 from scipy.optimize import minimize_scalar
 from finite_box_W import fit_s, F, P
 sub = [i for i, f in enumerate(F) if f['Re'] <= 2400]
@@ -15,4 +17,4 @@ for f, p in zip(F, P):
     out.append(dict(Re=f['Re'], W_best=float(Ws[j]), W_lo=float(Ws[ok].min()), W_hi=float(Ws[ok].max()), rms_min=float(rm[j]), rms_inf=rinf,
                     open_ended=bool(ok[-1])))
     print('Re=%5.0f  W_best=%.2f m  10%%-range [%.2f, %s]  rms_min %.4f (inf %.4f)' % (f['Re'], Ws[j], Ws[ok].min(), ('inf' if ok[-1] else '%.2f' % Ws[ok].max()), rm[j], rinf))
-json.dump({'W_sub': r.x, 'rms_sub': r.fun, 'rms_sub_inf': inf, 'rms_sub_free': free, 'perrun': out}, open('../mpi/fit_box_W2.json', 'w'), indent=1)
+json.dump({'W_sub': r.x, 'rms_sub': r.fun, 'rms_sub_inf': inf, 'rms_sub_free': free, 'perrun': out}, open(res('mpi_fit_width_sub.json'), 'w'), indent=1)

@@ -1,4 +1,6 @@
+"""Thimble + Gauss-Hermite + Stokes scan:  python scan.py D -8 8 0.05  ->  ../results/scan_D.json  (kind D or f)."""
 import json, sys, time, numpy as np
+from common import res
 from multiprocessing import Pool
 kind = sys.argv[1]; lo, hi, step = map(float, sys.argv[2:5])
 def job(xi):
@@ -16,5 +18,5 @@ if __name__ == '__main__':
         for i, r in enumerate(p.imap(job, xis)):
             out.append(r)
             if i % 20 == 0: print(i, len(xis), r.get('xi'), r.get('I'), r.get('alpha'), round(time.time()-t), flush=True)
-    json.dump(out, open(f'scan_{kind}.json', 'w'))
+    json.dump(out, open(res(f'scan_{kind}.json'), 'w'))
     print('done', time.time()-t)

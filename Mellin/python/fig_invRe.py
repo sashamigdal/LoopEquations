@@ -1,10 +1,10 @@
+"""README figure 13 (with titles; the paper version is made by paper_figures.py; needs the MPI data)."""
 import json, sys, numpy as np
-import matplotlib; matplotlib.use('Agg'); import matplotlib.pyplot as plt
+from common import *
+plt = style()
 from finite_box import alphaL
-_st = open('make_figures.py').read().split("R = json.load")[0]
-exec('\n'.join(l for l in _st.splitlines() if not l.startswith(('from thimble', 'OUT =', 'os.makedirs'))))
-OUT = sys.argv[1]
-J = json.load(open('../mpi/extrap_invRe.json')); x = np.array(J['x']); Re = np.array(J['Re']); B = np.array([[np.nan if v is None else v for v in row] for row in J['binned']])
+OUT = sys.argv[1] if len(sys.argv) > 1 else RESULTS
+J = load_json(cache('mpi_extrap_invRe_full.json')); x = np.array(J['x']); Re = np.array(J['Re']); B = np.array([[np.nan if v is None else v for v in row] for row in J['binned']])
 F = J['fits']; A = F['Re>=1046 (adopted)']
 ai, ae = np.array(A['ainf'], float), np.array(A['aerr'], float); s = A['s']
 fig = plt.figure(figsize=(13, 7.6)); gs = fig.add_gridspec(2, 2, height_ratios=[2.3, 1], width_ratios=[1.35, 1], hspace=0.12, wspace=0.22)

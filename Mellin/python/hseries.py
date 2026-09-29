@@ -3,6 +3,7 @@ Closing right picks up only the Gamma(-p) poles p = n = 0,1,2,...  (zeta(p+15/2)
 so H(k) = sum_n (-1)^n k^n/n! A_n,  A_n = DF(n) zeta(n+15/2)/(zeta(n+17/2)(2n+7)(2n+17)(1-2^-(n+17/2)))  -- an entire function of k."""
 import numpy as np, mpmath as mm
 from dfcore import DFfast
+from common import cache
 DF = DFfast(nGL=200)
 mm.mp.dps = 30
 def A(n):
@@ -28,4 +29,4 @@ if __name__ == '__main__':
     print('H(0) =', coef[0], ' (pi/2)H(0) =', np.pi/2*coef[0], ' vs large-r coefficient of f: 0.05835907136')
     for k in [0.1, 0.5, 1, 3, 10, 20, 40]:
         print('k=%5.1f  series=%.12e  line=%.12e  rel=%.1e' % (k, Hser(k), Hline(k), abs(Hser(k)/Hline(k)-1)))
-    np.save('hcoef.npy', coef)
+    np.save(cache('hcoef.npy'), coef)

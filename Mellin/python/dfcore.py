@@ -1,9 +1,11 @@
 """Fast DF(p,n) = Int_{D1}^{D2} (1-x) d^n/dp^n [20 C^(p-1) (A C - B p)] dx for complex p.
 ABC(x) from Chebyshev table (smooth), inner x-integral by Gauss-Legendre (inner quadrature only)."""
-import json, numpy as np
+import json, os, numpy as np
 from numpy.polynomial import chebyshev as Ch, legendre as Le
 
-def load(path='abc_cheb48.json'):
+TABLE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'abc_cheb48.json')
+
+def load(path=TABLE):
     d = json.load(open(path))
     rows = np.array([[float(v) for v in r] for r in d['rows']])
     D1, D2 = float(d['D1']), float(d['D2'])
@@ -16,7 +18,7 @@ def load(path='abc_cheb48.json'):
     return D1, D2, fits
 
 class DFfast:
-    def __init__(self, path='abc_cheb48.json', nGL=128):
+    def __init__(self, path=TABLE, nGL=128):
         self.D1, self.D2, self.fits = load(path)
         t, w = Le.leggauss(nGL)
         self.x = (self.D1+self.D2)/2 + (self.D2-self.D1)/2*t

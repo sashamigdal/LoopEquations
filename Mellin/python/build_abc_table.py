@@ -1,5 +1,5 @@
 """Tabulate ABC(Delta) on Chebyshev nodes of [Delta1, Delta2]; r2 by continuation from Delta=0.5 as in the .wl."""
-import json, sys, time
+import json, os, sys, time
 from multiprocessing import Pool
 from mpmath import mp, mpf, cos, pi
 from abcport import r2, IQ, action, alal, cons, re, D1, D2
@@ -21,5 +21,5 @@ if __name__ == '__main__':
     t = time.time()
     with Pool(3) as p:
         rows = p.map(work, list(zip(nodes, rvals)))
-    json.dump({'D1': str(D1), 'D2': str(D2), 'cols': ['D','r','L','S','J','IQ'], 'rows': rows}, open(f'abc_cheb{N}.json','w'), indent=0)
+    json.dump({'D1': str(D1), 'D2': str(D2), 'cols': ['D','r','L','S','J','IQ'], 'rows': rows}, open(os.path.join(os.path.dirname(os.path.abspath(__file__)), f'abc_cheb{N}.json'), 'w'), indent=0)
     print('done', N, time.time()-t)

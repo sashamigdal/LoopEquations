@@ -3,6 +3,7 @@
 import numpy as np, mpmath as mm
 from dfcore import DFfast
 from thimble import R as Ran, GAMMA, DYAD
+from common import cache
 DF = DFfast(nGL=200); mm.mp.dps = 25
 def M(p, eta=1):
     p = mm.mpc(p)
@@ -31,7 +32,14 @@ def wall(parts):
     return 2*(Ex*c).sum(1).real, 2*(Ex*c*p).sum(1).real
 WR, WR1 = wall(RR); WD, WD1 = wall(RD)
 dn_R = (WR1-n*WR)/H; dn_D = (WD1-n*WD)/H
-np.save('spectrum_osc.npy', np.vstack([xs, H, n, dn_R, dn_D, WR/H, WD/H]))
+np.save(cache('spectrum_osc.npy'), np.vstack([xs, H, n, dn_R, dn_D, WR/H, WD/H]))
 Cmax = float(np.exp(DF.lC.max())); print('left-closed series for H converges for kappa > 1/C_min = %.2f (xi > %.2f)' % (1/np.exp(DF.lC.min()), -DF.lC.min()))
 for x in [3, 4, 5, 6, 7, 8, 9, 10, 11, 12]:
     i = int(round(x/0.01)); print('xi=%4.1f  H=%.4e  n=%.4f  wall/H: Riemann %.2e dyadic %.2e | dn: Riemann %.2e dyadic %.2e' % (x, H[i], n[i], WR[i]/H[i], WD[i]/H[i], dn_R[i], dn_D[i]))
+# why the spectrum oscillates much more: Gamma(-p) at the walls vs csc(pi q/2) in coordinate space (q = -1-p)
+pD = mm.mpc(-8.5, 2*mm.pi/mm.log(2)); pR = mm.mpc(-8, GAMMA[0])
+print('C(Delta) in [e^%.3f, e^%.3f]' % (DF.lC.min(), DF.lC.max()))
+print('|Gamma(-p)| at the first dyadic pole p = -17/2 + 2 pi i/log2: %.3g;  |csc(pi q/2)| at q = 15/2 + 2 pi i/log2: %.3g' % (
+    abs(mm.gamma(-pD)), abs(1/mm.sin(mm.pi*(-1-pD)/2))))
+print('|Gamma(-p)| at the first Riemann pole p = -8 + i gamma_1: %.3g;  |csc(pi q/2)| at q = 7 + i gamma_1: %.3g' % (
+    abs(mm.gamma(-pR)), abs(1/mm.sin(mm.pi*(-1-pR)/2))))

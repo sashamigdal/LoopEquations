@@ -3,7 +3,8 @@ Robustness vs the set of runs, uncertainty of s, linearity in 1/Re."""
 import json, numpy as np
 from scipy.optimize import minimize_scalar
 from finite_box import alphaL
-J = json.load(open('../mpi/extrapolate_Re.json')); runs = J['runs']
+from common import cache, res, load_json, save_json
+J = load_json(cache('mpi_extrapolate_Re_full.json')); runs = J['runs']
 xg = np.arange(-4.0, 2.61, 0.1)
 def binned(run):
     x = np.array(run['lr'])-np.log(run['L_eta']); a = np.array(run['a']); out = np.full(len(xg), np.nan)
@@ -36,4 +37,6 @@ for name, lo in [('all 11 runs (Re>=413)', 0), ('Re>=1046 (adopted)', 1000), ('R
     s, ds, red, wr, n, m = fit(ai, ae)
     out[name] = dict(runs=int(sel.sum()), s=s, ds=ds, chi2dof=red, wrms=wr, n=int(n), ainf=ai.tolist(), aerr=ae.tolist(), slope=sl.tolist(), linres=lin.tolist())
     print('%-24s runs=%2d  s = %.3f +- %.3f  (l_D/L = %.2f)  chi2/dof = %.2f  weighted rms = %.4f  (n=%d bins)' % (name, sel.sum(), s, ds, np.exp(s), red, wr, n))
-json.dump({'x': xg.tolist(), 'Re': Re.tolist(), 'binned': np.where(np.isfinite(Ab), Ab, None).tolist(), 'fits': out}, open('../mpi/extrap_invRe.json', 'w'))
+full = {'x': xg.tolist(), 'Re': Re.tolist(), 'binned': np.where(np.isfinite(Ab), Ab, None).tolist(), 'fits': out}
+save_json(full, cache('mpi_extrap_invRe_full.json'))
+save_json({k: v for k, v in full.items() if k != 'binned'}, res('mpi_extrap_invRe.json'))   # alpha_inf(x) with errors, no per-run data

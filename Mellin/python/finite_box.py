@@ -1,11 +1,12 @@
 """Finite-box structure function  D_L(r) = 2 Int_{kmin}^inf (1 - sin kr/(kr)) H(k) dk = D_inf(r) - dD(r),
 dD(r) = 2 Int_0^{kmin} (1 - sin kr/(kr)) H(k) dk  (H(k) from its exact entire small-k series),
 alpha_L = r d log D_L/dr.  Fit (s, kmin) to each Max Planck run's tail."""
-import json, glob, re, numpy as np
+import json, numpy as np
 from numpy.polynomial.legendre import leggauss
 from scipy.optimize import minimize, minimize_scalar
 from hseries import Hser
-line = np.load('lineD_c1.npy'); Y = line[0].real; Z = line[1]; Q = 1.0+1j*Y; h = Y[1]-Y[0]
+from common import cache, res, save_json, strip, mpi_files, mpi_index, num
+line = np.load(cache('lineD_c1.npy')); Y = line[0].real; Z = line[1]; Q = 1.0+1j*Y; h = Y[1]-Y[0]
 wS = np.full(len(Y), 2.0); wS[1:-1:2] = 4.0; wS[0] = wS[-1] = 1.0; wS *= h/3/np.pi      # Simpson weights incl. 1/pi
 def Dinf(xi):
     """exact D_inf and r dD_inf/dr at xi = log r (== thimble result to 5e-10)"""
@@ -22,17 +23,11 @@ def dD(r, kmin):
 def alphaL(xi, kmin):
     D, D1 = Dinf(xi); d0, d1 = dD(np.exp(xi), kmin)
     return (D1-d1)/(D-d0), D-d0
-num = lambda pat, f: float(re.search(pat, f.split('/')[-1]).group(1).rstrip('.'))
-def load(f):
-    dd = np.genfromtxt(f, delimiter=',', skip_header=1); r, S2 = dd[:, 1], dd[:, 2]
-    lr, lS = np.log(r), np.log(S2)
-    a = np.empty_like(lr); a[1:-1] = (lS[2:]-lS[:-2])/(lr[2:]-lr[:-2]); a[0] = (lS[1]-lS[0])/(lr[1]-lr[0]); a[-1] = (lS[-1]-lS[-2])/(lr[-1]-lr[-2])
-    i0 = np.argmax((a < 0.355) & (lr > lr.mean()))
-    return lr, a, i0
+load = mpi_index
 if __name__ == '__main__':
     # sanity: kmin = 0.1 reproduces the old xi2 of CorrelationOscillation.nb (k in [0.1, 1000]); xi2(1) there = 0.05625510
     print('alpha_L(r=1, kmin=0.1) =', alphaL(np.array([0.0]), 0.1)[0][0], ' (old notebook xi2[1] = 0.0562551028, with htab)')
-    files = sorted(glob.glob('../mpi/E_Kohler/Re_*.csv'), key=lambda f: num(r'Re_([0-9.]+)_', f))
+    files = mpi_files()
     out = []
     for f in files:
         Re = num(r'Re_([0-9.]+)_', f); lr, a, i0 = load(f); X, A = lr[i0:], a[i0:]
@@ -51,4 +46,4 @@ if __name__ == '__main__':
         out.append(rec)
         print('Re=%5.0f  no-box: s=%.3f rms=%.4f | box: s=%.3f kmin=%.3f (L_th=%.2f) rms=%.4f  L/eta=%.3g  r_max/eta=%.3g  ratio L/r_max=%.2f' % (
             Re, r1.x, np.sqrt(r1.fun), s2, km, np.pi/km, np.sqrt(best.fun), np.pi/km*np.exp(s2), np.exp(lr[-1]), np.pi/km*np.exp(s2)/np.exp(lr[-1])))
-    json.dump(out, open('../mpi/fit_box.json', 'w'))
+    save_json(out, cache('mpi_fit_box_full.json')); save_json(strip(out), res('mpi_fit_box.json'), indent=1)
