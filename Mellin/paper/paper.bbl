@@ -1,0 +1,174 @@
+%apsrev4-2.bst 2019-01-14 (MD) hand-edited version of apsrev4-1.bst
+%Control: key (0)
+%Control: author (72) initials jnrlst
+%Control: editor formatted (1) identically to author
+%Control: production of article title (-1) disabled
+%Control: page (0) single
+%Control: year (1) truncated
+%Control: production of eprint (0) enabled
+\begin{thebibliography}{14}%
+\makeatletter
+\providecommand \@ifxundefined [1]{%
+ \@ifx{#1\undefined}
+}%
+\providecommand \@ifnum [1]{%
+ \ifnum #1\expandafter \@firstoftwo
+ \else \expandafter \@secondoftwo
+ \fi
+}%
+\providecommand \@ifx [1]{%
+ \ifx #1\expandafter \@firstoftwo
+ \else \expandafter \@secondoftwo
+ \fi
+}%
+\providecommand \natexlab [1]{#1}%
+\providecommand \enquote  [1]{``#1''}%
+\providecommand \bibnamefont  [1]{#1}%
+\providecommand \bibfnamefont [1]{#1}%
+\providecommand \citenamefont [1]{#1}%
+\providecommand \href@noop [0]{\@secondoftwo}%
+\providecommand \href [0]{\begingroup \@sanitize@url \@href}%
+\providecommand \@href[1]{\@@startlink{#1}\@@href}%
+\providecommand \@@href[1]{\endgroup#1\@@endlink}%
+\providecommand \@sanitize@url [0]{\catcode `\\12\catcode `\$12\catcode
+  `\&12\catcode `\#12\catcode `\^12\catcode `\_12\catcode `\%12\relax}%
+\providecommand \@@startlink[1]{}%
+\providecommand \@@endlink[0]{}%
+\providecommand \url  [0]{\begingroup\@sanitize@url \@url }%
+\providecommand \@url [1]{\endgroup\@href {#1}{\urlprefix }}%
+\providecommand \urlprefix  [0]{URL }%
+\providecommand \Eprint [0]{\href }%
+\providecommand \doibase [0]{https://doi.org/}%
+\providecommand \selectlanguage [0]{\@gobble}%
+\providecommand \bibinfo  [0]{\@secondoftwo}%
+\providecommand \bibfield  [0]{\@secondoftwo}%
+\providecommand \translation [1]{[#1]}%
+\providecommand \BibitemOpen [0]{}%
+\providecommand \bibitemStop [0]{}%
+\providecommand \bibitemNoStop [0]{.\EOS\space}%
+\providecommand \EOS [0]{\spacefactor3000\relax}%
+\providecommand \BibitemShut  [1]{\csname bibitem#1\endcsname}%
+\let\auto@bib@innerbib\@empty
+%</preamble>
+\bibitem [{\citenamefont {Heisenberg}(1948)}]{Heisenberg1948PRSA}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {W.}~\bibnamefont
+  {Heisenberg}},\ }\href {https://doi.org/10.1098/rspa.1948.0127} {\bibfield
+  {journal} {\bibinfo  {journal} {Proceedings of the Royal Society A}\ }\textbf
+  {\bibinfo {volume} {195}},\ \bibinfo {pages} {402} (\bibinfo {year}
+  {1948})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Migdal}(1995)}]{M93}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {A.}~\bibnamefont
+  {Migdal}},\ }in\ \href {https://doi.org/10.1007/978-1-4615-1819-8} {\emph
+  {\bibinfo {booktitle} {Quantum Field Theory and String Theory}}},\ \bibinfo
+  {editor} {edited by\ \bibinfo {editor} {\bibfnamefont {L.}~\bibnamefont
+  {Baulieu}}, \bibinfo {editor} {\bibfnamefont {V.}~\bibnamefont {Dotsenko}},
+  \bibinfo {editor} {\bibfnamefont {V.}~\bibnamefont {Kazakov}},\ and\ \bibinfo
+  {editor} {\bibfnamefont {P.}~\bibnamefont {Windey}}}\ (\bibinfo  {publisher}
+  {Springer {US}},\ \bibinfo {year} {1995})\ pp.\ \bibinfo {pages}
+  {193--231}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Migdal}(2023{\natexlab{a}})}]{migdal2023exact}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {A.}~\bibnamefont
+  {Migdal}},\ }\href {https://doi.org/10.3390/fractalfract7100754} {\bibfield
+  {journal} {\bibinfo  {journal} {Fractal and Fractional}\ }\textbf {\bibinfo
+  {volume} {7}},\ \bibinfo {pages} {754} (\bibinfo {year}
+  {2023}{\natexlab{a}})},\ \Eprint {https://arxiv.org/abs/2304.13719}
+  {arXiv:2304.13719 [physics.flu-dyn]} \BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Migdal}(2024{\natexlab{a}})}]{migdal2024quantum}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {A.}~\bibnamefont
+  {Migdal}},\ }\href {https://doi.org/10.1063/5.0228660} {\bibfield  {journal}
+  {\bibinfo  {journal} {Physics of Fluids}\ }\textbf {\bibinfo {volume} {36}},\
+  \bibinfo {pages} {095161} (\bibinfo {year} {2024}{\natexlab{a}})}\BibitemShut
+  {NoStop}%
+\bibitem [{\citenamefont {Migdal}(2026{\natexlab{a}})}]{ReviewPaperAM}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {A.}~\bibnamefont
+  {Migdal}},\ }\href {https://doi.org/10.1098/rsta.2025.0032} {\bibinfo {title}
+  {Geometric solution of turbulence as diffusion in loop space}},\ \bibinfo
+  {howpublished} {Forthcoming in Philosophical Transactions of the Royal
+  Society A, Special Issue "Frontiers of Turbulence and Statistical Physics
+  Meet"} (\bibinfo {year} {2026}{\natexlab{a}}),\ \bibinfo {note} {accepted},\
+  \Eprint {https://arxiv.org/abs/https://doi.org/10.48550/arXiv.2511.02165}
+  {arXiv:https://doi.org/10.48550/arXiv.2511.02165 [physics.flu-dyn]}
+  \BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Migdal}(2026{\natexlab{b}})}]{migdal2026Riemann}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {A.}~\bibnamefont
+  {Migdal}},\ }\href {https://arxiv.org/abs/2604.12207v5} {\bibinfo {title}
+  {Decaying turbulence and the riemann hypothesis: The number theory behind the
+  infinite-time singularity}} (\bibinfo {year} {2026}{\natexlab{b}}),\ \Eprint
+  {https://arxiv.org/abs/2604.12207v5} {arXiv:2604.12207v5 [hep-th]}
+  \BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Brué}\ and\ \citenamefont
+  {De~Lellis}(2026)}]{DeLellisInprep}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {E.}~\bibnamefont
+  {Brué}}\ and\ \bibinfo {author} {\bibfnamefont {C.}~\bibnamefont
+  {De~Lellis}},\ }\href {https://doi.org/10.1007/s00021-026-01023-8} {\bibfield
+   {journal} {\bibinfo  {journal} {Journal of Mathematical Fluid Mechanics}\
+  }\textbf {\bibinfo {volume} {28}},\ \bibinfo {pages} {45} (\bibinfo {year}
+  {2026})},\ \Eprint {https://arxiv.org/abs/2509.18992} {arXiv:2509.18992
+  [math.AP]} \BibitemShut {NoStop}%
+\bibitem [{\citenamefont
+  {Migdal}(2026{\natexlab{c}})}]{migdal2026EulerStability}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {A.}~\bibnamefont
+  {Migdal}},\ }\href@noop {} {\bibinfo {title} {Stability of the {Euler}
+  ensemble as a turbulent attractor}} (\bibinfo {year} {2026}{\natexlab{c}}),\
+  \bibinfo {note} {to appear on arXiv}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {K\"uchler}\ \emph {et~al.}(2023)\citenamefont
+  {K\"uchler}, \citenamefont {Bewley},\ and\ \citenamefont
+  {Bodenschatz}}]{GregXi2}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {C.}~\bibnamefont
+  {K\"uchler}}, \bibinfo {author} {\bibfnamefont {G.~P.}\ \bibnamefont
+  {Bewley}},\ and\ \bibinfo {author} {\bibfnamefont {E.}~\bibnamefont
+  {Bodenschatz}},\ }\href {https://doi.org/10.1103/PhysRevLett.131.024001}
+  {\bibfield  {journal} {\bibinfo  {journal} {Phys. Rev. Lett.}\ }\textbf
+  {\bibinfo {volume} {131}},\ \bibinfo {pages} {024001} (\bibinfo {year}
+  {2023})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Migdal}(2024{\natexlab{b}})}]{MB46}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {A.}~\bibnamefont
+  {Migdal}},\ }\href@noop {} {\bibinfo {title} {"corroscillations"}},\ \bibinfo
+  {howpublished}
+  {\url{https://www.wolframcloud.com/obj/sasha.migdal/Published/CorrelationOscillation.nb}}
+  (\bibinfo {year} {2024}{\natexlab{b}})\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Sreenivasan}\ and\ \citenamefont
+  {Rodhiya}(2026)}]{SreeniAkash2025}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {K.~R.}\ \bibnamefont
+  {Sreenivasan}}\ and\ \bibinfo {author} {\bibfnamefont {A.}~\bibnamefont
+  {Rodhiya}},\ }\href@noop {} {\bibinfo {title} {{Asymptotic State of Decaying
+  Turbulence}}} (\bibinfo {year} {2026}),\ \bibinfo {note} {forthcoming in
+  \textit{Philosophical Transactions of the Royal Society A}, Special Issue
+  ``Frontiers of Turbulence and Statistical Physics Meet''. Preprint available
+  at \texttt{arXiv:2602.12501} [physics.flu-dyn]},\ \Eprint
+  {https://arxiv.org/abs/2602.12501v1} {arXiv:2602.12501v1 [physics.flu-dyn]}
+  \BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Migdal}(2026{\natexlab{d}})}]{LoopEquationsRepo}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {A.}~\bibnamefont
+  {Migdal}},\ }\href@noop {} {\bibinfo {title} {{LoopEquations}: thimble,
+  gauss--hermite and stokes computation of the decaying-turbulence structure
+  function (folder {Mellin})}},\ \bibinfo {howpublished}
+  {\url{https://github.com/sashamigdal/LoopEquations}} (\bibinfo {year}
+  {2026}{\natexlab{d}})\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Migdal}(2026{\natexlab{e}})}]{MBMellinDT}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {A.}~\bibnamefont
+  {Migdal}},\ }\href@noop {} {\bibinfo {title} {"mellin integral in decaying
+  turbulence"}},\ \bibinfo {howpublished}
+  {\url{https://www.wolframcloud.com/obj/sasha.migdal/Published/MellinIntegralInDecayingTurbulence.nb}}
+  (\bibinfo {year} {2026}{\natexlab{e}})\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Migdal}(2023{\natexlab{b}})}]{DecayTurb23}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {A.}~\bibnamefont
+  {Migdal}},\ }\href@noop {} {\bibinfo {title} {Decaying turbulence
+  computations}},\ \bibinfo {howpublished}
+  {\url{https://www.wolframcloud.com/obj/sasha.migdal/Published/DecayingTurbulenceComputations.nb}}
+  (\bibinfo {year} {2023}{\natexlab{b}})\BibitemShut {NoStop}%
+\end{thebibliography}%
