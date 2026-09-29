@@ -80,12 +80,12 @@ Sec. III and figures 8 and 9. The committed tables in `results/` hold the fitted
 | thimbles vs direct integral: max relative deviation 5·10⁻¹⁰ in D, 4·10⁻¹⁰ in α (abstract, II D) | `validate.py` |
 | residue formulas vs circle integrals, 10⁻¹² (II C) | `validate.py` |
 | regimes: zero parking for −3.8 ≤ log ρ ≤ −2.95, walls trapped for log ρ < −3.85, lowest dyadic pole for log ρ < −4.2 (II C) | `validate.py` (and `scan_D.json`: `zero`, `nR`, `nD`) |
-| zero-parking sequence n = 1, 2, 3, 5, 6, 7, 8, 14; tails < 10⁻¹⁴ (II C) | `results/scan_D.json`, `validate.py` |
+| zero-parking sequence n = 1, 2, 3, 5, 6, 7, 8, 14; tails < 3·10⁻¹⁴ (II C) | `results/scan_D.json`, `validate.py` |
 | Stokes terms = full wall sum to 10⁻¹⁰ (II D) | `validate.py` |
 | log-periodic part of α: 1.4·10⁻⁶ at log ρ = −3, 2·10⁻⁹ at −4, 8·10⁻¹¹ at −4.5 (II D) | `oscill.py` |
 | spectrum vs structure function, 8–9 orders of magnitude (II D, Fig. 5) | `spectrum_osc.py`, `oscill.py` |
 | C(Δ) ∈ [e^−2.915, e^−2.763]; \|Γ(17/2 − 2πi/log 2)\| = 1.8·10², \|csc\| = 1.3·10⁻⁶, \|Γ(8 − iγ₁)\| = 0.33, \|csc\| = 4.6·10⁻¹⁰ (II A, II D) | `spectrum_osc.py` |
-| series H(κ) = Mellin integral to 10⁻¹⁵ for κ ≤ 40, (π/2)H(0) = a₁ (II E) | `hseries.py` |
+| series H(κ) = Mellin integral to 2·10⁻¹⁴ for κ ≤ 40, (π/2)H(0) = a₁ (II E) | `hseries.py` |
 | κ_min = 0.1 reproduces the old index of `CorrelationOscillation.nb` (II E) | `finite_box.py` (first line), `cutoff_test.py` |
 | per-run rms 0.014–0.045, reduction by up to 2.5 with κ_min (III A) | `finite_box.py` |
 | ν from Re_λ and from the dissipation range, η, largest separations in metres, W = 2.25–2.6 m (III A) | `physical_units.py` |
