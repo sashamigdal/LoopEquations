@@ -90,7 +90,7 @@ BuildThimble[xi_?NumericQ, kind_String, tMax_: 12.3, eps_: 0.001] := Module[{q0,
     c2 = s3/(3 s2^2);                      (* q = q0 + v0 t + c2 t^2 + O(t^3) *)
     sol = Quiet[NDSolveValue[{p'[t] == -2 t/(S1q[p[t]] + xi), p[eps] == q0 + v0 eps + c2 eps^2,
          WhenEvent[Abs[p[t]] > 400, "StopIntegration"]}, p, {t, eps, tMax},
-        Method -> {"ExplicitRungeKutta", "DifferenceOrder" -> 8}, AccuracyGoal -> 12, PrecisionGoal -> 11,
+        Method -> {"ExplicitRungeKutta", "DifferenceOrder" -> 8, "StiffnessTest" -> False}, AccuracyGoal -> 12, PrecisionGoal -> 11,
         MaxSteps -> 10^6], {NDSolveValue::precw, NDSolveValue::mxst}];
     <|"xi" -> xi, "kind" -> kind, "q0" -> q0, "S2" -> s2, "v0" -> v0, "c2" -> c2, "eps" -> eps, "p" -> sol|>];
 
@@ -178,22 +178,22 @@ ZeroTail[n_Integer, xi_?NumericQ, kind_String] := Module[{g0 = gammaList[[n]], y
 (*6. Driver: F(xi), alpha(xi), Stokes bookkeeping*)
 
 
-ComputeMellin[xi_?NumericQ, kind_String, nGH_Integer: 80] := Module[{th, gh, iR, iD, qR, qD, resR, resD, z, tail = {0., 0.}, dI, dI1},
-    th = BuildThimble[xi, kind];
+ComputeMellin[xi_?NumericQ, kind_String, nGH_Integer: 80] := Module[{th, gh, iR, iD, qR, qD, resR, resDy, z, tail = {0., 0.}, dI, dI1},
+    th = BuildThimble[xi, kind, Max[GHNodes[nGH][[1]]] + 0.25];     (* integrate just past the largest Hermite node *)
     gh = ThimbleGHSum[th, nGH];
     z = TerminalZero[th];
     iR = CountTrappedPoles[th, gammaList, 7., z === None];
     iD = CountTrappedPoles[th, dyadList, 7.5, z === None];
     qR = 7 + I gammaList[[iR]]; qD = 15/2 + I dyadList[[iD]];
     resR = RiemannResidue[#, xi, kind] & /@ qR;
-    resD = DyadicResidue[#, xi, kind] & /@ qD;
+    resDy = DyadicResidue[#, xi, kind] & /@ qD;
     If[z =!= None, tail = ZeroTail[z, xi, kind]];
-    dI = -2 Re[Total[resR] + Total[resD]] + tail[[1]];
-    dI1 = -2 Re[Total[qR resR] + Total[qD resD]] + tail[[2]];
+    dI = -2 Re[Total[resR] + Total[resDy]] + tail[[1]];
+    dI1 = -2 Re[Total[qR resR] + Total[qD resDy]] + tail[[2]];
     <|"xi" -> xi, "F" -> gh["I"] + dI, "alpha" -> (gh["I1"] + dI1)/(gh["I"] + dI),
       "Fthimble" -> gh["I"], "alphaThimble" -> gh["I1"]/gh["I"], "dFStokes" -> dI,
       "dalphaStokes" -> (dI1 - gh["I1"]/gh["I"] dI)/(gh["I"] + dI),
-      "resRiemann" -> -2 Re[Total[resR]], "resDyadic" -> -2 Re[Total[resD]], "zeroTail" -> tail[[1]],
+      "resRiemann" -> -2 Re[Total[resR]], "resDyadic" -> -2 Re[Total[resDy]], "zeroTail" -> tail[[1]],
       "nRiemann" -> Length[iR], "nDyadic" -> Length[iD], "terminalZero" -> z,
       "q0" -> th["q0"], "S2" -> th["S2"], "drift" -> gh["drift"], "missingNodes" -> gh["missingNodes"],
       "thimble" -> th|>];
@@ -241,7 +241,7 @@ FullThimbleQ[th_Association, nPts_: 800] := Module[{pts},
     Join[Reverse[Conjugate /@ pts], {th["q0"]}, pts]];
 
 PlotThimbles[res_List, {xmin_, xmax_}, {ymin_, ymax_}] := Module[{cols, curves},
-    cols = ColorData["Rainbow"] /@ Subdivide[0, 1, Max[Length[res] - 1, 1]];
+    cols = ColorData["Rainbow"] /@ If[Length[res] == 1, {0.5}, Subdivide[0, 1, Length[res] - 1]];
     curves = Table[{cols[[i]], Thick, Line[ReIm[FullThimbleQ[res[[i]]["thimble"]]]]}, {i, Length[res]}];
     Legended[
      Graphics[{curves,

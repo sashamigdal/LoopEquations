@@ -37,7 +37,7 @@ C("Section", "Checks (old notebook values and the Python reference)")
 C("Input", """
 {{DF0[-3.], "old NIntegrate DF[-3,0] = 24057.036041758227"},
  {S1q[-0.5], "old S1R[-0.5] = 2.9044428692833426 (S1R was right)"},
- {S2q[-0.5], "Python: 9.06518 (the old S2R gave -7.40176: sign bug in the DF2 term)"},
+ {S2q[-0.5], "Python: 9.06518 (old S2R gave -7.40176: sign bug). Python rebuilt IQ itself, so expect agreement to ~1e-4 only; the real test is thimble vs DirectLine below"},
  {Total[GHNodes[80][[2]]] - Sqrt[Pi], "GH weights: should be ~1e-15"}} // TableForm
 """)
 C("Input", """
@@ -52,7 +52,7 @@ C("Text", "Python reference values (Mellin/python, same algorithm, validated aga
 C("Input", "pythonReference = Import[\"results/pythonReference_D.csv\"]; Grid[pythonReference, Frame -> All]")
 C("Section", "Scan over log r")
 C("Input", """
-LaunchKernels[];
+If[$KernelCount == 0, LaunchKernels[]];
 DistributeDefinitions[ComputeMellin, DirectLine, DirectLineAlpha, GHNodes];
 xiGrid = Range[-8., 8., 0.05];
 resD = ParallelTable[ComputeMellin[xi, "D"], {xi, xiGrid}, Method -> "FinestGrained"];
@@ -94,7 +94,7 @@ ListStepPlot[{{#["xi"], #["nRiemann"]} & /@ resD, {#["xi"], #["nDyadic"]} & /@ r
 """)
 C("Input", """
 (* thimbles for a few log r, with poles (red), zeros (green) and the walls Re q = 6, 7, 15/2 *)
-pick = Flatten[Position[xiGrid, _?(MemberQ[{1., -2., -2.8, -3., -3.5, -4.5, -6.}, Round[#, 0.01]] &)]];
+pick = Flatten[Position[Round[100 xiGrid], Alternatives @@ {100, -200, -280, -300, -350, -450, -600}]];
 PlotThimbles[resD[[pick]], {-6, 16}, {-2, 50}]
 """)
 C("Input", """
@@ -137,6 +137,7 @@ As in CorrelationOscillation.nb the large-r tail (index < 0.355, beyond the iner
 The theory has no inertial plateau, so only the tail is compared. The fitted s should grow like Log(L/\\[Eta]) ~ (3/2) Log Re_lambda.
 """)
 C("Input", """
+If[!DirectoryQ["E_Kohler"], Print["Put the Max Planck folder E_Kohler/ next to this notebook."]; Abort[]];
 mpiFiles = SortBy[FileNames["Re_*.csv", "E_Kohler"], ToExpression[First[StringCases[FileBaseName[#], "Re_" ~~ x : NumberString ~~ "_" :> x]]] &];
 alphaExp[f_] := Module[{d = Rest[Import[f, "CSV"]], lr, lS},
    lr = Log[N[d[[All, 2]]]]; lS = Log[N[d[[All, 3]]]];
@@ -145,7 +146,7 @@ alphaExp[f_] := Module[{d = Rest[Import[f, "CSV"]], lr, lS},
 fitTail[f_] := Module[{a = alphaExp[f], i0, tail, s, sol},
    i0 = First[FirstPosition[Transpose[{a[[All, 2]], a[[All, 1]]}], {x_ /; x < 0.355, y_ /; y > Mean[a[[All, 1]]]}]];
    tail = a[[i0 ;;]];
-   sol = FindMinimum[Total[(tail[[All, 2]] - alphaDInterp[tail[[All, 1]] - s])^2], {s, 10., 5., 15.}];
+   sol = FindMinimum[Total[(tail[[All, 2]] - (alphaDInterp /@ (tail[[All, 1]] - s)))^2], {s, 10., 5., 15.}];
    <|"file" -> FileBaseName[f], "Re" -> ToExpression[First[StringCases[FileBaseName[f], "Re_" ~~ x : NumberString ~~ "_" :> x]]],
      "shift" -> (s /. sol[[2]]), "rms" -> Sqrt[sol[[1]]/Length[tail]], "n" -> Length[tail], "alpha" -> a|>];
 fits = fitTail /@ mpiFiles;

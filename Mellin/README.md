@@ -23,6 +23,9 @@ ZR(q) = −64√2 π Csc(πq/2) DF(−1−q) ζ(13/2−q) / ((128√2 − 2^q)(1
 
 To run it, put the `.wl`/`.nb` files next to `ABCInterpolator.wl`, `iqinterp.mx` and the Max Planck folder `E_Kohler/`, then
 evaluate `MellinOscillationsThimbles.nb`. The Max Planck data are not committed here.
+Mathematica evaluates ABC through your `iqinterp.mx`, while the Python port rebuilt `IQ` from its definition. The two therefore
+agree only to about 10⁻⁴ (for example DF and S1q). Inside Mathematica, the real check is `ComputeMellin` against `DirectLine`,
+which should agree to about 10⁻¹⁰.
 
 ## Bugs found in the revised part of `MellinOscillationsOdd.nb`
 
