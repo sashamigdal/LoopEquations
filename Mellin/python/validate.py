@@ -29,8 +29,8 @@ tail = max(abs(r['tail']/r['I']) for r in S if r['zero'] is not None)
 print('zero-terminated thimbles: largest tail up Re q = 6, relative to D: %.1e' % tail)
 o = np.load(cache('oscill.npy'))                   # full wall sum W(xi) from oscill.py
 full = [r for r in S if r['nR'] == len(GAMMA) and r['nD'] == len(DYAD)]
-dev = max(abs(r['dI']-np.interp(r['xi'], o[0], o[3]))/r['I'] for r in full)
-print('where all %d + %d wall poles are trapped (%d points): Stokes terms vs full wall sum, max |diff|/D = %.1e' % (len(GAMMA), len(DYAD), len(full), dev))
+dev = max(abs(r['dI']/np.interp(r['xi'], o[0], o[3])-1) for r in full)
+print('where all %d + %d wall poles are trapped (%d points): Stokes terms vs full wall sum, max relative difference %.1e' % (len(GAMMA), len(DYAD), len(full), dev))
 # the three regimes (Sec. II C)
 none = [r['xi'] for r in S if r['nR']+r['nD'] == 0 and r['zero'] is None]
 x_left = min(x for x in none if all(r['nR']+r['nD'] == 0 and r['zero'] is None for r in S if r['xi'] >= x))

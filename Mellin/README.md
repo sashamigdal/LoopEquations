@@ -81,7 +81,7 @@ Sec. III and figures 8 and 9. The committed tables in `results/` hold the fitted
 | residue formulas vs circle integrals, 10⁻¹² (II C) | `validate.py` |
 | regimes: zero parking for −3.8 ≤ log ρ ≤ −2.95, walls trapped for log ρ < −3.85, lowest dyadic pole for log ρ < −4.2 (II C) | `validate.py` (and `scan_D.json`: `zero`, `nR`, `nD`) |
 | zero-parking sequence n = 1, 2, 3, 5, 6, 7, 8, 14; tails < 3·10⁻¹⁴ (II C) | `results/scan_D.json`, `validate.py` |
-| Stokes terms = full wall sum to 10⁻¹⁰ (II D) | `validate.py` |
+| Stokes terms = full wall sum to 10⁻¹² (II D) | `validate.py` |
 | log-periodic part of α: 1.4·10⁻⁶ at log ρ = −3, 2·10⁻⁹ at −4, 8·10⁻¹¹ at −4.5 (II D) | `oscill.py` |
 | spectrum vs structure function, 8–9 orders of magnitude (II D, Fig. 5) | `spectrum_osc.py`, `oscill.py` |
 | C(Δ) ∈ [e^−2.915, e^−2.763]; \|Γ(17/2 − 2πi/log 2)\| = 1.8·10², \|csc\| = 1.3·10⁻⁶, \|Γ(8 − iγ₁)\| = 0.33, \|csc\| = 4.6·10⁻¹⁰ (II A, II D) | `spectrum_osc.py` |
