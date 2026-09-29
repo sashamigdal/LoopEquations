@@ -91,3 +91,20 @@ Fit to the Max Planck runs (`python/finite_box.py`, `results/mpi_fit_box*.json`,
 * The finite box reproduces the negative dips of α at the largest r.
 * The per-run L/η grows with Re_λ and tracks the largest measured separation (L/r_max = 0.3–2.5).
 * The highest-Re runs (Re_λ = 3070, 4998, 5779) gain little; for 5779 the fit prefers no cutoff.
+
+### Constant physical width, diffusion-length units, and Re_λ → ∞
+
+The theory's r is the scaling variable ρ = |r₁ − r₂|/ℓ_D, with ℓ_D = √(ν̃ (t + t₀)) and t = z/v̄_z; α depends only on ρ. So the
+fitted shift is s = ln(ℓ_D/η), and a physical width W gives k_min = π ℓ_D/W, which differs from run to run.
+`python/physical_units.py` gets u′, ν (in two independent ways, agreeing to 1–20%), η and ℓ_D in metres from the files themselves:
+
+* ℓ_D ≈ 1.0–3.6 m, and ℓ_D/L ≈ 7–9 in every run (L is the integral scale from each run's own correlation).
+* The implied W = π ℓ_D/k_min is 2.25–2.6 m for Re_λ = 413, 543, 664, 2033 and 2398. A single W = 2.34 m fits the Re_λ ≤ 2398 runs
+  with rms 0.023 (0.035 without a box).
+* The runs with Re_λ ≥ 3070 show no finite-size dip. Their rms is flat or rising in k_min, so a common W over all runs only reaches
+  0.0263.
+* Since the theory is for Re_λ → ∞, the index is also extrapolated to infinite Re at fixed r/L (`python/extrapolate_Re.py`,
+  figure 12). Using the Re_λ ≥ 1046 runs and α = α_∞ + c Re_λ^{−1}, the infinite-system theory fits α_∞ with χ²/dof = 2.4
+  (weighted rms 0.017, s = ln(ℓ_D/L) = 1.96). A box does not improve this: k_min → 0.6.
+* The extrapolation uses Re_λ^{−1}; Re_λ^{−1/2} fits worse (χ²/dof 4.5). With only the four highest-Re runs the extrapolation is
+  ill-conditioned, because Re_λ^{−1} spans only a factor 2.

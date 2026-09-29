@@ -194,6 +194,38 @@ GraphicsGrid[Partition[Table[With[{b = boxFits[[i]], f = fits[[i]]},
       PlotLabel -> Row[{"Re_\\[Lambda]=", Round[b["Re"]], "  rms ", NumberForm[b["rmsInf"], 2], " \\[Rule] ", NumberForm[b["rmsBox"], 2]}]]],
     {i, Length[boxFits]}], 3, 3, {1, 1}, Null], ImageSize -> 1100]
 """)
+C("Section", "Re_lambda -> infinity: extrapolate the measured index, then fit the infinite-Re theory")
+C("Text", """
+The theory holds for Re_lambda -> infinity and \\[Alpha] depends only on \\[Rho] = r/l_D. Each run's r is put on a data-defined scale, the integral scale
+L = \\[Integral]_0^r0 R dr, R = 1 - S_2/(2u'^2) (r0 = first zero of R). At each x = Log(r/L), \\[Alpha](x, Re) = \\[Alpha]_inf(x) + c(x) Re^-\\[Beta] is fitted over the
+mid+high runs (Re >= 1046), and \\[Alpha]_D(x - s) is fitted to \\[Alpha]_inf with weights 1/err^2. Python: \\[Beta]=1 gives s = 1.96, \\[Chi]^2/dof = 2.4 (weighted rms 0.017);
+adding a box does not improve it (k_min -> 0.6). The fitted l_D/L = e^s ~ 7-9 in every run.
+""")
+C("Input", """
+intScale[f_] := Module[{d = N[Rest[Import[f, "CSV"]]], rn, S2, u2, R, i0, r, Rr, t},
+   rn = d[[All, 2]]; S2 = d[[All, 3]]; u2 = Mean[S2[[-5 ;;]]]/2; R = 1 - S2/(2 u2);
+   i0 = First[FirstPosition[R, _?(# <= 0 &), {Length[R]}]];
+   r = Join[{0.}, rn[[;; i0]]]; Rr = Join[{1.}, R[[;; i0]]];
+   If[Rr[[-1]] < 0, t = Rr[[-2]]/(Rr[[-2]] - Rr[[-1]]); r[[-1]] = r[[-2]] + t (r[[-1]] - r[[-2]]); Rr[[-1]] = 0.];
+   Total[(Rest[r] - Most[r]) (Rest[Rr] + Most[Rr])/2]];            (* L/eta *)
+xg = Range[-4., 2.6, 0.1];
+binA[f_] := Module[{a = alphaExp[f], L = intScale[f], x},
+   x = a[[All, 1]] - Log[L];
+   Table[With[{m = Pick[a[[All, 2]], Abs[x - x0], _?(# <= 0.05 &)]}, If[m === {}, Missing[], Mean[m]]], {x0, xg}]];
+midHigh = Select[Transpose[{fits[[All, "Re"]], mpiFiles}], #[[1]] >= 1000 &];
+binned = binA /@ midHigh[[All, 2]];
+extrap[beta_] := Table[Module[{pts = Select[Transpose[{midHigh[[All, 1]]^-beta, binned[[All, j]]}], NumericQ[#[[2]]] &], lm},
+    If[Length[pts] < 4, Missing[], lm = LinearModelFit[pts, z, z]; {xg[[j]], lm["BestFitParameters"][[1]], lm["ParameterErrors"][[1]]}]],
+   {j, Length[xg]}] // DeleteMissing;
+aInf = extrap[1.];
+tailInf = Select[aInf, #[[2]] < 0.355 && #[[1]] > -3 && #[[3]] > 0 &];
+sInf = s /. Last[FindMinimum[Total[(tailInf[[All, 2]] - (alphaDInterp /@ (tailInf[[All, 1]] - s)))^2/tailInf[[All, 3]]^2], {s, 2., 0., 4.}]];
+{"s (= Log[l_D/L])" -> sInf, "chi2/dof" -> Total[(tailInf[[All, 2]] - (alphaDInterp /@ (tailInf[[All, 1]] - sInf)))^2/tailInf[[All, 3]]^2]/(Length[tailInf] - 1)}
+Show[ListPlot[Table[{#[[1]] - Log[intScale[midHigh[[i, 2]]]], #[[2]]} & /@ alphaExp[midHigh[[i, 2]]], {i, Length[midHigh]}], PlotStyle -> Lighter[Gray]],
+  ListPlot[Around[#[[2]], #[[3]]] & /@ aInf // Transpose[{aInf[[All, 1]], #}] &, PlotStyle -> Black],
+  Plot[alphaDInterp[x - sInf], {x, -4, 2.7}, PlotStyle -> {Thick, Blue}], PlotRange -> {{-4, 2.7}, {-0.15, 0.8}}, Frame -> True,
+  FrameLabel -> {"Log(r/L)", "\\[Alpha]"}, PlotLabel -> "Re_\\[Lambda] \\[Rule] \\[Infinity] extrapolation (black) vs theory (blue)", ImageSize -> 700]
+""")
 C("Section", "Fixes needed in the original MellinOscillationsOdd.nb cells (for reference)")
 C("Text", """
 1. S1Interp[q] = -df1approx[q] + S1Analytic[q]   (was +df1approx: d/dq Log DF[-1-q,0] = -DF1/DF0).
