@@ -1,0 +1,5 @@
+__pycache__/
+*.npy
+E_Kohler/
+iqinterp.mx
+python/cache/
