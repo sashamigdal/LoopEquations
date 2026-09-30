@@ -31,14 +31,14 @@ poles trapped by the thimble, and the thimbles that terminate on the paired zero
 contour integration to $5\times10^{-10}$. The same Riemann-wall and dyadic-wall poles that produce the log-periodic
 oscillations of the energy spectrum also produce log-periodic oscillations of the effective index $\alpha(\rho)$. They
 appear only at small separations, $\rho<C_{\min}$, with an amplitude below $1.5\times10^{-6}$, eight to nine orders of
-magnitude smaller than in the spectrum. For $\rho>C_{\max}$ the structure function is a convergent series in real powers of
-$1/\rho$, with no oscillations. Finite-size effects of a system of width $W$ are included exactly by subtracting the
+magnitude smaller than in the spectrum. For $\rho>C_{\max}$ there are no oscillations at all. Finite-size effects are included exactly by subtracting the
 infrared part $k<\pi/W$ of the spectrum. We compare the theory with the Max Planck wind-tunnel measurements of Küchler,
 Bewley and Bodenschatz at $Re_\lambda=413$--$5779$. The small oscillations of the measured index at the largest separations
-are reproduced by the finite-width correction and disappear in the extrapolation to $Re_\lambda\to\infty$. The extrapolated
-large-scale tail of the index matches the odd-ensemble theory with a single scale parameter, $\chi^2/\mathrm{dof}=2.4$; at
-smaller separations the flow has not yet relaxed to the asymptotic state. The theory also reproduces the whole index curve
-of recent $4096^3$ direct numerical simulations.
+are reproduced by the finite-width correction and disappear in the extrapolation to $Re_\lambda\to\infty$. Comparing the runs
+at fixed index separates a turbulent attractor, $\alpha<0.355$, where they collapse in units of a single large-scale length, from
+a stochastization stage that still carries the inertial range of the grid. In the attractor the extrapolated index matches the
+odd-ensemble theory with a single scale parameter, $\chi^2/\mathrm{dof}=2.4$. The theory also reproduces the whole index curve
+of $4096^3$ direct numerical simulations.
 \end{abstract}
 
 \keywords{decaying turbulence, Euler ensemble, loop equations, Mellin--Barnes integrals, Lefschetz thimbles, Stokes phenomenon,
@@ -372,7 +372,7 @@ viscosity inferred from $Re_\lambda$ and from the dissipation range agree to $1$
 $8\,\mu$m. The integral scale $L=\int_0^{r_0}R\,dr$ of each run, with $R=1-S_2/2u'^2$, is $0.1$--$0.4$~m. The fitted diffusion
 length is $\ell_D\approx(7$--$9)\,L$ in every run.
 
-Each run's large-$r$ tail ($\alpha_{\exp}<0.355$, beyond the inertial plateau, which the theory does not contain) is fitted by
+Each run's large-$r$ tail, the turbulent attractor $\alpha_{\exp}<0.355$ of Sec.~\ref{sec:tail} (beyond the inertial plateau, which the theory does not contain), is fitted by
 $\alpha(\rho)$ with rms deviation $0.014$--$0.045$. At the largest separations several runs show small oscillations of
 $\alpha_{\exp}$, with dips to $-0.03\ldots-0.1$ (Fig.~\ref{fig:runs}). The infinite-system index cannot produce them: at these
 separations, $\rho>C_{\max}$, it is positive and monotone, with no oscillations at all. The finite-width correction~\eqref{eq:DW}
@@ -388,8 +388,9 @@ the data at the largest $r$, and they are not properties of decaying turbulence 
     \includegraphics[width=\columnwidth]{fig9_finite_box_runs.png}
     \caption{Large-$r$ index of the Max Planck runs~\cite{GregXi2} (circles) against the infinite-system theory (dashed), the
     finite-width theory with $\kappa_{\min}$ fitted per run (blue), and one physical width $W=2.34$~m for all runs,
-    $\kappa_{\min}=\pi\eta e^{s}/W$ (orange). The vertical line marks the start of the fitted tail. The labels give the rms
-    deviation without and with the per-run finite-width correction.}
+    $\kappa_{\min}=\pi\eta e^{s}/W$ (orange). The dotted line marks the start of the fitted tail. Points in the stochastization
+    stage ($\alpha\ge0.355$, grey band) are drawn in light grey; the tinted panels are the decayed-turbulence runs, $Re_\lambda<10^3$.
+    The labels give the rms deviation without and with the per-run finite-width correction.}
     \label{fig:runs}
 \end{figure}
 
@@ -397,7 +398,7 @@ the data at the largest $r$, and they are not properties of decaying turbulence 
 
 The theory describes the limit $Re_\lambda\to\infty$. To compare with it we extrapolate the data, not the theory. Each run is
 put on the data-defined scale $x=\log(r/L)$, and at fixed $x$ we fit
-$\alpha_{\exp}(x,Re_\lambda)=\alpha_\infty(x)+c(x)/Re_\lambda$ over the mid- and high-Reynolds runs ($Re_\lambda\ge1046$). The
+$\alpha_{\exp}(x,Re_\lambda)=\alpha_\infty(x)+c(x)/Re_\lambda$ over the runs with $Re_\lambda\ge1046$; the three runs with $Re_\lambda<10^3$ are decayed turbulence, too weak for the asymptotic theory (Sec.~\ref{sec:tail}). The
 theory $\alpha(\rho)$ with $\log\rho=x-s$ is then fitted to the extrapolated tail $\alpha_\infty(x)<0.355$, with weights
 $1/\sigma^2$ from the extrapolation. The result is shown in Fig.~\ref{fig:extrap}. A single parameter,
 $s=\log(\ell_D/L)=1.956\pm0.021$ ($\ell_D/L=7.07\pm0.15$), gives $\chi^2/\mathrm{dof}=2.4$ and a weighted rms deviation of
@@ -425,18 +426,18 @@ It is fully consistent with the odd ensemble, the only stable one.
     \bottomrule
     \end{tabular}
     \caption{Fit of the odd-ensemble index to the Max Planck data extrapolated to $Re_\lambda\to\infty$ in $1/Re_\lambda$, for
-    different sets of runs.}
+    different sets of runs. The first row includes the three decayed-turbulence runs.}
     \label{tab:extrap}
 \end{table}
 
 \begin{figure}[tbp]
     \centering
     \includegraphics[width=\columnwidth]{fig13_invRe_extrapolation.png}
-    \caption{Left: the Max Planck index extrapolated to $Re_\lambda\to\infty$ in $1/Re_\lambda$ (circles, runs
-    $Re_\lambda\ge1046$) against the odd-ensemble theory with one scale parameter (blue). Dashed lines use the shifts fitted to
-    the extrapolations with all runs and with $Re_\lambda\ge2398$ only. The fit uses the tail outside the shaded region; the
-    residuals are shown below. Right: $\alpha_{\exp}$ against $1/Re_\lambda$ at fixed $r/L$; squares are the extrapolated
-    values.}
+    \caption{Left: the Max Planck index extrapolated to $Re_\lambda\to\infty$ in $1/Re_\lambda$ (runs $Re_\lambda\ge1046$)
+    against the odd-ensemble theory with one scale parameter (blue). Filled circles: the turbulent attractor, $\alpha_\infty<0.355$, to
+    which the theory is fitted; open grey circles: the stochastization stage (grey band), not fitted. Dashed lines use the shifts fitted to the extrapolations with all runs and with
+    $Re_\lambda\ge2398$ only. The residuals are shown below. Right: $\alpha_{\exp}$ against $1/Re_\lambda$ at fixed $r/L$; squares
+    are the extrapolated values, grey crosses the decayed-turbulence runs, which are not used.}
     \label{fig:extrap}
 \end{figure}
 
@@ -457,41 +458,73 @@ small~\cite{ReviewPaperAM}. They are the numerical counterpart of the finite-wid
     \label{fig:dns}
 \end{figure}
 
-\subsection{Why only the tail of the index is compared}\label{sec:tail}
+\subsection{Turbulent attractor, stochastization stage and decayed turbulence}\label{sec:tail}
 
-The comparison of Secs.~\ref{sec:data}\,A--B uses only the large-$r$ tail, $\alpha_{\exp}<0.355$, that is $r\gtrsim L$. At
-smaller separations the measured index lies far below the theory (the shaded region of Fig.~\ref{fig:extrap}). At $r=L/e$ the
-extrapolated index is $\alpha_\infty=0.50\pm0.01$ against the predicted $0.89$, and at $r=e^{-4}L$ it is $0.65\pm0.01$ against
-$1.85$. The data have an inertial plateau, $\alpha_{\exp}\approx0.6$--$0.7$, which the theory does not contain: its index
-decreases monotonically from $2$ to $0$ within $-5\lesssim\log\rho\lesssim0$.
+The theory describes the asymptotic state of the decay, in which the initial data have been forgotten and the index depends
+on $r$ only through $\rho=r/\sqrt{\tilde\nu(t+t_0)}$, that is, through a single length that grows as $\sqrt t$. Each Max
+Planck run is a separate flow measured at one station, $8.3$~m downstream of the active grid~\cite{GregXi2}, so this scaling
+cannot be followed in time within a run. It can be tested across the runs at fixed index. Let $r_\alpha$ be the separation
+at which the measured index of a run crosses the level $\alpha$. Where the attractor holds, $\alpha(r)$ is one function of
+$r/\ell$, with a single length $\ell$ per run, and the ratio $r_\alpha/r_{0.3}$ is the same for all runs. Where it does not,
+$r_\alpha$ follows a different length.
 
-The finite width of the tunnel cannot produce this difference. The correction~\eqref{eq:DW} removes only the wave numbers
-$\kappa<\kappa_{\min}$. Even for the largest fitted $\kappa_{\min}\approx3.6$ it changes $\alpha$ by less than $10^{-3}$ for
-$\log\rho\le-3$ and by $0.02$ at $\log\rho=-1$, while the observed differences are $0.4$--$1.2$. Nor is the difference a
-finite-Reynolds correction that disappears as $1/Re_\lambda$ at fixed $r/L$. At fixed $r/L<1$ the measured index moves \emph{away}
-from the theory as the Reynolds number grows: at $r=e^{-4}L$ it falls from $0.79$ at $Re_\lambda=1046$ to $0.66$ at
-$Re_\lambda=5779$, because the plateau widens toward small $r/L$ as $L/\eta$ grows. The extrapolation in $1/Re_\lambda$ is
-therefore meaningful only in the tail, where the Reynolds dependence at fixed $r/L$ is weak (Fig.~\ref{fig:extrap}, right).
+Figure~\ref{fig:attractor} shows the result for the eight runs with $Re_\lambda\ge1046$. For $\alpha\le0.35$ the curves
+collapse tightly: the scatter of $\log(r_\alpha/r_{0.3})$ across the runs stays below $0.05$, and $r_\alpha/r_{0.3}$ does not
+drift with the Reynolds number. Up to $\alpha=0.5$ the scatter grows slowly, to $0.08$. At $\alpha=0.55$ it jumps to $0.21$,
+and for $\alpha\ge0.8$ it exceeds $0.8$; there $r_\alpha$ follows the Kolmogorov length instead,
+$|d\log(r_\alpha/\eta)/d\log Re_\lambda|\le0.1$, as in the Reynolds-independent inertial range found by Küchler
+\emph{et al.}~\cite{GregXi2}. We define the \emph{turbulent attractor} as the region of tight collapse, $\alpha<0.355$, roughly
+$r\gtrsim L$. There the index follows a single large-scale length, and the theory agrees with it for every choice of runs in
+Table~\ref{tab:extrap}. We call the region of larger $\alpha$ the \emph{stochastization stage}. Its early part, $\alpha\gtrsim0.5$,
+follows $\eta$: the flow there still carries the inertial range produced by the grid. Its late part, $0.36\lesssim\alpha\le0.5$
+or roughly $0.4L\lesssim r\lesssim L$, already follows the large-scale length approximately, but the measured index there falls
+more slowly than the theory: at $r=L/e$ it is $\alpha_\infty=0.50\pm0.01$ against the predicted $0.89$ (Fig.~\ref{fig:extrap}).
+Extending the fit of the extrapolated index into this range, to $\alpha<0.40$, $0.45$ and $0.50$, raises $\chi^2/\mathrm{dof}$
+of the adopted fit to $2.7$, $9.6$ and $36$, and already to $9.4$ at $\alpha<0.40$ for the runs with $Re_\lambda\ge2398$. The
+three runs with $Re_\lambda<10^3$ form a third category, \emph{decayed turbulence}: their Reynolds number is too low for the
+asymptotic theory, and they are not used in the extrapolation of Sec.~\ref{sec:data}\,B. Including them leaves both boundaries
+unchanged.
 
-The reason is the second length of the experimental flow. Küchler \emph{et al.} found that for
-$10^2\eta<r<10^4\eta$ the index is a Reynolds-independent function of $r/\eta$~\cite{GregXi2}. In units of $L$ this range
-extends over all $r<L$ at $Re_\lambda\approx10^3$, where $L\approx3\times10^3\eta$, and over $r\lesssim0.2L$ at
-$Re_\lambda=5779$, where $L\approx4\times10^4\eta$. At fixed $r/L$ it therefore moves with the Reynolds number and recedes
-only as $L/\eta\propto Re_\lambda^{3/2}$ grows; a $1/Re_\lambda$ extrapolation at fixed $r/L$ cannot remove it. The Euler
-ensemble has a single length, the diffusion length $\ell_D=\sqrt{\tilde\nu(t+t_0)}$, and describes the asymptotic state of
-the decay, $t\to\infty$, in which $\ell_D$ and the integral scale grow together as $\sqrt t$. The wind-tunnel flow is measured
-at one station, $8.3$~m downstream of the active grid, after a finite decay time, with an integral scale that stays
-approximately constant along the test section~\cite{GregXi2}. It has not reached the self-similar diffusive state, and its
-small scales still carry the inertial range produced by the grid. Even in the DNS of Sec.~\ref{sec:data}\,C the asymptotic decay sets in only after a long
-initial transient~\cite{SreeniAkash2025}; followed over very long times, the simulation reaches this state and reproduces the
-whole index curve. We therefore attribute the
-mismatch at $r<L$ to the finite Reynolds number and the finite age of the wind-tunnel flow, which in decaying turbulence
-are two sides of the same approach to the attractor, and not to the finite width. The tail $r\gtrsim L$ is the part of the
-measured index that has already relaxed to the asymptotic state. This interpretation can be tested. Since $\rho=r/\sqrt{\tilde\nu(t+t_0)}$, at fixed $r$ the
-small-$\rho$ part of the curve, where theory and data now diverge, is the part reached only after the longest decay times.
-A longer test section or a slower mean flow increases the decay time $t=z/\bar v_z$ at the measuring station. At fixed
-Reynolds number the agreement with the theory should then extend from the tail toward smaller $\rho$, together with the
-growth $L\propto\sqrt t$.
+The collapse test has a limitation. All runs have nearly the same age at the measuring station, $\tau=u'^2/\varepsilon=0.8$--$1.4$~s.
+A collapse across the runs therefore shows that the index follows a single large-scale length, but it cannot by itself show that
+the flow has reached the asymptotic state. This may be why the late stochastization stage collapses although it does not yet
+agree with the theory.
+
+\begin{figure}[tbp]
+    \centering
+    \includegraphics[width=\columnwidth]{fig14_attractor_test.png}
+    \caption{Turbulent attractor and stochastization stage in the Max Planck data. Left: the measured index of each run against
+    $\log(r/r_{0.3})$, where $r_{0.3}$ is the separation at which that run's index equals $0.3$; dashed grey curves are the
+    decayed-turbulence runs, $Re_\lambda<10^3$. Middle: the scatter of $\log(r_\alpha/r_{0.3})$ across the runs at fixed
+    $\alpha$. Right: the Reynolds-number dependence of $r_\alpha$ in units of the Kolmogorov length and of $r_{0.3}$ (runs
+    $Re_\lambda\ge1046$). In the turbulent attractor, $\alpha<0.355$ (white), the runs collapse tightly (scatter below $0.05$,
+    dashed line); in the stochastization stage (grey) the scatter grows, slowly up to $\alpha\approx0.5$ (dotted lines) and
+    steeply above, where $r_\alpha$ follows $\eta$.}
+    \label{fig:attractor}
+\end{figure}
+
+The finite width of the tunnel cannot produce the differences at smaller separations. The correction~\eqref{eq:DW} removes
+only the wave numbers $\kappa<\kappa_{\min}$. Even for the largest fitted $\kappa_{\min}\approx3.6$ it changes $\alpha$ by
+less than $10^{-3}$ for $\log\rho\le-3$ and by $0.02$ at $\log\rho=-1$, while the observed differences are $0.4$--$1.2$. Nor
+is the stochastization stage a finite-Reynolds correction that disappears as $1/Re_\lambda$ at fixed $r/L$. At fixed $r/L<1$
+the measured index moves \emph{away} from the theory as the Reynolds number grows: at $r=e^{-4}L$ it falls from $0.79$ at
+$Re_\lambda=1046$ to $0.66$ at $Re_\lambda=5779$, because the inertial range, which scales with $\eta$, widens toward small
+$r/L$ as $L/\eta\propto Re_\lambda^{3/2}$ grows. In units of $L$ this range extends over all $r<L$ at $Re_\lambda\approx10^3$,
+where $L\approx3\times10^3\eta$, and over $r\lesssim0.2L$ at $Re_\lambda=5779$, where $L\approx4\times10^4\eta$. A
+$1/Re_\lambda$ extrapolation at fixed $r/L$ therefore cannot remove it; it is meaningful only in the attractor region, where the
+Reynolds dependence at fixed $r/L$ is weak (Fig.~\ref{fig:extrap}, right).
+
+We attribute the stochastization stage to the finite age of the wind-tunnel flow. The Euler ensemble has a single length,
+the diffusion length $\ell_D=\sqrt{\tilde\nu(t+t_0)}$, and describes the asymptotic state of the decay, $t\to\infty$, in which
+$\ell_D$ and the integral scale grow together as $\sqrt t$. At the measuring station the integral scale stays approximately
+constant along the test section~\cite{GregXi2}: the flow has not yet reached the self-similar diffusive state, and its small
+scales still carry the inertial range produced by the grid. Even in the DNS of Sec.~\ref{sec:data}\,C the asymptotic decay
+sets in only after a long initial transient~\cite{SreeniAkash2025}; followed over very long times, the simulation reaches this
+state and reproduces the whole index curve. This interpretation can be tested. Since $\rho=r/\sqrt{\tilde\nu(t+t_0)}$, at
+fixed $r$ the small-$\rho$ part of the curve, where theory and data now diverge, is the part reached only after the longest
+decay times. A longer test section or a slower mean flow increases the decay time $t=z/\bar v_z$ at the measuring station. At
+fixed Reynolds number the turbulent-attractor region, and the agreement with the theory, should then extend toward smaller
+$\rho$, together with the growth $L\propto\sqrt t$.
 
 \section{Conclusion}
 
@@ -529,11 +562,14 @@ The small oscillations of the index observed at the largest separations in the M
 finite width of the tunnel. They disappear when the data are extrapolated to infinite Reynolds number, and they are of the
 order of the statistical scatter or below it. They are not a property of decaying turbulence in infinite space. The extrapolated tail of
 the measured index matches the odd Euler ensemble, the only stable turbulent attractor, with a single scale parameter. The
-$4096^3$ DNS reproduces the whole index curve. At smaller separations the measured index shows an inertial plateau that the
-theory does not contain. It is not a finite-size effect, and it is not a finite-Reynolds correction that vanishes as
-$1/Re_\lambda$ at fixed $r/L$: it is a universal function of $r/\eta$~\cite{GregXi2}, which recedes only as $L/\eta$ grows. We
-attribute it to the finite Reynolds number and the finite age of the wind-tunnel flow, which at the measuring station has
-relaxed to the asymptotic Euler-ensemble state only at the largest scales (Sec.~\ref{sec:tail}).
+$4096^3$ DNS reproduces the whole index curve. A comparison of the runs at fixed index separates the turbulent attractor,
+$\alpha<0.355$, where the runs collapse onto one curve in units of a single large-scale length and agree with the theory, from
+the stochastization stage at larger $\alpha$, where the collapse loosens and, above $\alpha\approx0.5$, the index follows the
+Kolmogorov length and the flow still carries the inertial range produced by the grid; the runs with $Re_\lambda<10^3$ are
+decayed turbulence. In the late stochastization stage, $0.36\lesssim\alpha\le0.5$, the measured index falls more slowly than
+the theory. The stochastization stage is not a
+finite-size effect, and it is not a finite-Reynolds correction that vanishes as $1/Re_\lambda$ at fixed $r/L$. We attribute it to
+the finite age of the wind-tunnel flow (Sec.~\ref{sec:tail}).
 
 The same attractor also fixes the decay of the turbulent kinetic energy, $E\propto t^{-5/4}$~\cite{migdal2024quantum},
 or $E\propto z^{-5/4}$ in grid turbulence, where $t=z/\bar v_z$. This law was observed already in the classic grid-turbulence
@@ -568,7 +604,7 @@ repository~\cite{LoopEquationsRepo}. It contains
 thimbles, Gauss--Hermite sums and Stokes terms of Sec.~\ref{sec:method}, the direct contour integrals used as checks, the
 finite-width correction~\eqref{eq:DW}, the analysis of the wind-tunnel data of Sec.~\ref{sec:data}, and the script
 \texttt{run\_all.sh}, which regenerates Figs.~\ref{fig:thimbles}--\ref{fig:osc} and~\ref{fig:box} and, given the
-Max Planck data, Figs.~\ref{fig:runs}, \ref{fig:extrap} and Table~\ref{tab:extrap};
+Max Planck data, Figs.~\ref{fig:runs}, \ref{fig:extrap}, \ref{fig:attractor} and Table~\ref{tab:extrap};
 (ii) a \Mathematica{} package and driver notebook implementing the same algorithm;
 (iii) the scan tables and fitted parameters.
 The file \texttt{README.md} there lists the script behind each figure, table and quoted number. Earlier notebooks are

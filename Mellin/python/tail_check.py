@@ -14,3 +14,13 @@ print('finite width: max |alpha_W - alpha| for kappa_min <= 3.6 at log rho =', x
 if have_mpi():
     F = load_json(cache('mpi_extrap_invRe_full.json')); B = F['binned']; j = int(np.argmin(abs(x+4.0)))
     print('alpha at log(r/L) = -4 per run:', ', '.join('Re %d: %.2f' % (r, row[j]) for r, row in zip(F['Re'], B) if row[j] is not None))
+# fitting the extrapolated index beyond the turbulent attractor (Sec. III D): chi2/dof for wider tail cuts
+from scipy.optimize import minimize_scalar
+for name in ('Re>=1046 (adopted)', 'Re>=2398'):
+    F = J['fits'][name]; ai_, ae_ = np.array(F['ainf'], float), np.array(F['aerr'], float); row = []
+    for cut in (0.355, 0.40, 0.45, 0.50):
+        m = np.isfinite(ai_) & np.isfinite(ae_) & (ae_ > 0) & (ai_ < cut) & (x > -3.0); w = 1/ae_[m]**2
+        chi = lambda s_: np.sum(w*(ai_[m]-alphaL(x[m]-s_, 0.0)[0])**2)
+        r = minimize_scalar(chi, bounds=(0, 4), method='bounded', options={'xatol': 1e-6})
+        row.append('alpha < %.3f: chi2/dof = %.2f' % (cut, r.fun/(m.sum()-1)))
+    print('%-20s ' % name + ' | '.join(row))

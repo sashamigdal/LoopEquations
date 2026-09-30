@@ -76,8 +76,10 @@ INK, INK2, GRID, SURF = '#0b0b0b', '#52514e', '#e4e3df', '#fcfcfb'
 C1, C2, C3, C4, C5, C6, C7 = '#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7'
 SEQ = ['#86b6ef', '#6da7ec', '#5598e7', '#3987e5', '#2a78d6', '#256abf', '#1c5cab', '#184f95', '#104281', '#0d366b', '#0a2a55']
 LOGCMIN, LOGCMAX = -2.9153, -2.7635   # log of min/max C(Delta)
-ALPHA_FIT = 0.40    # the theory is fitted to the tail alpha < ALPHA_FIT (per run and after the Re -> infinity extrapolation)
-ALPHA_ATTR = 0.50   # attractor region alpha <= ALPHA_ATTR: the index scales with the run's own large-scale length (attractor_region.py)
+ALPHA_FIT = 0.355   # the theory is fitted to the tail alpha < ALPHA_FIT (per run and after the Re -> infinity extrapolation)
+RE_DECAYED = 1000   # runs with Re_lambda below this are decayed turbulence: not used in the Re -> infinity extrapolation
+ALPHA_ATTR = 0.355  # turbulent attractor alpha < ALPHA_ATTR (= the fitted tail): tightest collapse across the runs (attractor_region.py)
+ALPHA_ETA = 0.50    # above this level r_alpha follows the Kolmogorov length (early stochastization stage)
 
 
 def style(titles=True):
