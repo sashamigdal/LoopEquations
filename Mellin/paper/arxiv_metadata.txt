@@ -5,7 +5,7 @@ Authors:
 Alexander Migdal
 
 Comments:
-23 pages, 11 figures. v2: the Max Planck data are separated into a turbulent attractor (alpha < 0.355), a stochastization stage, decayed turbulence (Re_lambda < 10^3) and a boundary-effects region (r > W); the theory is compared in the turbulent attractor only. New Sec. III D and Fig. 11. Code and data tables in the ancillary files and at https://github.com/sashamigdal/LoopEquations/tree/master/Mellin
+23 pages, 11 figures. v2: the Max Planck data are separated into a turbulent attractor (alpha < 0.355), a stochastization stage, decayed turbulence (Re_lambda < 10^3) and a boundary-effects region (r > W); the theory is compared in the turbulent attractor only. New Sec. III D and Fig. 11. Code and data tables in the ancillary files, at https://github.com/sashamigdal/LoopEquations/tree/master/Mellin and at https://doi.org/10.5281/zenodo.23068087
 
 Primary category: physics.flu-dyn
 Cross-lists (suggested): nlin.CD, hep-th
