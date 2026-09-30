@@ -1,19 +1,22 @@
 """Adopted: alpha(x, Re) = alpha_inf(x) + c(x)/Re_lambda at fixed x = log(r/L); theory alpha_D(x - s) fitted to alpha_inf (weights 1/err^2).
-Robustness vs the set of runs, uncertainty of s, linearity in 1/Re."""
+Robustness vs the set of runs, uncertainty of s, linearity in 1/Re.
+The boundary-effects region r > W of each run is left out (extrapolate_Re.py); cache keeps it separately for the figure."""
 import json, numpy as np
 from scipy.optimize import minimize_scalar
 from finite_box import alphaL
 from common import cache, res, load_json, save_json, ALPHA_FIT
 J = load_json(cache('mpi_extrapolate_Re_full.json')); runs = J['runs']
 xg = np.arange(-4.0, 2.61, 0.1)
-def binned(run):
-    x = np.array(run['lr'])-np.log(run['L_eta']); a = np.array(run['a']); out = np.full(len(xg), np.nan)
+def binned(run, boundary=False, keep_all=False):
+    """bin means at fixed x; boundary=True returns the boundary-effects region r > W only, keep_all=True all points"""
+    lr = np.array(run['lr']); x = lr-np.log(run['L_eta']); a = np.array(run['a']); out = np.full(len(xg), np.nan)
+    inW = np.ones(len(lr), bool) if keep_all else (lr > run['lr_W']) if boundary else (lr <= run['lr_W'])
     for j, x0 in enumerate(xg):
-        m = np.abs(x-x0) <= 0.05
+        m = (np.abs(x-x0) <= 0.05) & inW
         if m.any(): out[j] = a[m].mean()
     return out
 Ab = np.array([binned(r) for r in runs]); Re = np.array([r['Re'] for r in runs])
-def extrap(sel, minruns=4):
+def extrap(sel, minruns=4, Ab=Ab):
     ai = np.full(len(xg), np.nan); ae = np.full(len(xg), np.nan); sl = np.full(len(xg), np.nan); lin = np.full(len(xg), np.nan)
     for j in range(len(xg)):
         y = Ab[sel, j]; X = 1/Re[sel]; ok = np.isfinite(y)
@@ -37,6 +40,17 @@ for name, lo in [('all 11 runs (Re>=413)', 0), ('Re>=1046 (adopted)', 1000), ('R
     s, ds, red, wr, n, m = fit(ai, ae)
     out[name] = dict(runs=int(sel.sum()), s=s, ds=ds, chi2dof=red, wrms=wr, n=int(n), ainf=ai.tolist(), aerr=ae.tolist(), slope=sl.tolist(), linres=lin.tolist())
     print('%-24s runs=%2d  s = %.3f +- %.3f  (l_D/L = %.2f)  chi2/dof = %.2f  weighted rms = %.4f  (n=%d bins)' % (name, sel.sum(), s, ds, np.exp(s), red, wr, n))
-full = {'x': xg.tolist(), 'Re': Re.tolist(), 'binned': np.where(np.isfinite(Ab), Ab, None).tolist(), 'fits': out}
+# check: the adopted fit with the boundary-effects region kept
+Ak = np.array([binned(r, keep_all=True) for r in runs]); sel = Re >= 1000
+ai, ae, sl, lin = extrap(sel, Ab=Ak); s, ds, red, wr, n, m = fit(ai, ae)
+res_k = (ai-alphaL(xg-s, 0.0)[0])[m]; big = np.argsort(-np.abs(res_k))[:2]
+out['Re>=1046, boundary region r > W kept'] = dict(runs=int(sel.sum()), s=s, ds=ds, chi2dof=red, wrms=wr, n=int(n),
+                                                  largest_residuals=[[float(xg[m][i]), float(res_k[i])] for i in big])
+print('%-24s runs=%2d  s = %.3f +- %.3f  chi2/dof = %.2f  weighted rms = %.4f  (n=%d bins); largest residuals %s' % (
+    'r > W kept (check)', sel.sum(), s, ds, red, wr, n, ', '.join('%+.3f at log(r/L) = %.1f' % (res_k[i], xg[m][i]) for i in big)))
+Bb = np.array([binned(r, boundary=True) for r in runs])
+full = {'x': xg.tolist(), 'Re': Re.tolist(), 'binned': np.where(np.isfinite(Ab), Ab, None).tolist(),
+        'binned_boundary': np.where(np.isfinite(Bb), Bb, None).tolist(), 'x_W': [r['lr_W']-np.log(r['L_eta']) for r in runs],
+        'L_over_W': [r['L_over_W'] for r in runs], 'fits': out}
 save_json(full, cache('mpi_extrap_invRe_full.json'))
-save_json({k: v for k, v in full.items() if k != 'binned'}, res('mpi_extrap_invRe.json'))   # alpha_inf(x) with errors, no per-run data
+save_json({k: v for k, v in full.items() if k not in ('binned', 'binned_boundary')}, res('mpi_extrap_invRe.json'))   # alpha_inf(x) with errors, no per-run data

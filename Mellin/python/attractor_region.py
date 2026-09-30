@@ -5,7 +5,7 @@ r_alpha(run) is the separation where the measured index crosses the level alpha.
   * attractor region:     alpha(r) is one function of r / l_run, with a single length per run, so the shape
                           log(r_alpha / r_ref) is the same for all runs (r_ref = r at alpha = 0.3);
   * stochastization stage: r_alpha scales with the Kolmogorov length eta instead (d log(r_alpha/eta)/d log Re ~ 0).
-The statistics use the runs with Re_lambda >= RE_DECAYED; the three low-Re runs (decayed turbulence) are reported separately.
+Separations r > W (boundary-effects region) are left out, as in the extrapolation. The statistics use the runs with Re_lambda >= RE_DECAYED; the three low-Re runs (decayed turbulence) are reported separately.
 The attractor boundary is the largest alpha up to which the scatter of log(r_alpha/r_ref) across these runs stays below 0.05
 (contiguously from alpha = 0.3); with the looser tolerance 0.1 the index still follows one large-scale length up to alpha = 0.5,
 and above that r_alpha follows eta.
@@ -17,9 +17,9 @@ LEVELS = [1.2, 1.0, 0.9, 0.8, 0.75, 0.7, 0.65, 0.6, 0.55, 0.5, 0.45, 0.4, 0.35, 
 REF, TOL, TOL_LOOSE = 0.3, 0.05, 0.1
 
 
-def crossing(x, a, lev):
-    """first downward crossing of the level, scanning from small r; linear interpolation in x"""
-    for i in range(len(a)-1):
+def crossing(x, a, lev, xmax=np.inf):
+    """first downward crossing of the level, scanning from small r up to xmax; linear interpolation in x"""
+    for i in range(int(np.sum(x <= xmax))-1):
         if a[i] >= lev > a[i+1]:
             return x[i] + (a[i]-lev)*(x[i+1]-x[i])/(a[i]-a[i+1])
     return np.nan
@@ -37,7 +37,7 @@ if __name__ == '__main__':
     runs = load_json(cache('mpi_extrapolate_Re_full.json'))['runs']          # lr = log(r/eta), a = alpha, L_eta = L/eta
     P = load_json(res('mpi_physical_units.json'))
     Re = np.array([r['Re'] for r in runs]); lre = np.log(Re); hi = Re >= RE_DECAYED
-    Xeta = np.array([[crossing(np.array(r['lr']), np.array(r['a']), lev) for lev in LEVELS] for r in runs])   # log(r_alpha/eta)
+    Xeta = np.array([[crossing(np.array(r['lr']), np.array(r['a']), lev, r['lr_W']) for lev in LEVELS] for r in runs])   # log(r_alpha/eta)
     shape = Xeta - Xeta[:, [LEVELS.index(REF)]]                                                              # log(r_alpha/r_ref)
     out = {'levels': LEVELS, 'ref_level': REF, 'tolerance': TOL, 'Re': Re.tolist(), 'Re_decayed_below': RE_DECAYED, 'rows': []}
     print('runs used: Re_lambda >= %d (%d runs); decayed turbulence: %s' % (RE_DECAYED, hi.sum(), ', '.join('%d' % v for v in Re[~hi])))
@@ -68,4 +68,4 @@ if __name__ == '__main__':
           % (min(tau), max(tau), min(r['L_eta'] for r in runs), max(r['L_eta'] for r in runs)))
     save_json(out, res('mpi_attractor_region.json'), indent=1)
     save_json({'Re': Re.tolist(), 'levels': LEVELS, 'log_r_over_eta': np.where(np.isfinite(Xeta), Xeta, None).tolist(),
-               'runs': [{'Re': r['Re'], 'lr': r['lr'], 'a': r['a'], 'L_eta': r['L_eta']} for r in runs]}, cache('attractor_crossings.json'))
+               'runs': [{'Re': r['Re'], 'lr': r['lr'], 'a': r['a'], 'L_eta': r['L_eta'], 'lr_W': r['lr_W']} for r in runs]}, cache('attractor_crossings.json'))

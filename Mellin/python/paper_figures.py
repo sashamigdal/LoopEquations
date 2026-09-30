@@ -108,6 +108,9 @@ if not have_mpi():
     raise SystemExit
 
 STOCH = '#d9d7d2'                 # stochastization stage (grey); attractor region left white
+BOUND = '#b9a27c'                 # hatching of the boundary-effects region r > W
+from matplotlib.patches import Patch
+bound_patch = Patch(facecolor='none', edgecolor=BOUND, hatch='////', lw=0, label='boundary effects, r > W (excluded)')
 # ---------- Fig. 9: per-run comparison, one physical width W for all runs ----------
 W = round(load_json(res('mpi_fit_width_sub.json'))['W_sub'], 2)      # best common width of the Re_lambda <= 2398 runs (finite_box_W2.py)
 F = load_json(cache('mpi_fit_box_full.json')); P = load_json(res('mpi_physical_units.json'))
@@ -118,6 +121,8 @@ for ax, f, p in zip(axs.flat, F, P):
     sW = minimize_scalar(e, bounds=(f['s_inf']-1.5, f['s_inf']+1.5), method='bounded').x
     x = np.linspace(lr[i0]-1.5, lr[-1]+0.4, 500)
     ax.axhspan(ALPHA_ATTR, 0.6, color=STOCH, alpha=0.6, lw=0)
+    lW = np.log(W/eta); ax.axvspan(lW, lr[-1]+0.4, facecolor='none', edgecolor=BOUND, hatch='////', lw=0)
+    ax.axvline(lW, color=BOUND, lw=1.0)
     att = a < ALPHA_ATTR
     ax.plot(lr[att], a[att], 'o', ms=3, mfc='none', mec=INK2, mew=0.7, label='Max Planck, turbulent attractor (α < %.3f)' % ALPHA_ATTR)
     ax.plot(lr[~att], a[~att], 'o', ms=3, mfc='none', mec='#aaa8a3', mew=0.7, label='Max Planck, stochastization stage')
@@ -131,7 +136,8 @@ for ax, f, p in zip(axs.flat, F, P):
         ax.set_facecolor('#f1efe9')
         ax.text(0.97, 0.95, 'decayed turbulence\n(not in the Re_λ → ∞ fit)', transform=ax.transAxes, fontsize=8.5, color=INK2, ha='right', va='top')
     ax.set_xlabel('log(r/η)', fontsize=9)
-axs.flat[-1].axis('off'); h, l = axs.flat[0].get_legend_handles_labels(); axs.flat[-1].legend(h, l, loc='center', fontsize=9.5)
+axs.flat[-1].axis('off'); h, l = axs.flat[0].get_legend_handles_labels()
+axs.flat[-1].legend(h+[bound_patch], l+['boundary effects, r > W = %.2f m' % W], loc='center', fontsize=9.5)
 for ax in axs[:, 0]: ax.set_ylabel('α = d log S₂/d log r')
 fig.tight_layout(); fig.savefig(f'{OUT}/fig9_finite_box_runs.png', dpi=200); plt.close(fig)
 
@@ -146,21 +152,28 @@ ok = np.isfinite(ai) & np.isfinite(ae)
 fit = (ai < ALPHA_FIT) & (x > -3.0) & ok
 sto = ok & ~fit
 x_att0 = x[fit].min()
+xW0 = min(v for v, r in zip(J['x_W'], Re) if r >= RE_DECAYED)     # first adopted run to reach r = W
+BB = np.array([[np.nan if v is None else v for v in row] for row in J['binned_boundary']])
 ax.axvspan(-4, x_att0-0.05, color=STOCH, alpha=0.6, lw=0)
-ax.text(-3.95, 0.02, 'stochastization stage\n(α_∞ ≥ %.3f)' % ALPHA_ATTR, fontsize=8.5, color=INK2)
-ax.text(x_att0+0.02, -0.12, 'turbulent attractor', fontsize=8.5, color=INK2)
+ax.text(-3.95, 0.72, 'stochastization stage (α_∞ ≥ %.3f)' % ALPHA_ATTR, fontsize=8.5, color=INK2)
+ax.text(x_att0+0.06, 0.72, 'turbulent attractor', fontsize=8.5, color=INK2)
+ax.axvspan(xW0, 2.7, facecolor='none', edgecolor=BOUND, hatch='////', lw=0); ax.axvline(xW0, color=BOUND, lw=1.0)
+ax.text(xW0+0.04, 0.40, 'r > W\nin some\nruns', fontsize=8, color='#7d6a4a', bbox=dict(facecolor=SURF, edgecolor='none', pad=1.5))
+for k in np.where(Re >= RE_DECAYED)[0]:
+    ax.plot(x, BB[k], '.', ms=3, color=BOUND, label='single runs at r > W: boundary effects, excluded' if k == np.argmax(Re >= RE_DECAYED) else None)
 ax.errorbar(x[fit], ai[fit], yerr=ae[fit], fmt='o', ms=5, color=INK, mfc=INK, mew=1.3, elinewidth=1,
-            label='Re_λ → ∞ extrapolation (in 1/Re_λ, runs Re_λ ≥ 1046): turbulent attractor, fitted')
+            label='Re_λ → ∞ (in 1/Re_λ, runs Re_λ ≥ 1046): turbulent attractor, fitted')
 ax.errorbar(x[sto], ai[sto], yerr=ae[sto], fmt='o', ms=5, color='#8f8d88', mfc=SURF, mew=1.1, elinewidth=1,
-            label='Re_λ → ∞ extrapolation: stochastization stage, not fitted')
+            label='Re_λ → ∞: stochastization stage, not fitted')
 xx = np.linspace(-4, 2.7, 700)
 ax.plot(xx, alphaL(xx-s, 0.0)[0], color=C1, lw=2.2, label='theory α_D(ρ), ρ = r/ℓ_D, ℓ_D/L = e^s = %.2f ± %.2f' % (np.exp(s), np.exp(s)*A['ds']))
 for name, c in [('all 11 runs (Re>=413)', C3), ('Re>=2398', C2)]:
-    ax.plot(xx, alphaL(xx-Fi[name]['s'], 0.0)[0], color=c, lw=1.2, ls='--', label='theory, s fitted to the %s extrapolation (s = %.2f)' % (
-        'all-runs' if 'all' in name else 'Re_λ ≥ 2398', Fi[name]['s']))
+    ax.plot(xx, alphaL(xx-Fi[name]['s'], 0.0)[0], color=c, lw=1.2, ls='--', label='theory, s from the %s (s = %.2f)' % (
+        'all 11 runs' if 'all' in name else 'runs Re_λ ≥ 2398', Fi[name]['s']))
 ax.axhline(0, color=INK2, lw=0.8); ax.set_xlim(-4, 2.7); ax.set_ylim(-0.15, 0.8); ax.set_ylabel('α_∞ = d log S₂/d log r')
-ax.legend(fontsize=8.0, loc='upper right'); plt.setp(ax.get_xticklabels(), visible=False)
+ax.legend(fontsize=7.8, loc='lower left', frameon=True, facecolor=SURF, edgecolor='none', framealpha=0.9); plt.setp(ax.get_xticklabels(), visible=False)
 axr.axvspan(-4, x_att0-0.05, color=STOCH, alpha=0.6, lw=0)
+axr.axvspan(xW0, 2.7, facecolor='none', edgecolor=BOUND, hatch='////', lw=0); axr.axvline(xW0, color=BOUND, lw=1.0)
 axr.errorbar(x[fit], (ai-alphaL(x-s, 0.0)[0])[fit], yerr=ae[fit], fmt='o', ms=4, color=INK, mfc=INK, mew=1.1, elinewidth=1)
 axr.axhline(0, color=C1, lw=1.5); axr.set_ylim(-0.12, 0.12); axr.set_xlabel('log(r / L)'); axr.set_ylabel('α_∞ − α_D')
 sel = Re >= RE_DECAYED; X = 1/Re
@@ -183,11 +196,12 @@ Xe = np.array([[np.nan if v is None else v for v in row] for row in C['log_r_ove
 fig, (a1, a2, a3) = plt.subplots(1, 3, figsize=(14, 4.4), gridspec_kw={'wspace': 0.28, 'width_ratios': [1.25, 1, 1]})
 k_hi = 0
 for k, run in enumerate(C['runs']):
-    lr, a = np.array(run['lr']), np.array(run['a'])
+    lr, a = np.array(run['lr']), np.array(run['a']); iW = lr <= run['lr_W']
     if run['Re'] < RE_DECAYED:
-        a1.plot(lr-Xe[k, kref], a, '--', lw=1.0, color='#aaa8a3', label='Re_λ = %d (decayed)' % round(run['Re']))
+        a1.plot((lr-Xe[k, kref])[iW], a[iW], '--', lw=1.0, color='#aaa8a3', label='Re_λ = %d (decayed)' % round(run['Re']))
     else:
-        a1.plot(lr-Xe[k, kref], a, '-', lw=1.1, color=SEQ[3+k_hi], label='Re_λ = %d' % round(run['Re'])); k_hi += 1
+        a1.plot((lr-Xe[k, kref])[iW], a[iW], '-', lw=1.1, color=SEQ[3+k_hi], label='Re_λ = %d' % round(run['Re'])); k_hi += 1
+    a1.plot((lr-Xe[k, kref])[~iW], a[~iW], '-', lw=0.8, color=BOUND, label='r > W (boundary effects, excluded)' if k == len(C['runs'])-1 else None)
 a1.axhspan(a_star, 2.1, color=STOCH, alpha=0.6, lw=0); a1.axhline(ALPHA_ETA, color=INK2, lw=0.8, ls=':')
 a1.text(-6.8, 1.05, 'stochastization stage', fontsize=9, color=INK2); a1.text(-6.8, 0.12, 'turbulent attractor', fontsize=9, color=INK2)
 a1.text(-6.8, ALPHA_ETA+0.03, 'above: r_α follows η', fontsize=8, color=INK2)

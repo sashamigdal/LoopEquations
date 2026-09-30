@@ -94,11 +94,13 @@ Sec. III and figures 8 and 9. The committed tables in `results/` hold the fitted
 | ν from Re_λ and from the dissipation range, η, largest separations in metres, W = 2.25–2.6 m (III A) | `physical_units.py` |
 | integral scale L = 0.1–0.4 m, ℓ_D/L ≈ 7–9 (III A) | `extrapolate_Re.py` |
 | one W = 2.34 m for Re_λ ≤ 2398, pooled rms 0.035 → 0.023 (III A) | `finite_box_W2.py` |
-| s = 1.956 ± 0.021, χ²/dof = 2.4, weighted rms 0.017; Table I (abstract, III B) | `extrap_invRe.py` |
-| with a box term at Re_λ → ∞: κ_min → 0.6, no improvement (III B) | `extrapolate_Re.py` (line `mid+high … beta=1.0`) |
-| even vs odd ensemble: \|Δα\| ≤ 0.0035, χ²/dof 2.422 vs 2.423 (III B) | `even_vs_odd.py` |
+| boundary-effects region: L ≤ 0.18 W in every run; r > W is 0–19% of each tail, excluded from III B and III D (III A) | `extrapolate_Re.py` |
+| s = 1.953 ± 0.017, χ²/dof = 1.6, weighted rms 0.013, residuals within ±0.03; Table I (abstract, III B) | `extrap_invRe.py` |
+| with the region r > W kept: s = 1.956 ± 0.021, χ²/dof = 2.4, largest residuals −0.16, −0.13 at log(r/L) = 2.5, 2.6 (III B) | `extrap_invRe.py` (line `r > W kept (check)`) |
+| with a box term at Re_λ → ∞: κ_min → 0 (III B) | `extrapolate_Re.py` (line `mid+high … beta=1.0`) |
+| even vs odd ensemble: \|Δα\| ≤ 0.0035, χ²/dof 1.575 vs 1.577 (III B) | `even_vs_odd.py` |
 | turbulent attractor α < 0.355: scatter of log(r_α/r₀.₃) across the Re_λ ≥ 1046 runs < 0.05 for α ≤ 0.35, 0.08 at 0.5, 0.21 at 0.55, > 0.8 for α ≥ 0.8; \|d log(r_α/η)/d log Re_λ\| ≤ 0.1 for α ≥ 0.8; age τ = u′²/ε = 0.8–1.4 s (III D) | `attractor_region.py` |
-| fit extended into the stochastization stage: χ²/dof 2.7, 9.6, 36 for α < 0.40, 0.45, 0.50 (adopted runs), 9.4 at α < 0.40 for Re_λ ≥ 2398 (III D) | `tail_check.py` |
+| fit extended into the stochastization stage: χ²/dof 1.9, 9.8, 39 for α < 0.40, 0.45, 0.50 (adopted runs), 9.1 at α < 0.40 for Re_λ ≥ 2398 (III D) | `tail_check.py` |
 | below r = L: α_∞ = 0.50 vs 0.89 at r = L/e, 0.65 vs 1.85 at r = e⁻⁴L; α(e⁻⁴L) = 0.79 → 0.66 for Re_λ = 1046 → 5779; finite width changes α by < 10⁻³ for log ρ ≤ −3 and 0.02 at log ρ = −1 (III D) | `tail_check.py` |
 
 ## The Python implementation (`python/`)
@@ -118,7 +120,7 @@ Sec. III and figures 8 and 9. The committed tables in `results/` hold the fitted
 | `physical_units.py`, `finite_box_W.py`, `finite_box_W2.py` | physical units of each run and one physical width W |
 | `extrapolate_Re.py`, `extrap_invRe.py` | integral scale, extrapolation to Re_λ → ∞ (adopted: in 1/Re_λ) and the one-parameter theory fit |
 | `even_vs_odd.py` | the same fit for the even ensemble |
-| `attractor_region.py` | fixed-α cross-sections across the runs: turbulent attractor (α < 0.355), stochastization stage, decayed turbulence (Re_λ < 10³) |
+| `attractor_region.py` | fixed-α cross-sections across the runs: turbulent attractor (α < 0.355), stochastization stage, decayed turbulence (Re_λ < 10³); boundary effects r > W left out |
 | `tail_check.py` | why only the tail r ≳ L is compared (Sec. III D) |
 | `paper_figures.py` | the computed figures of the paper |
 | `make_figures.py`, `fig_box.py`, `fig_extrap.py`, `fig_invRe.py`, `mpi_fit_tail.py`, `finite_box_global.py`, `cutoff_test.py` | README figures and side checks (`run_all.sh --readme`) |
@@ -166,19 +168,23 @@ The Python port rebuilt IQ from its definition rather than from `iqinterp.mx`, s
   exact. α_W oscillates about 0 with period 2π/κ_min in ρ (periodic, not log-periodic), and the first dip is near ρ ≈ W/ℓ_D.
   Fitted per run, it reproduces the dips of the measured index at the largest r. A single W = 2.34 m describes the
   Re_λ ≤ 2398 runs (rms 0.023 against 0.035 without it). The runs with Re_λ ≥ 3070 show no dip.
-* **Re_λ → ∞.** At fixed x = log(r/L), α(x, Re_λ) = α_∞(x) + c(x)/Re_λ, and α_D(x − s) is fitted to α_∞ with weights 1/σ²:
+* **Boundary effects.** A separation longer than the width, r > W, cannot probe isotropic turbulence. These points (0–19% of
+  each tail, where the dips are) are used only to find W and are left out of the Re_λ → ∞ comparison and of the attractor test.
+  The flow as a whole is never in the regime L(t) ≳ W: the integral scale is L ≤ 0.18 W in every run.
+* **Re_λ → ∞.** At fixed x = log(r/L), α(x, Re_λ) = α_∞(x) + c(x)/Re_λ (points r ≤ W only), and α_D(x − s) is fitted to α_∞
+  with weights 1/σ²:
 
 | runs used | s = log(ℓ_D/L) | ℓ_D/L | χ²/dof | weighted rms of α |
 |---|---|---|---|---|
-| all 11 (Re_λ ≥ 413) | 2.075 ± 0.024 | 7.97 | 2.8 | 0.018 |
-| Re_λ ≥ 1046 (adopted) | 1.956 ± 0.021 | 7.07 | 2.4 | 0.017 |
-| Re_λ ≥ 1305 | 1.943 ± 0.020 | 6.98 | 1.3 | 0.015 |
-| Re_λ ≥ 2033 | 1.847 ± 0.015 | 6.34 | 1.9 | 0.016 |
-| Re_λ ≥ 2398 | 1.823 ± 0.017 | 6.19 | 2.0 | 0.012 |
+| all 11 (Re_λ ≥ 413) | 2.072 ± 0.030 | 7.94 | 4.3 | 0.022 |
+| Re_λ ≥ 1046 (adopted) | 1.953 ± 0.017 | 7.05 | 1.6 | 0.013 |
+| Re_λ ≥ 1305 | 1.937 ± 0.020 | 6.94 | 1.2 | 0.014 |
+| Re_λ ≥ 2033 | 1.844 ± 0.012 | 6.32 | 1.3 | 0.012 |
+| Re_λ ≥ 2398 | 1.811 ± 0.015 | 6.12 | 1.4 | 0.016 |
 
   The infinite-Re theory describes the extrapolated tail within its errors; no finite-width term is needed there. The ratio
-  ℓ_D/L drifts from 8.0 to 6.2 as the lower-Re runs are dropped, more than the statistical errors, so part of the Re
-  dependence is not captured by the 1/Re_λ term. An extrapolation in Re_λ^{−1/2} fits worse (χ²/dof 4.5, `extrapolate_Re.py`).
+  ℓ_D/L drifts from 7.9 to 6.1 as the lower-Re runs are dropped, more than the statistical errors, so part of the Re
+  dependence is not captured by the 1/Re_λ term. An extrapolation in Re_λ^{−1/2} fits worse (χ²/dof 3.4, `extrapolate_Re.py`).
 
 ### README figures (`results/`, with titles)
 
