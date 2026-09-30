@@ -163,11 +163,11 @@
 \bibitem [{\citenamefont {Migdal}(2026{\natexlab{d}})}]{ZenodoMellin}%
   \BibitemOpen
   \bibfield  {author} {\bibinfo {author} {\bibfnamefont {A.}~\bibnamefont
-  {Migdal}},\ }\href {https://doi.org/10.5281/zenodo.23046503} {\enquote
+  {Migdal}},\ }\href {https://doi.org/10.5281/zenodo.23068087} {\enquote
   {\bibinfo {title} {{Code and data tables for ``Comparing the Decaying
   Turbulence Theory with Wind Tunnel Experiments''}},}\ }\bibinfo
   {howpublished} {Zenodo} (\bibinfo {year} {2026}{\natexlab{d}}),\ \bibinfo
-  {note} {version v1.0}\BibitemShut {NoStop}%
+  {note} {version v2.0}\BibitemShut {NoStop}%
 \bibitem [{\citenamefont {Migdal}(2026{\natexlab{e}})}]{LoopEquationsRepo}%
   \BibitemOpen
   \bibfield  {author} {\bibinfo {author} {\bibfnamefont {A.}~\bibnamefont
