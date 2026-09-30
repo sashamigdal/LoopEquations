@@ -55,12 +55,12 @@ def have_mpi():
 
 
 def mpi_index(f):
-    """log(r/eta), measured index alpha = d log S2/d log r (centred differences), start of the tail window alpha < 0.355"""
+    """log(r/eta), measured index alpha = d log S2/d log r (centred differences), start of the fitted tail alpha < ALPHA_FIT"""
     dd = np.genfromtxt(f, delimiter=',', skip_header=1); r, S2 = dd[:, 1], dd[:, 2]
     lr, lS = np.log(r), np.log(S2)
     a = np.empty_like(lr); a[1:-1] = (lS[2:]-lS[:-2])/(lr[2:]-lr[:-2])
     a[0] = (lS[1]-lS[0])/(lr[1]-lr[0]); a[-1] = (lS[-1]-lS[-2])/(lr[-1]-lr[-2])
-    i0 = int(np.argmax((a < 0.355) & (lr > lr.mean())))
+    i0 = int(np.argmax((a < ALPHA_FIT) & (lr > lr.mean())))
     return lr, a, i0
 
 
@@ -76,6 +76,8 @@ INK, INK2, GRID, SURF = '#0b0b0b', '#52514e', '#e4e3df', '#fcfcfb'
 C1, C2, C3, C4, C5, C6, C7 = '#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7'
 SEQ = ['#86b6ef', '#6da7ec', '#5598e7', '#3987e5', '#2a78d6', '#256abf', '#1c5cab', '#184f95', '#104281', '#0d366b', '#0a2a55']
 LOGCMIN, LOGCMAX = -2.9153, -2.7635   # log of min/max C(Delta)
+ALPHA_FIT = 0.40    # the theory is fitted to the tail alpha < ALPHA_FIT (per run and after the Re -> infinity extrapolation)
+ALPHA_ATTR = 0.50   # attractor region alpha <= ALPHA_ATTR: the index scales with the run's own large-scale length (attractor_region.py)
 
 
 def style(titles=True):

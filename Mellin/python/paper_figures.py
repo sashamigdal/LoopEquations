@@ -7,13 +7,14 @@
   fig10_finite_box_theory.png      alpha_W for several kappa_min
   fig9_finite_box_runs.png         Max Planck runs vs infinite system / per-run kappa_min / one width W   (needs the MPI data)
   fig13_invRe_extrapolation.png    1/Re_lambda extrapolation vs theory                                    (needs the MPI data)
+  fig14_attractor_test.png         fixed-alpha cross-sections: turbulent attractor vs stochastization stage (needs the MPI data)
 
 Inputs: ../results/scan_D.json (scan.py), cache/oscill.npy (oscill.py), cache/spectrum_osc.npy (spectrum_osc.py),
 cache/mpi_*_full.json (finite_box.py, physical_units.py, extrapolate_Re.py, extrap_invRe.py).
 RegularPolygons.png, StokesOddStaircase.png and BSSpectra_clean.png are reproduced from Refs. [ReviewPaperAM, migdal2026Riemann]."""
 import os, sys, numpy as np
 from common import (cache, res, load_json, have_mpi, style, PAPER_FIGS, INK, INK2, GRID, SURF,
-                    C1, C2, C3, C4, C5, C6, C7, LOGCMIN)
+                    C1, C2, C3, C4, C5, C6, C7, SEQ, LOGCMIN, ALPHA_FIT, ALPHA_ATTR)
 plt = style(titles=False)
 from scipy.optimize import minimize_scalar
 from thimble import Thimble, GAMMA, DYAD
@@ -106,8 +107,9 @@ if not have_mpi():
     print('Max Planck data not found: figures 9 and 13 skipped. Theory figures written to', OUT)
     raise SystemExit
 
+STOCH = '#d9d7d2'                 # stochastization stage (grey); attractor region left white
 # ---------- Fig. 9: per-run comparison, one physical width W for all runs ----------
-W = 2.34      # metres: best common width of the Re_lambda <= 2398 runs (finite_box_W2.py)
+W = round(load_json(res('mpi_fit_width_sub.json'))['W_sub'], 2)      # best common width of the Re_lambda <= 2398 runs (finite_box_W2.py)
 F = load_json(cache('mpi_fit_box_full.json')); P = load_json(res('mpi_physical_units.json'))
 fig, axs = plt.subplots(4, 3, figsize=(11, 12), sharey=True)
 for ax, f, p in zip(axs.flat, F, P):
@@ -115,15 +117,18 @@ for ax, f, p in zip(axs.flat, F, P):
     e = lambda s: np.mean((A-alphaL(X-s, np.pi*eta*np.exp(s)/W)[0])**2)
     sW = minimize_scalar(e, bounds=(f['s_inf']-1.5, f['s_inf']+1.5), method='bounded').x
     x = np.linspace(lr[i0]-1.5, lr[-1]+0.4, 500)
-    ax.plot(lr, a, 'o', ms=3, mfc='none', mec=INK2, mew=0.7, label='Max Planck')
+    ax.axhspan(ALPHA_ATTR, 0.6, color=STOCH, alpha=0.6, lw=0)
+    att = a <= ALPHA_ATTR
+    ax.plot(lr[att], a[att], 'o', ms=3, mfc='none', mec=INK2, mew=0.7, label='Max Planck, turbulent attractor (α ≤ %.1f)' % ALPHA_ATTR)
+    ax.plot(lr[~att], a[~att], 'o', ms=3, mfc='none', mec='#aaa8a3', mew=0.7, label='Max Planck, stochastization stage')
     ax.plot(x, alphaL(x-f['s_inf'], 0.0)[0], color=INK2, lw=1.4, ls='--', label='infinite system')
     ax.plot(x, alphaL(x-f['s_box'], f['kmin'])[0], color=C1, lw=1.8, label='finite width, κ_min fitted per run')
     ax.plot(x, alphaL(x-sW, np.pi*eta*np.exp(sW)/W)[0], color=C2, lw=1.4, label='finite width, one W = %.2f m for all runs' % W)
-    ax.axhline(0, color=GRID, lw=1); ax.axvline(lr[i0], color=GRID, lw=1)
+    ax.axhline(0, color=GRID, lw=1); ax.axvline(lr[i0], color=INK2, lw=0.8, ls=':')
     ax.set_xlim(lr[i0]-1.5, lr[-1]+0.4); ax.set_ylim(-0.15, 0.6)
     ax.text(0.03, 0.05, 'Re_λ = %d\nrms %.3f → %.3f' % (round(f['Re']), f['rms_inf'], f['rms_box']), transform=ax.transAxes, fontsize=9)
     ax.set_xlabel('log(r/η)', fontsize=9)
-axs.flat[-1].axis('off'); h, l = axs.flat[0].get_legend_handles_labels(); axs.flat[-1].legend(h, l, loc='center', fontsize=10)
+axs.flat[-1].axis('off'); h, l = axs.flat[0].get_legend_handles_labels(); axs.flat[-1].legend(h, l, loc='center', fontsize=9.5)
 for ax in axs[:, 0]: ax.set_ylabel('α = d log S₂/d log r')
 fig.tight_layout(); fig.savefig(f'{OUT}/fig9_finite_box_runs.png', dpi=200); plt.close(fig)
 
@@ -135,20 +140,30 @@ ai, ae = np.array(A['ainf'], float), np.array(A['aerr'], float); s = A['s']
 fig = plt.figure(figsize=(13, 7.6)); gs = fig.add_gridspec(2, 2, height_ratios=[2.3, 1], width_ratios=[1.35, 1], hspace=0.12, wspace=0.22)
 ax = fig.add_subplot(gs[0, 0]); axr = fig.add_subplot(gs[1, 0], sharex=ax); axl = fig.add_subplot(gs[:, 1])
 ok = np.isfinite(ai) & np.isfinite(ae)
-ax.errorbar(x[ok], ai[ok], yerr=ae[ok], fmt='o', ms=5, color=INK, mfc=SURF, mew=1.3, elinewidth=1,
-            label='data extrapolated to Re_λ → ∞ (in 1/Re_λ, runs Re_λ ≥ 1046)')
+fit = (ai < ALPHA_FIT) & (x > -3.0) & ok
+att = ok & (ai <= ALPHA_ATTR) & ~fit
+sto = ok & (ai > ALPHA_ATTR)
+x_att0 = x[ok & (ai <= ALPHA_ATTR)].min()
+ax.axvspan(-4, x_att0-0.05, color=STOCH, alpha=0.6, lw=0)
+ax.text(-3.95, 0.02, 'stochastization stage\n(α_∞ > %.1f: scales with η)' % ALPHA_ATTR, fontsize=8.5, color=INK2)
+ax.text(x_att0+0.02, -0.12, 'turbulent attractor', fontsize=8.5, color=INK2)
+ax.errorbar(x[fit], ai[fit], yerr=ae[fit], fmt='o', ms=5, color=INK, mfc=INK, mew=1.3, elinewidth=1,
+            label='Re_λ → ∞ extrapolation (in 1/Re_λ, runs Re_λ ≥ 1046): fitted tail α_∞ < %.2f' % ALPHA_FIT)
+ax.errorbar(x[att], ai[att], yerr=ae[att], fmt='o', ms=5, color=C2, mfc=SURF, mew=1.3, elinewidth=1,
+            label='turbulent attractor, %.2f ≤ α_∞ ≤ %.2f (not fitted)' % (ALPHA_FIT, ALPHA_ATTR))
+ax.errorbar(x[sto], ai[sto], yerr=ae[sto], fmt='o', ms=5, color='#aaa8a3', mfc=SURF, mew=1.1, elinewidth=1,
+            label='stochastization stage')
 xx = np.linspace(-4, 2.7, 700)
 ax.plot(xx, alphaL(xx-s, 0.0)[0], color=C1, lw=2.2, label='theory α_D(ρ), ρ = r/ℓ_D, ℓ_D/L = e^s = %.2f ± %.2f' % (np.exp(s), np.exp(s)*A['ds']))
 for name, c in [('all 11 runs (Re>=413)', C3), ('Re>=2398', C2)]:
     ax.plot(xx, alphaL(xx-Fi[name]['s'], 0.0)[0], color=c, lw=1.2, ls='--', label='theory, s fitted to the %s extrapolation (s = %.2f)' % (
         'all-runs' if 'all' in name else 'Re_λ ≥ 2398', Fi[name]['s']))
 ax.axhline(0, color=INK2, lw=0.8); ax.set_xlim(-4, 2.7); ax.set_ylim(-0.15, 0.8); ax.set_ylabel('α_∞ = d log S₂/d log r')
-x_fit0 = x[(ai < 0.355) & (x > -3.0) & np.isfinite(ai)].min()
-ax.axvspan(-4, x_fit0-0.05, color=GRID, alpha=0.5, lw=0); ax.text(-3.95, 0.02, 'not fitted: α_∞ > 0.355\n(inertial range and below)', fontsize=8.5, color=INK2)
-ax.legend(fontsize=8.3, loc='upper right'); plt.setp(ax.get_xticklabels(), visible=False)
-fit = (ai < 0.355) & (x > -3.0) & ok
-axr.errorbar(x[fit], (ai-alphaL(x-s, 0.0)[0])[fit], yerr=ae[fit], fmt='o', ms=4, color=INK, mfc=SURF, mew=1.1, elinewidth=1)
-axr.axhline(0, color=C1, lw=1.5); axr.set_ylim(-0.12, 0.12); axr.set_xlabel('log(r / L)'); axr.set_ylabel('α_∞ − α_D')
+ax.legend(fontsize=8.0, loc='upper right'); plt.setp(ax.get_xticklabels(), visible=False)
+axr.axvspan(-4, x_att0-0.05, color=STOCH, alpha=0.6, lw=0)
+axr.errorbar(x[fit], (ai-alphaL(x-s, 0.0)[0])[fit], yerr=ae[fit], fmt='o', ms=4, color=INK, mfc=INK, mew=1.1, elinewidth=1)
+axr.errorbar(x[att], (ai-alphaL(x-s, 0.0)[0])[att], yerr=ae[att], fmt='o', ms=4, color=C2, mfc=SURF, mew=1.1, elinewidth=1)
+axr.axhline(0, color=C1, lw=1.5); axr.set_ylim(-0.3, 0.12); axr.set_xlabel('log(r / L)'); axr.set_ylabel('α_∞ − α_D')
 sel = Re >= 1000; X = 1/Re
 for x0, c in zip([-1.0, 0.0, 0.5, 1.0, 1.5], [C7, C1, C3, C4, C2]):
     j = int(np.argmin(np.abs(x-x0))); y = B[sel, j]; o = np.isfinite(y)
@@ -159,4 +174,30 @@ for x0, c in zip([-1.0, 0.0, 0.5, 1.0, 1.5], [C7, C1, C3, C4, C2]):
 axl.set_xlim(-0.03, 1e3*X[sel].max()*1.08); axl.set_xlabel('10³ / Re_λ'); axl.set_ylabel('α at fixed r/L')
 axl.legend(fontsize=8.5, loc='upper left')
 fig.savefig(f'{OUT}/fig13_invRe_extrapolation.png'); plt.close(fig)
+
+# ---------- Fig. 14: turbulent attractor vs stochastization stage (fixed-alpha cross-sections) ----------
+T = load_json(res('mpi_attractor_region.json')); C = load_json(cache('attractor_crossings.json'))
+lev = np.array(T['levels']); rows = T['rows']; ref = T['ref_level']; a_star = T['alpha_attractor']
+Xe = np.array([[np.nan if v is None else v for v in row] for row in C['log_r_over_eta']]); kref = list(lev).index(ref)
+fig, (a1, a2, a3) = plt.subplots(1, 3, figsize=(14, 4.4), gridspec_kw={'wspace': 0.28, 'width_ratios': [1.25, 1, 1]})
+for k, run in enumerate(C['runs']):
+    lr, a = np.array(run['lr']), np.array(run['a'])
+    a1.plot(lr-Xe[k, kref], a, '-', lw=1.1, color=SEQ[k], label='Re_λ = %d' % round(run['Re']))
+a1.axhspan(a_star, 2.1, color=STOCH, alpha=0.6, lw=0); a1.axhline(ALPHA_FIT, color=C1, lw=1, ls='--')
+a1.text(-6.8, 1.05, 'stochastization stage', fontsize=9, color=INK2); a1.text(-6.8, 0.1, 'turbulent attractor', fontsize=9, color=INK2)
+a1.text(1.2, ALPHA_FIT+0.03, 'fitted tail', fontsize=8.5, color=C1)
+a1.set_xlim(-7, 3); a1.set_ylim(-0.1, 2.05); a1.set_xlabel('log(r / r_{%.1f}),  r_{%.1f}: where α = %.1f in each run' % (ref, ref, ref))
+a1.set_ylabel('α = d log S₂/d log r'); a1.legend(fontsize=6.8, ncol=2, loc='upper right')
+sc = np.array([r['scatter_all'] for r in rows]); sc2 = np.array([r['scatter_Re1046'] for r in rows]); m = lev != ref
+a2.axvspan(a_star+0.025, 1.25, color=STOCH, alpha=0.6, lw=0)
+a2.semilogy(lev[m], sc[m], 'o-', color=INK, ms=5, lw=1.2, label='all 11 runs'); a2.semilogy(lev[m], sc2[m], 's--', color=C2, ms=4, lw=1, label='Re_λ ≥ 1046')
+a2.axhline(T['tolerance'], color=INK2, lw=0.8, ls=':'); a2.set_xlim(0.05, 1.25)
+a2.set_xlabel('α'); a2.set_ylabel('scatter of log(r_α / r_{%.1f}) across runs' % ref); a2.legend(fontsize=8.5, loc='upper left')
+be = np.array([r['slope_eta'] for r in rows]); bee = np.array([r['slope_eta_err'] for r in rows])
+bl = np.array([r['slope_L'] for r in rows]); ble = np.array([r['slope_L_err'] for r in rows])
+a3.axvspan(a_star+0.025, 1.25, color=STOCH, alpha=0.6, lw=0); a3.axhline(0, color=INK2, lw=0.8)
+a3.errorbar(lev, be, yerr=bee, fmt='o-', color=C7, ms=4, lw=1.1, label='r_α in units of η')
+a3.errorbar(lev, bl, yerr=ble, fmt='s-', color=C1, ms=4, lw=1.1, label='r_α in units of the integral scale L')
+a3.set_xlim(0.05, 1.25); a3.set_xlabel('α'); a3.set_ylabel('d log r_α / d log Re_λ'); a3.legend(fontsize=8.5, loc='center left')
+fig.savefig(f'{OUT}/fig14_attractor_test.png'); plt.close(fig)
 print('paper figures written to', OUT)

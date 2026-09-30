@@ -31,6 +31,7 @@ if ls "$MPI_DATA_DIR"/Re_*.csv >/dev/null 2>&1; then
   step finite_box_W2.py     # one W for the Re_lambda <= 2398 runs: W = 2.34 m                -> ../results/mpi_fit_width_sub.json
   step extrapolate_Re.py    # integral scale L per run; Re^-1 and Re^-1/2 extrapolations       -> ../results/mpi_extrapolate_Re_inf.json
   step extrap_invRe.py      # adopted 1/Re_lambda extrapolation and theory fit (Table I)      -> ../results/mpi_extrap_invRe.json
+  step attractor_region.py  # fixed-alpha cross-sections: turbulent attractor vs stochastization stage -> ../results/mpi_attractor_region.json
 else
   echo; echo "=== Max Planck data not found in $MPI_DATA_DIR: Sec. III fits skipped (the committed tables in ../results are used)"
 fi

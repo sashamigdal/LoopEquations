@@ -111,7 +111,7 @@ if fits:
     a1.set_xlim(-8, 3); a1.set_ylim(-0.15, 2.1); a1.set_xlabel('log(r/η) − s'); a1.set_ylabel('α = d log S₂ / d log r')
     a1.legend(loc='upper right', fontsize=8, ncol=2)
     a1.set_title('Max Planck wind tunnel (E_Kohler): measured index, each run shifted by its fitted s', fontsize=10.5, loc='left')
-    a2.axhline(0, color=INK2, lw=0.8); a2.set_xlim(-2.2, 0.8); a2.set_xlabel('log(r/η) − s  (fitted tail, α_exp < 0.355)'); a2.set_ylabel('α_exp − α_D')
+    a2.axhline(0, color=INK2, lw=0.8); a2.set_xlim(-2.2, 0.8); a2.set_xlabel('log(r/η) − s  (fitted tail, α_exp < %.2f)' % ALPHA_FIT); a2.set_ylabel('α_exp − α_D')
     fig.savefig(f'{OUT}/fig6_maxplanck.png'); plt.close(fig)
     fig, ax = plt.subplots(figsize=(6.0, 4.0))
     Re = np.array([f['Re'] for f in fits]); S = np.array([f['shift'] for f in fits]); pf = np.polyfit(np.log(Re), S, 1)

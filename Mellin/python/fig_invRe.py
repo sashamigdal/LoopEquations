@@ -16,11 +16,11 @@ ax.plot(xs, alphaL(xs-s, 0.0)[0], color=C1, lw=2.2, label='theory α_D(ρ), ρ =
 for name, c in [('all 11 runs (Re>=413)', C3), ('Re>=2398', C2)]:
     ax.plot(xs, alphaL(xs-F[name]['s'], 0.0)[0], color=c, lw=1.2, ls='--', label='theory, s fitted to the %s extrapolation (s = %.2f)' % ('all-runs' if 'all' in name else 'Re_λ ≥ 2398', F[name]['s']))
 ax.axhline(0, color=INK2, lw=0.8); ax.set_xlim(-4, 2.7); ax.set_ylim(-0.15, 0.8); ax.set_ylabel('α_∞ = d log S₂/d log r')
-x_fit0 = x[(ai < 0.355) & (x > -3.0) & np.isfinite(ai)].min()
-ax.axvspan(-4, x_fit0-0.05, color=GRID, alpha=0.5, lw=0); ax.text(-3.95, 0.02, 'not fitted: α_∞ > 0.355\n(inertial range and below)', fontsize=8.5, color=INK2)
+x_fit0 = x[(ai < ALPHA_FIT) & (x > -3.0) & np.isfinite(ai)].min()
+ax.axvspan(-4, x_fit0-0.05, color=GRID, alpha=0.5, lw=0); ax.text(-3.95, 0.02, 'not fitted: α_∞ > %.2f' % ALPHA_FIT, fontsize=8.5, color=INK2)
 ax.legend(fontsize=8.3, loc='upper right'); plt.setp(ax.get_xticklabels(), visible=False)
 ax.set_title('Re_λ → ∞ index vs theory (χ²/dof %.1f, weighted rms %.3f)' % (A['chi2dof'], A['wrms']), fontsize=10.5, loc='left')
-fit = (ai < 0.355) & (x > -3.0) & ok
+fit = (ai < ALPHA_FIT) & (x > -3.0) & ok
 res = ai-alphaL(x-s, 0.0)[0]
 axr.errorbar(x[fit], res[fit], yerr=ae[fit], fmt='o', ms=4, color=INK, mfc=SURF, mew=1.1, elinewidth=1)
 axr.axhline(0, color=C1, lw=1.5); axr.set_ylim(-0.12, 0.12); axr.set_xlabel('log(r / L)'); axr.set_ylabel('α_∞ − α_D')

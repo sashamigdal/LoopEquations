@@ -5,7 +5,7 @@ Theory: alpha_inf(x) ~ alpha_D(x - s_inf)  (one parameter; optionally with a box
 import json, numpy as np
 from scipy.optimize import minimize_scalar, minimize
 from finite_box import alphaL, load
-from common import cache, res, load_json, save_json, strip, mpi_files, num
+from common import cache, res, load_json, save_json, strip, mpi_files, num, ALPHA_FIT
 files = mpi_files()
 P = load_json(res('mpi_physical_units.json')); Fb = load_json(cache('mpi_fit_box_full.json'))
 runs = []
@@ -39,8 +39,8 @@ for name, sel in [('mid+high (Re>=1046)', Re >= 1000), ('high (Re>=3070)', Re >=
                 ainf[j] = c[0]
                 dof = ok.sum()-2; s2 = (rs[0]/dof) if (len(rs) and dof > 0) else np.nan
                 cov = s2*np.linalg.inv(A.T@A) if np.isfinite(s2) else np.full((2, 2), np.nan); aerr[j] = np.sqrt(cov[0, 0])
-        # theory fit to the extrapolated tail (alpha_inf < 0.355, beyond the plateau)
-        m = np.isfinite(ainf) & np.isfinite(aerr) & (aerr > 0) & (ainf < 0.355) & (xg > -3.0)
+        # theory fit to the extrapolated tail (alpha_inf < ALPHA_FIT, beyond the plateau)
+        m = np.isfinite(ainf) & np.isfinite(aerr) & (aerr > 0) & (ainf < ALPHA_FIT) & (xg > -3.0)
         wt = 1/aerr[m]**2; nfit = int(m.sum())
         e1 = lambda s: np.sum(wt*(ainf[m]-alphaL(xg[m]-s, 0.0)[0])**2)
         r1 = minimize_scalar(e1, bounds=(-4, 4), method='bounded')

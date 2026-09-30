@@ -3,7 +3,7 @@ Robustness vs the set of runs, uncertainty of s, linearity in 1/Re."""
 import json, numpy as np
 from scipy.optimize import minimize_scalar
 from finite_box import alphaL
-from common import cache, res, load_json, save_json
+from common import cache, res, load_json, save_json, ALPHA_FIT
 J = load_json(cache('mpi_extrapolate_Re_full.json')); runs = J['runs']
 xg = np.arange(-4.0, 2.61, 0.1)
 def binned(run):
@@ -23,7 +23,7 @@ def extrap(sel, minruns=4):
         ai[j], sl[j] = c; ae[j] = np.sqrt(s2*np.linalg.inv(A.T@A)[0, 0]); lin[j] = np.sqrt(s2)
     return ai, ae, sl, lin
 def fit(ai, ae):
-    m = np.isfinite(ai) & np.isfinite(ae) & (ae > 0) & (ai < 0.355) & (xg > -3.0)
+    m = np.isfinite(ai) & np.isfinite(ae) & (ae > 0) & (ai < ALPHA_FIT) & (xg > -3.0)
     w = 1/ae[m]**2; chi = lambda s: np.sum(w*(ai[m]-alphaL(xg[m]-s, 0.0)[0])**2)
     r = minimize_scalar(chi, bounds=(0, 4), method='bounded', options={'xatol': 1e-6})
     n = m.sum(); red = r.fun/(n-1)
