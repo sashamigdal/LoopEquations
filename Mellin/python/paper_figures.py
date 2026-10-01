@@ -3,15 +3,17 @@
   fig1_D_alpha.png                 D(rho) and alpha(log rho): thimbles vs the direct contour integral
   fig3_staircase.png               Stokes staircases of the structure function
   fig4_thimbles.png                thimbles in the q plane
-  osc_compare.png                  log-periodic parts of the spectral index and of alpha_D
+  osc_compare.png                  Berry-smoothed trapped-pole part of the spectral index and of alpha_D (Fig. 5)
+  fig6_spectrum_staircase.png      Stokes staircase of the spectrum on a fine grid; thimbles at the first events (Fig. 6)
   fig10_finite_box_theory.png      alpha_W for several kappa_min
   fig9_finite_box_runs.png         Max Planck runs vs infinite system / per-run kappa_min / one width W   (needs the MPI data)
   fig13_invRe_extrapolation.png    1/Re_lambda extrapolation vs theory                                    (needs the MPI data)
   fig14_attractor_test.png         fixed-alpha cross-sections: turbulent attractor vs stochastization stage (needs the MPI data)
 
-Inputs: ../results/scan_D.json (scan.py), cache/oscill.npy (oscill.py), cache/spectrum_osc.npy (spectrum_osc.py),
+Inputs: ../results/scan_D.json (scan.py), cache/oscill.npy (oscill.py), ../results/stokes_events.json (stokes_events.py),
+cache/stokes_berry.npz (stokes_berry.py),
 cache/mpi_*_full.json (finite_box.py, physical_units.py, extrapolate_Re.py, extrap_invRe.py).
-RegularPolygons.png, StokesOddStaircase.png and BSSpectra_clean.png are reproduced from Refs. [ReviewPaperAM, migdal2026Riemann]."""
+RegularPolygons.png and BSSpectra_clean.png are reproduced from Refs. [ReviewPaperAM, migdal2026Riemann]."""
 import os, sys, numpy as np
 from common import (cache, res, load_json, have_mpi, style, PAPER_FIGS, INK, INK2, GRID, SURF,
                     C1, C2, C3, C4, C5, C6, C7, SEQ, LOGCMIN, ALPHA_FIT, ALPHA_ATTR, ALPHA_ETA, RE_DECAYED)
@@ -79,19 +81,73 @@ ax.set_xlim(-12, 16); ax.set_ylim(-30, 30); ax.set_xlabel('Re q'); ax.set_ylabel
 ax.legend(loc='upper left', fontsize=8.2, ncol=1)
 fig.savefig(f'{OUT}/fig4_thimbles.png'); plt.close(fig)
 
-# ---------- log-periodic parts: spectrum vs structure function ----------
-S = np.load(cache('spectrum_osc.npy')); edge = -LOGCMIN
-sx, dnR, dnD = S[0], S[3], S[4]; m = sx >= edge+1.0
-lr, daR, daD = osc[0], osc[5], osc[6]; k = lr <= -edge-0.5
-fig, ax = plt.subplots(figsize=(7.6, 4.6))
-ax.semilogy(sx[m]-edge, np.abs(dnD[m]), color=C2, lw=1.6, label='energy spectrum, dyadic wall  (δ of d log H/d log κ)')
-ax.semilogy(sx[m]-edge, np.abs(dnR[m]), color=C7, lw=1.6, label='energy spectrum, Riemann wall')
-ax.semilogy(-edge-lr[k], np.abs(daD[k]), color=C2, lw=1.6, ls='--', label='structure function, dyadic wall  (δ of d log D/d log ρ)')
-ax.semilogy(-edge-lr[k], np.abs(daR[k]), color=C7, lw=1.6, ls='--', label='structure function, Riemann wall')
-ax.set_xlim(0.5, 5.5); ax.set_ylim(1e-30, 10)
-ax.set_xlabel('distance Δ from the convergence edge:  Δ = log κ + log C_min  (spectrum),  Δ = −log ρ + log C_min  (structure function)', fontsize=8.5)
-ax.set_ylabel('log-periodic part of the local index'); ax.legend(fontsize=8.3, loc='lower left')
+# ---------- Fig. 5: Berry-smoothed trapped-pole part of the local index, from the first trapping on ----------
+B = np.load(cache('stokes_berry.npz')); dist = B['dist']; evs = B['events']
+EV = load_json(res('stokes_events.json'))
+uc = {k: min(e['u'] for e in EV['events'] if e['kind'] == k) for k in 'HD'}
+fig, axs = plt.subplots(2, 1, figsize=(7.8, 7.4), sharex=True, gridspec_kw={'hspace': 0.07})
+for ax, kind, name in ((axs[0], 'H', 'energy spectrum:  δn,  n = d log H/d log κ'), (axs[1], 'D', 'structure function:  δα,  α = d log D/d log ρ')):
+    ax.semilogy(dist, np.abs(B[kind+'_berry_dT']), color=INK, lw=1.8, label='trapped poles, Berry-smoothed')
+    ax.semilogy(dist, np.abs(B[kind+'_berry_dD']), color=C2, lw=1.1, label='   dyadic poles')
+    ax.semilogy(dist, np.abs(B[kind+'_berry_dR']), color=C7, lw=1.1, label='   Riemann poles')
+    ax.semilogy(dist, np.abs(B[kind+'_step_dT']), color=INK2, lw=0.9, ls='--', label='unsmoothed Stokes jumps')
+    ax.semilogy(dist, 0.01*np.abs(B[kind+'_n']), color=C1, lw=1.2, ls=':', label='1 % of the index')
+    ev = evs[evs[:, 0] == (0 if kind == 'H' else 1)]
+    top = ax.get_ylim()[1]
+    ax.set_ylim(1e-16 if kind == 'H' else 1e-22, 1.0)
+    ax.plot(ev[:, 1], np.full(len(ev), 0.3), 'v', color=INK, ms=4.5, mew=0, label='Stokes events (bisection)')
+    ax.text(0.015, 0.04, name, transform=ax.transAxes, fontsize=9.5, color=INK)
+    ax.set_ylabel('|trapped-pole part of the index|')
+axs[0].legend(fontsize=8.2, loc='upper right', ncol=2)
+axs[1].set_xlim(dist[0], dist[-1])
+axs[1].set_xlabel('distance from the first trapping:  log κ − %.5f  (spectrum),   %.5f − log ρ  (structure function)' % (uc['H'], -uc['D']), fontsize=9)
 fig.savefig(f'{OUT}/osc_compare.png', dpi=220); plt.close(fig)
+
+# ---------- Fig. 6: Stokes staircase of the spectrum on a fine grid; thimbles at the first events ----------
+st = EV['spectrum_staircase']; ug = np.array(st['u']); hev = [e for e in EV['events'] if e['kind'] == 'H']
+ue = [ug[0]] + [e['u'] for e in hev]; nRe = [0] + [len(e['B_R']) for e in hev]; nDe = [0] + [len(e['B_D']) for e in hev]
+g = ug > hev[-1]['bracket'][1]
+ue = np.r_[ue, ug[g]]; nRe = np.r_[nRe, np.array(st['nR'])[g]]; nDe = np.r_[nDe, np.array(st['nD'])[g]]
+fig = plt.figure(figsize=(10.0, 9.4)); gs = fig.add_gridspec(2, 2, height_ratios=[1, 1.35], hspace=0.25, wspace=0.2)
+a = fig.add_subplot(gs[0, :])
+a.step(ue, nRe+nDe, where='post', color=INK, lw=1.8, label='all trapped poles')
+a.step(ue, nRe, where='post', color=C7, lw=1.4, label='Riemann wall  −8 + iγₙ')
+a.step(ue, nDe, where='post', color=C2, lw=1.4, ls='--', label='dyadic wall  −17/2 + 2πim/log 2')
+a.plot(ug, np.array(st['nR'])+np.array(st['nD']), 'o', ms=2.2, color=C3, mew=0, label='thimbles on the grid Δlog κ = 0.01')
+a.axvline(hev[-1]['u'], color=INK2, lw=0.7, ls=':')
+a.set_xlim(ug[0], ug[-1]); a.set_xlabel('log κ'); a.set_ylabel('number of trapped poles'); a.legend(loc='upper left', fontsize=8.5)
+a.text(0.5, 0.92, '(a)', transform=a.transAxes, fontsize=10)
+gam = np.load(cache('zetazeros_120.npy')); dy = 2*np.pi*np.arange(1, 31)/np.log(2)
+def plane(ax, kind):
+    e0 = hev[0] if kind == 'H' else None
+    if kind == 'H':
+        P = EV['paths']['H']; labs = ['log κ = %.9f' % hev[0]['bracket'][0], 'log κ = %.9f' % hev[0]['bracket'][1]]
+        cols = [C1, C3]; sad = [hev[0]['saddle']]
+        ax.plot(np.full(len(gam), -8.0), gam, 'x', color=INK, ms=4, mew=1, label='poles −8+iγₙ, −17/2+2πim/log 2')
+        ax.plot(np.full(len(dy), -8.5), dy, 'x', color=INK, ms=4, mew=1)
+        ax.plot(np.full(len(gam), -7.0), gam, 'o', mfc='none', mec=INK2, ms=4, mew=0.9, label='zeros −7+iγₙ')
+        ax.plot(*hev[0]['end_B'], 'D', mfc='none', mec=C3, ms=6, mew=1.2, label='zero of f(p) where the thimble ends')
+        for x0 in (-8, -8.5, -7): ax.axvline(x0, color=INK2, lw=0.6, ls=':')
+        ax.set_xlim(-16, 0); ax.set_ylim(0, 48); ax.set_xlabel('Re p'); ax.set_ylabel('Im p')
+    else:
+        dev = [e for e in EV['events'] if e['kind'] == 'D']; P = EV['paths']['D']
+        labs = ['log ρ = %.8f' % -dev[0]['bracket'][0], 'log ρ = %.8f' % -dev[0]['bracket'][1],
+                'log ρ = %.8f' % -dev[1]['bracket'][0], 'log ρ = %.8f' % -dev[1]['bracket'][1]]
+        cols = [C1, C3, C5, C7]; sad = [e['saddle'] for e in dev]
+        ax.plot(np.full(len(GAMMA), 7.0), GAMMA, 'x', color=INK, ms=4, mew=1, label='poles 7+iγₙ, 15/2+2πim/log 2')
+        ax.plot(np.full(len(DYAD), 7.5), DYAD, 'x', color=INK, ms=4, mew=1)
+        ax.plot(np.full(len(GAMMA), 6.0), GAMMA, 'o', mfc='none', mec=INK2, ms=4, mew=0.9, label='zeros 6+iγₙ')
+        for x0 in (6, 7, 7.5): ax.axvline(x0, color=INK2, lw=0.6, ls=':')
+        ax.set_xlim(0, 16); ax.set_ylim(0, 48); ax.set_xlabel('Re q'); ax.set_ylabel('Im q')
+    for (x, y), c, l in zip(P, cols, labs):
+        ax.plot(x, y, color=c, lw=1.5, label=l)
+    for s in sad:
+        ax.plot(*s, '*', color=INK, ms=10, mec=SURF, mew=0.6)
+    ax.plot([], [], '*', color=INK, ms=9, label='secondary saddle (Stokes event)')
+    ax.legend(loc='upper left' if kind == 'D' else 'upper right', fontsize=7.4, framealpha=0.92)
+b1 = fig.add_subplot(gs[1, 0]); plane(b1, 'H'); b1.text(0.03, 0.03, '(b) spectrum, first event', transform=b1.transAxes, fontsize=9.5)
+b2 = fig.add_subplot(gs[1, 1]); plane(b2, 'D'); b2.text(0.4, 0.03, '(c) structure function, both events', transform=b2.transAxes, fontsize=9.5)
+fig.savefig(f'{OUT}/fig6_spectrum_staircase.png', dpi=200); plt.close(fig)
 
 # ---------- Fig. 10: what the finite width does to alpha ----------
 fig, ax = plt.subplots(figsize=(8.4, 4.8))

@@ -22,6 +22,9 @@ step hseries.py             # entire series of H(kappa), (pi/2) H(0) = a_1      
 step oscill.py              # log-periodic (wall-pole) part of D and alpha_D                -> cache/oscill.npy
 step validate.py            # derivative/residue checks, thimbles vs direct integral       -> ../results/pythonReference_D.csv
 step spectrum_osc.py        # the same for the energy spectrum; checks Z(q) against M(p)    -> cache/spectrum_osc.npy
+step lineH.py               # H(kappa), dH/dlog kappa on the line Re p = -1.5 (reference)     -> cache/lineH_m15.npy
+step stokes_events.py       # Stokes events of H and D: bisection, secondary saddles, checks -> ../results/stokes_events.json
+step stokes_berry.py        # Berry-smoothed trapped-pole part of the two indices            -> cache/stokes_berry.npz
 
 # 2. Max Planck comparison (Sec. III)
 if ls "$MPI_DATA_DIR"/Re_*.csv >/dev/null 2>&1; then
@@ -32,6 +35,7 @@ if ls "$MPI_DATA_DIR"/Re_*.csv >/dev/null 2>&1; then
   step extrapolate_Re.py    # integral scale L per run; Re^-1 and Re^-1/2 extrapolations       -> ../results/mpi_extrapolate_Re_inf.json
   step extrap_invRe.py      # adopted 1/Re_lambda extrapolation and theory fit (Table I)      -> ../results/mpi_extrap_invRe.json
   step attractor_region.py  # fixed-alpha cross-sections: turbulent attractor vs stochastization stage -> ../results/mpi_attractor_region.json
+  step fit_robustness.py    # the fit vs the tail cut, leave-one-out and bootstrap over runs  -> ../results/mpi_fit_robustness.json
 else
   echo; echo "=== Max Planck data not found in $MPI_DATA_DIR: Sec. III fits skipped (the committed tables in ../results are used)"
 fi

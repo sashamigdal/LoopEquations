@@ -48,7 +48,7 @@ DYAD = 2*np.pi*np.arange(1, ND+1)/L2                 # 2 pi m / log 2
 
 def logM(p):
     p = complex(p); u = np.exp(-(p+8.5)*L2)
-    return (sp.loggamma(-p) + np.log(fz.zeta(p+7.5)) - np.log(fz.zeta(p+8.5)) - np.log(2*p+7) - np.log(2*p+17)
+    return (sp.loggamma(-p) + fz.logzeta(p+7.5) - fz.logzeta(p+8.5) - np.log(2*p+7) - np.log(2*p+17)
             + np.log(complex(DF(p))) - np.log(1-u))
 
 
@@ -87,7 +87,7 @@ def residue(kind, k, xi):
 
 
 class ThimbleH:
-    def __init__(self, xi, nGH=80, eps=1e-3, rtol=1e-11, atol=1e-13):
+    def __init__(self, xi, nGH=80, eps=1e-3, rtol=1e-11, atol=1e-13, tmax=None):
         self.xi = xi
         self.p0 = p0 = saddle(xi)
         self.W2 = d2logM(p0).real
@@ -98,7 +98,7 @@ class ThimbleH:
         x, w = hermgauss(nGH)
         self.tn, self.wn = x[x > 1e-14], w[x > 1e-14]
         self.w0 = w[np.abs(x) <= 1e-14].sum()
-        tmax = self.tn.max()+0.25
+        tmax = self.tn.max()+0.25 if tmax is None else tmax          # 12.4 for 80 nodes: the integrand has fallen by e^-150
         rhs = lambda t, y: [-2*t/(dlogM(y[0])+xi)]
         ev = lambda t, y: 600-abs(y[0]); ev.terminal = True
         y0 = p0 + self.v0*eps + self.c2*eps**2
@@ -121,6 +121,24 @@ class ThimbleH:
         T1 = np.exp(self.W0)/np.pi*((w*(ps*g).imag).sum() + self.w0*self.p0*self.v0.imag/2)
         return T, T1, int((~ok).sum())
 
+    def evaluate_quad(self, eps_rel=1e-13):
+        """(T, dT/dxi) = (1/pi) Im Int_0^tend e^{W(p(t))} p'(t) {1, p} dt along the computed upper path (adaptive
+        Gauss-Kronrod in t, breakpoints at the solver steps). Exact by Cauchy for any path; unlike the Gauss-Hermite
+        sum it does not assume that the integrand is e^{W0-t^2} times a smooth function of t."""
+        xi = self.xi
+        def F(t, m):
+            p = complex(self.q(np.array([t]))[0]); dp = -2*t/(dlogM(p)+xi) if t > 1e-12 else self.v0
+            v = np.exp(logM(p)+xi*p-self.W0)*dp
+            return (v*p).imag if m else v.imag
+        brk = np.unique(np.clip(self.sol.t, self.eps, self.tend))
+        tot = [0.0, 0.0]
+        for m in (0, 1):
+            edges = np.concatenate([[0.0], brk[::max(1, len(brk)//40)], [self.tend]])
+            for a_, b_ in zip(edges[:-1], edges[1:]):
+                if b_ > a_:
+                    tot[m] += quad(F, a_, b_, args=(m,), limit=200, epsabs=0, epsrel=eps_rel)[0]
+        return np.exp(self.W0)/np.pi*tot[0], np.exp(self.W0)/np.pi*tot[1]
+
     def dense(self, n=20000):
         t = np.linspace(self.eps, self.tend, n)
         return np.concatenate([[self.p0], self.q(t)])
@@ -130,8 +148,11 @@ class ThimbleH:
         k = int(np.argmin(np.abs(e-(-7+1j*GAMMA))))
         return k if abs(e-(-7+1j*GAMMA[k])) < tol else None
 
-    def trapped(self, P=None):
-        """(trapped Riemann indices, trapped dyadic indices): odd number of crossings of the leftward rays"""
+    def trapped(self, P=None, continue_end=False):
+        """(trapped Riemann indices, trapped dyadic indices, parking zero): odd number of crossings of the leftward rays
+        by the computed path. As in MellinOdd.nb, a path that has not ended on a zero is not continued beyond its last
+        point (where the integrand has fallen by e^-147): poles above it have residues below e^-100 and are counted as not
+        yet reached; continue_end=True extends the path to infinity along its final direction instead."""
         P = self.dense() if P is None else P
         x, y = P.real, P.imag
         z = self.terminal_zero()
@@ -144,7 +165,7 @@ class ThimbleH:
                 for k in np.where(s <= 0)[0]:
                     if y[k+1] == y[k]: continue
                     xc = x[k]+(h-y[k])*(x[k+1]-x[k])/(y[k+1]-y[k]); cnt += xc < wall
-                if z is None and h > y[-1] and d.imag > 0:          # unfinished path: continue with its final direction
+                if continue_end and z is None and h > y[-1] and d.imag > 0:   # unfinished path: continue with its final direction
                     cnt += (x[-1]+(h-y[-1])*d.real/d.imag) < wall
                 if cnt % 2: idx.append(n)
             out.append(idx)
@@ -161,9 +182,11 @@ class ThimbleH:
         return a, b
 
 
-def compute(xi, nGH=80):
-    th = ThimbleH(xi, nGH)
+def compute(xi, nGH=80, method='quad', tmax=None):
+    th = ThimbleH(xi, nGH, tmax=tmax)
     T, T1, miss = th.evaluate()
+    if method == 'quad':
+        T, T1 = th.evaluate_quad()
     iR, iD, z = th.trapped()
     ta, tb = th.tail(z)
     SR = SR1 = SD = SD1 = 0.0
