@@ -101,11 +101,11 @@
 \bibitem [{\citenamefont {Migdal}(2026{\natexlab{b}})}]{migdal2026Riemann}%
   \BibitemOpen
   \bibfield  {author} {\bibinfo {author} {\bibfnamefont {A.}~\bibnamefont
-  {Migdal}},\ }\href {https://arxiv.org/abs/2604.12207v5} {\enquote {\bibinfo
-  {title} {{Decaying Turbulence and the Riemann Hypothesis: The number theory
-  behind the infinite-time singularity}},}\ } (\bibinfo {year}
-  {2026}{\natexlab{b}}),\ \Eprint {https://arxiv.org/abs/2604.12207v5}
-  {arXiv:2604.12207v5 [hep-th]} \BibitemShut {NoStop}%
+  {Migdal}},\ }\href {https://arxiv.org/abs/2604.12207} {\enquote {\bibinfo
+  {title} {{Number Theory of Decaying Turbulence: Exact Solution, Riemann-Zeta
+  Stokes Staircase and Comparison with Experiment}},}\ } (\bibinfo {year}
+  {2026}{\natexlab{b}}),\ \Eprint {https://arxiv.org/abs/2604.12207}
+  {arXiv:2604.12207 [hep-th]} \BibitemShut {NoStop}%
 \bibitem [{\citenamefont {Brué}\ and\ \citenamefont
   {De~Lellis}(2026)}]{DeLellisInprep}%
   \BibitemOpen
