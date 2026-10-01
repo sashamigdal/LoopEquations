@@ -6,7 +6,7 @@
 %Control: page (0) single
 %Control: year (1) truncated
 %Control: production of eprint (0) enabled
-\begin{thebibliography}{17}%
+\begin{thebibliography}{20}%
 \makeatletter
 \providecommand \@ifxundefined [1]{%
  \@ifx{#1\undefined}
@@ -134,6 +134,13 @@
   {\bibfield  {journal} {\bibinfo  {journal} {Phys. Rev. Lett.}\ }\textbf
   {\bibinfo {volume} {131}},\ \bibinfo {pages} {024001} (\bibinfo {year}
   {2023})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Berry}(1988)}]{Berry1988}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {M.~V.}\ \bibnamefont
+  {Berry}},\ }\href@noop {} {\bibfield  {journal} {\bibinfo  {journal}
+  {Publications Math\'{e}matiques de l'IH\'{E}S}\ }\textbf {\bibinfo {volume}
+  {68}},\ \bibinfo {pages} {211} (\bibinfo {year} {1988})}\BibitemShut
+  {NoStop}%
 \bibitem [{\citenamefont {Migdal}(2024{\natexlab{b}})}]{MB46}%
   \BibitemOpen
   \bibfield  {author} {\bibinfo {author} {\bibfnamefont {A.}~\bibnamefont
@@ -160,6 +167,31 @@
   {journal} {\bibinfo  {journal} {Journal of Fluid Mechanics}\ }\textbf
   {\bibinfo {volume} {25}},\ \bibinfo {pages} {657–682} (\bibinfo {year}
   {1966})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Matsuzawa}\ \emph
+  {et~al.}(2026{\natexlab{a}})\citenamefont {Matsuzawa}, \citenamefont {Zhu},
+  \citenamefont {Goldenfeld},\ and\ \citenamefont {Irvine}}]{Matsuzawa2026}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {T.}~\bibnamefont
+  {Matsuzawa}}, \bibinfo {author} {\bibfnamefont {M.}~\bibnamefont {Zhu}},
+  \bibinfo {author} {\bibfnamefont {N.}~\bibnamefont {Goldenfeld}},\ and\
+  \bibinfo {author} {\bibfnamefont {W.~T.~M.}\ \bibnamefont {Irvine}},\ }\href
+  {https://doi.org/10.1073/pnas.2526858123} {\bibfield  {journal} {\bibinfo
+  {journal} {Proc. Natl. Acad. Sci. USA}\ }\textbf {\bibinfo {volume} {123}},\
+  \bibinfo {pages} {e2526858123} (\bibinfo {year}
+  {2026}{\natexlab{a}})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Matsuzawa}\ \emph
+  {et~al.}(2026{\natexlab{b}})\citenamefont {Matsuzawa}, \citenamefont {Zhu},
+  \citenamefont {Goldenfeld},\ and\ \citenamefont
+  {Irvine}}]{MatsuzawaData2026}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {T.}~\bibnamefont
+  {Matsuzawa}}, \bibinfo {author} {\bibfnamefont {M.}~\bibnamefont {Zhu}},
+  \bibinfo {author} {\bibfnamefont {N.}~\bibnamefont {Goldenfeld}},\ and\
+  \bibinfo {author} {\bibfnamefont {W.~T.~M.}\ \bibnamefont {Irvine}},\ }\href
+  {https://doi.org/10.5281/zenodo.18380405} {\enquote {\bibinfo {title}
+  {Supporting data for ``nonlinear diffusion and decay of a blob of turbulence
+  spreading into a quiescent fluid''},}\ }\bibinfo {howpublished} {Zenodo}
+  (\bibinfo {year} {2026}{\natexlab{b}})\BibitemShut {NoStop}%
 \bibitem [{\citenamefont {Migdal}(2026{\natexlab{d}})}]{ZenodoMellin}%
   \BibitemOpen
   \bibfield  {author} {\bibinfo {author} {\bibfnamefont {A.}~\bibnamefont

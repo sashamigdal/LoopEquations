@@ -121,9 +121,10 @@ class ThimbleH:
         T1 = np.exp(self.W0)/np.pi*((w*(ps*g).imag).sum() + self.w0*self.p0*self.v0.imag/2)
         return T, T1, int((~ok).sum())
 
-    def evaluate_quad(self, eps_rel=1e-13):
+    def evaluate_quad(self, eps_rel=1e-13, eps_abs=1e-16):
         """(T, dT/dxi) = (1/pi) Im Int_0^tend e^{W(p(t))} p'(t) {1, p} dt along the computed upper path (adaptive
-        Gauss-Kronrod in t, breakpoints at the solver steps). Exact by Cauchy for any path; unlike the Gauss-Hermite
+        Gauss-Kronrod in t, breakpoints at the solver steps; the integrand is normalized by e^{-W0}, so it is O(1) at the
+        saddle and eps_abs stops the refinement where it has fallen far below that). Exact by Cauchy for any path; unlike the Gauss-Hermite
         sum it does not assume that the integrand is e^{W0-t^2} times a smooth function of t."""
         xi = self.xi
         def F(t, m):
@@ -136,7 +137,7 @@ class ThimbleH:
             edges = np.concatenate([[0.0], brk[::max(1, len(brk)//40)], [self.tend]])
             for a_, b_ in zip(edges[:-1], edges[1:]):
                 if b_ > a_:
-                    tot[m] += quad(F, a_, b_, args=(m,), limit=200, epsabs=0, epsrel=eps_rel)[0]
+                    tot[m] += quad(F, a_, b_, args=(m,), limit=200, epsabs=eps_abs, epsrel=eps_rel)[0]
         return np.exp(self.W0)/np.pi*tot[0], np.exp(self.W0)/np.pi*tot[1]
 
     def dense(self, n=20000):

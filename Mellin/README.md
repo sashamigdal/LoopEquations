@@ -69,8 +69,8 @@ Sec. III and figures 8 and 9. The committed tables in `results/` hold the fitted
 | Fig. 2 | `fig4_thimbles.png` | `paper_figures.py` | `thimble.py`, `results/scan_D.json` |
 | Fig. 3 | `fig3_staircase.png` | `paper_figures.py` | `results/scan_D.json` |
 | Fig. 4 | `fig1_D_alpha.png` | `paper_figures.py` | `results/scan_D.json`, `cache/oscill.npy` |
-| Fig. 5 | `osc_compare.png` | `paper_figures.py` | `cache/oscill.npy`, `cache/spectrum_osc.npy` |
-| Fig. 6 | `StokesOddStaircase.png` | reproduced from A. Migdal, arXiv:2604.12207 | — |
+| Fig. 5 | `osc_compare.png` | `paper_figures.py` | `results/stokes_events.json`, `cache/stokes_berry.npz` (`stokes_berry.py`) |
+| Fig. 6 | `fig6_spectrum_staircase.png` | `paper_figures.py` | `results/stokes_events.json` (`stokes_events.py`) |
 | Fig. 7 | `fig10_finite_box_theory.png` | `paper_figures.py` | `finite_box.py` (`alphaL`), `hseries.py` |
 | Fig. 8 | `fig9_finite_box_runs.png` | `paper_figures.py` (MPI data) | `finite_box.py`, `physical_units.py`; W = 2.34 m from `finite_box_W2.py` |
 | Fig. 9 | `fig13_invRe_extrapolation.png` | `paper_figures.py` (MPI data) | `extrapolate_Re.py`, `extrap_invRe.py` |
@@ -83,11 +83,13 @@ Sec. III and figures 8 and 9. The committed tables in `results/` hold the fitted
 |---|---|
 | thimbles vs direct integral: max relative deviation 5·10⁻¹⁰ in D, 4·10⁻¹⁰ in α (abstract, II D) | `validate.py` |
 | residue formulas vs circle integrals, 10⁻¹² (II C) | `validate.py` |
-| regimes: zero parking for −3.8 ≤ log ρ ≤ −2.95, walls trapped for log ρ < −3.85, lowest dyadic pole for log ρ < −4.2 (II C) | `validate.py` (and `scan_D.json`: `zero`, `nR`, `nD`) |
+| regimes: zero parking for −3.8037 < log ρ ≤ −2.95, walls trapped for log ρ < −3.8037133, lowest dyadic pole for log ρ < −4.2023635 (II C) | `validate.py`, `scan_D.json` (`zero`, `nR`, `nD`), `stokes_events.py` |
 | zero-parking sequence n = 1, 2, 3, 5, 6, 7, 8, 14; tails < 3·10⁻¹⁴ (II C) | `results/scan_D.json`, `validate.py` |
 | Stokes terms = full wall sum to 10⁻¹² (II D) | `validate.py` |
-| log-periodic part of α: 1.4·10⁻⁶ at log ρ = −3, 2·10⁻⁹ at −4, 8·10⁻¹¹ at −4.5 (II D) | `oscill.py` |
-| spectrum vs structure function, 8–9 orders of magnitude (II D, Fig. 5) | `spectrum_osc.py`, `oscill.py` |
+| full wall sum of the residue representation: 1.4·10⁻⁶ of α at log ρ = −3 (II D) | `oscill.py` |
+| Stokes events: D at log ρ₁ = −3.8037133 (saddle 6.928 + 13.682i, F = 30.74 + 16πi) and log ρ₂ = −4.2023635 (7.220 + 8.773i, 23.69 + 12πi); spectrum at log κ₁ = 5.3613093 (−8.154 + 8.207i, 11.11 − 8πi), 11 poles at once, then 48 events to log κ = 6.3; \|Im F mod 2π\| < 2·10⁻⁶; thimble + residues vs line integral ≤ 1.1·10⁻¹⁰ on both sides of every event; jumps 1.3·10⁻⁵ of H, 9·10⁻¹⁵ and 5·10⁻¹¹ of D (II D, Fig. 6) | `stokes_events.py` |
+| Berry-smoothed trapped-pole part: \|δn\| ≤ 4.5·10⁻⁴ (peak at log κ − log κ₁ = −0.45; 2.5·10⁻⁴ unsmoothed), \|δα\| ≤ 7·10⁻⁹ (2.8·10⁻¹⁰ unsmoothed); Riemann parts ≤ 7·10⁻⁷ and 2·10⁻¹²; widths 0.57, 0.57, 0.78 (II D, Fig. 5) | `stokes_berry.py` |
+| Matsuzawa et al. blob: enstrophy decay on 1.5–15 s, n = 2.41 ± 0.03, P(11/5)/P(9/4) = 3·10⁻⁶; oscillating grid 2.5–150 s, n = 2.18 ± 0.04, ratio ≈ 3 (Conclusion) | `matsuzawa_enstrophy.py` (needs their Zenodo data) |
 | C(Δ) ∈ [e^−2.915, e^−2.763]; \|Γ(17/2 − 2πi/log 2)\| = 1.8·10², \|csc\| = 1.3·10⁻⁶, \|Γ(8 − iγ₁)\| = 0.33, \|csc\| = 4.6·10⁻¹⁰ (II A, II D) | `spectrum_osc.py` |
 | series H(κ) = Mellin integral to 2·10⁻¹⁴ for κ ≤ 40, (π/2)H(0) = a₁ (II E) | `hseries.py` |
 | κ_min = 0.1 reproduces the old index of `CorrelationOscillation.nb` (II E) | `finite_box.py` (first line), `cutoff_test.py` |
@@ -97,6 +99,7 @@ Sec. III and figures 8 and 9. The committed tables in `results/` hold the fitted
 | one W = 2.34 m for Re_λ ≤ 2398, pooled rms 0.035 → 0.023 (III A) | `finite_box_W2.py` |
 | boundary-effects region: L ≤ 0.18 W in every run; r > W is 0–19% of each tail, excluded from III B and III D (III A) | `extrapolate_Re.py` |
 | s = 1.953 ± 0.017, χ²/dof = 1.6, weighted rms 0.013, residuals within ±0.03; Table I (abstract, III B) | `extrap_invRe.py` |
+| robustness: leave-one-out s = 1.924–1.981 (jackknife 0.042), bootstrap over runs 1.91 ± 0.09, tail cut 0.30/0.25/0.20/0.15 → s = 1.949/1.910/1.887/1.860 (III B) | `fit_robustness.py` |
 | with the region r > W kept: s = 1.956 ± 0.021, χ²/dof = 2.4, largest residuals −0.16, −0.13 at log(r/L) = 2.5, 2.6 (III B) | `extrap_invRe.py` (line `r > W kept (check)`) |
 | with a box term at Re_λ → ∞: κ_min → 0 (III B) | `extrapolate_Re.py` (line `mid+high … beta=1.0`) |
 | even vs odd ensemble: \|Δα\| ≤ 0.0035, χ²/dof 1.575 vs 1.577 (III B) | `even_vs_odd.py` |
@@ -112,15 +115,21 @@ Sec. III and figures 8 and 9. The committed tables in `results/` hold the fitted
 | `abcport.py`, `build_abc_table.py` | port of `ABCInterpolator.wl` in mpmath; tabulates A, B, C, IQ at 48 Chebyshev nodes of [Δ₁, Δ₂] → `abc_cheb48.json` |
 | `dfcore.py` | f(p) = DF(p) = 20∫(1−Δ)C^{p−1}(AC − Bp)dΔ and its p-derivatives, by Gauss–Legendre in Δ (the inner integral only) |
 | `thimble.py` | S′, S″, saddle, thimble ODE, Gauss–Hermite sum with the exact-integrand factor, trapped poles (rightward rays), residues, zero-terminated tails |
+| `fastzeta.py` | ζ, ζ′/ζ, (ζ′/ζ)′ in double precision (Euler–Maclaurin, functional equation for Re s < 1/2), checked against mpmath |
+| `thimble_H.py`, `lineH.py` | the thimble of the energy spectrum H(κ) (p plane, leftward rays, zero parking, adaptive quadrature along the path) and the reference line integral on Re p = −1.5 |
+| `stokes_events.py` | Stokes events of H and D: fine scans, bisection of every change of the trapped set, secondary saddles and singulants, checks against the line integrals |
+| `stokes_berry.py` | Berry-smoothed trapped-pole part of the spectral index and of α (exact singulant of each saddle connection), and the step version |
+| `matsuzawa_enstrophy.py` | enstrophy-decay test A (9/4) vs B (11/5) on the published data of Matsuzawa et al. (not distributed; set `MATSUZAWA_DATA_DIR`) |
 | `scan.py` | the scan over log ρ ∈ [−8, 8] (step 0.05) for D and G |
 | `direct_D.py` | direct contour integral on Re q = 1 (Simpson, Im q ≤ 70); used as ground truth and by the finite-box code |
 | `validate.py` | checks, and writes `results/pythonReference_D.csv` |
-| `oscill.py`, `spectrum_osc.py` | log-periodic (wall) parts of α_D and of the spectral index |
+| `oscill.py`, `spectrum_osc.py` | full wall sums (residue representation) of α_D and of the spectral index; Z(q) vs M(p) check |
 | `hseries.py` | H(κ) = Σ(−κ)ⁿAₙ/n!, an entire function |
 | `finite_box.py` | D_W = D − 2∫₀^{κ_min}(1 − sin κρ/κρ)H dκ, α_W, and the per-run fits |
 | `physical_units.py`, `finite_box_W.py`, `finite_box_W2.py` | physical units of each run and one physical width W |
 | `extrapolate_Re.py`, `extrap_invRe.py` | integral scale, extrapolation to Re_λ → ∞ (adopted: in 1/Re_λ) and the one-parameter theory fit |
 | `even_vs_odd.py` | the same fit for the even ensemble |
+| `fit_robustness.py` | the adopted fit against the tail cut, leave-one-out and bootstrap over the runs |
 | `attractor_region.py` | fixed-α cross-sections across the runs: turbulent attractor (α < 0.355), stochastization stage, decayed turbulence (Re_λ < 10³); boundary effects r > W left out |
 | `tail_check.py` | why only the tail r ≳ L is compared (Sec. III D) |
 | `paper_figures.py` | the computed figures of the paper |
@@ -157,11 +166,14 @@ The Python port rebuilt IQ from its definition rather than from `iqinterp.mx`, s
 ### Results in brief
 
 * **Three regimes of the thimble** for D. For log ρ > −2.87 the thimble bends left and traps nothing. For
-  −3.8 ≤ log ρ ≤ −2.95 it ends on a zero 6 + iγₙ, with n = 1, 2, 3, 5, 6, 7, 8, 14 as log ρ → −2.87 (a zero-parking staircase).
-  For log ρ < −3.85 it escapes to the right and traps the Riemann and dyadic walls.
+  −3.8037 < log ρ ≤ −2.95 it ends on a zero 6 + iγₙ, with n = 1, 2, 3, 5, 6, 7, 8, 14 as log ρ → −2.87 (a zero-parking staircase).
+  At log ρ₁ = −3.8037133 it passes a secondary saddle and escapes to the right, trapping all Riemann poles and the dyadic poles
+  m ≥ 2 at once; the first dyadic pole follows at log ρ₂ = −4.2023635. In the spectrum the first event, at log κ = 5.3613093,
+  traps eleven poles at once; the next ones come one to three at a time.
 * **Oscillations.** For ρ > C_max = e^−2.76, D is a convergent series in real powers of 1/ρ: no oscillations. For
   ρ < C_min = e^−2.92 the only oscillating terms are the wall poles ρ^{7+iγₙ} and ρ^{15/2+2πik/log 2}. The dyadic k = 1 term
-  dominates, with period log 2 in log ρ. Its amplitude in α is 1.4·10⁻⁶ at log ρ = −3 and falls like ρ^5.5.
+  dominates, with period log 2 in log ρ. In the residue representation the full wall sum is 1.4·10⁻⁶ of α at log ρ = −3; in the
+  thimble representation only the trapped poles enter, Berry-smoothed: at most 7·10⁻⁹ in α, against 4.5·10⁻⁴ in the spectral index.
 * **The large-r oscillations in `CorrelationOscillation.nb` come from the cutoff.** `Dv2` integrates `htab` only over
   0.1 < k < 1000, and H(0.1) = 0.037 is not small. The endpoint leaves a term ∝ H(0.1) cos(0.1 r)/r², so the index turns negative
   and oscillates for log₁₀ r > 1.4. `htab` agrees with this model's H(κ) to 0.3%.

@@ -39,6 +39,9 @@ if ls "$MPI_DATA_DIR"/Re_*.csv >/dev/null 2>&1; then
 else
   echo; echo "=== Max Planck data not found in $MPI_DATA_DIR: Sec. III fits skipped (the committed tables in ../results are used)"
 fi
+if ls "${MATSUZAWA_DATA_DIR:-$(cd .. && pwd)/Matsuzawa}"/*Fig3A_dissipation_rate.h5 >/dev/null 2>&1; then
+  step matsuzawa_enstrophy.py  # enstrophy decay of the Matsuzawa et al. blob: 9/4 vs 11/5     -> ../results/matsuzawa_enstrophy.json
+fi
 step even_vs_odd.py         # odd vs even ensemble fitted to the Re -> infinity tail (uses ../results/mpi_extrap_invRe.json)
 step tail_check.py          # Sec. III D: index below r = L vs theory, Re trend at fixed r/L, finite width at small rho
 

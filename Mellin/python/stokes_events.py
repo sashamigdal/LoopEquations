@@ -56,8 +56,8 @@ def bisect_all(state, sa, sb, tol=1e-8):
 
 # ---------------- secondary saddle and singulant ----------------
 def secondary_saddle(kind, u):
-    """the saddle met by the thimble at the event: Newton on W' = 0 from the point of the path (beyond 0.3 from p0) with
-    the smallest |W'|; singulant F = W(p0) - W(s)"""
+    """the saddle met by the thimble at the event: Newton on W' = 0 from the local minima of |W'| along the path (beyond
+    0.3 from p0), in increasing order; the first saddle with Im F = 0 (mod 2 pi), F = W(p0) - W(s), is the one"""
     if kind == 'H':
         import thimble_H as T
         xi = u; th = h_thimble(xi); P = th.dense(8000)
@@ -69,12 +69,36 @@ def secondary_saddle(kind, u):
         xi = -u; th = Thimble(xi, 'D'); P = th._dense_path(6000)
         Wp, W2 = (lambda q: S1(q)+xi), S2
         W = lambda q: complex(logZ(q, 'D'))+xi*q; W0 = float(mm.re(logZ(th.q0, 'D')))+xi*th.q0
-    a = np.array([abs(Wp(p)) for p in P]); k = int(np.argmin(np.where(np.abs(P-P[0]) > 0.3, a, np.inf))); s = P[k]
-    for _ in range(50):
-        ds = Wp(s)/W2(s); s = s-ds
-        if abs(ds) < 1e-13: break
-    F = W0-W(s)
-    return complex(s), complex(F), float(a[k]), float(abs(Wp(s))), float(abs(s-P[k]))
+    a = np.array([abs(Wp(p)) for p in P]); a[np.abs(P-P[0]) <= 0.3] = np.inf
+    loc = [k for k in range(1, len(a)-1) if a[k] <= a[k-1] and a[k] <= a[k+1] and np.isfinite(a[k])]
+    best = None
+    for k in sorted(loc, key=lambda k: a[k])[:12]:
+        s = P[k]
+        for _ in range(50):
+            ds = Wp(s)/W2(s); s = s-ds
+            if abs(ds) < 1e-13: break
+        F = W0-W(s); dev = abs((F.imag+np.pi) % (2*np.pi)-np.pi)
+        if best is None or dev < best[-1]:
+            best = (complex(s), complex(F), float(a[k]), float(abs(Wp(s))), float(abs(s-P[k])), dev)
+        if dev < 1e-4 and abs(s-P[k]) < 1.0:
+            break
+    return best[:5]
+
+
+def residue_jump(kind, e):
+    """residues of the poles gained minus those lost at the event, at the event, relative to the line integral"""
+    xi = e['xi']
+    if kind == 'H':
+        import thimble_H as T
+        from lineH import H_line
+        r = lambda w, k: 2*T.residue(w, k, xi)[0].real; ref = H_line(xi)[0][0]
+    else:
+        from thimble import residue_at, GAMMA, DYAD
+        r = lambda w, k: -2*residue_at((7+1j*GAMMA[k]) if w == 'R' else (7.5+1j*DYAD[k]), xi, 'D', w).real
+        ref = D_line(xi)[0]
+    J = sum(r('R', k) for k in set(e['B_R'])-set(e['A_R'])) - sum(r('R', k) for k in set(e['A_R'])-set(e['B_R'])) \
+        + sum(r('D', k) for k in set(e['B_D'])-set(e['A_D'])) - sum(r('D', k) for k in set(e['A_D'])-set(e['B_D']))
+    return J/ref
 
 
 # ---------------- checks against the line integrals ----------------
@@ -114,7 +138,7 @@ def _event(args):
              A_R=a['R'], A_D=a['D'], B_R=b['R'], B_D=b['D'], zero_A=a['zero'], zero_B=b['zero'], end_A=a['end'], end_B=b['end'],
              saddle=[s.real, s.imag], F=[F.real, F.imag], ImF_mod_2pi=float((F.imag+np.pi) % (2*np.pi)-np.pi),
              width=float(np.sqrt(2*F.real)/abs(s.imag)), Wp_on_path=r0, Wp_newton=r1, newton_step=step, checks=chk)
-    e['jump_rel'] = chk[1]['residues_rel']-chk[0]['residues_rel']
+    e['jump_rel'] = residue_jump(kind, e)
     return e
 
 

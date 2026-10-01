@@ -3,12 +3,14 @@ x = log(r/L) over the runs Re_lambda >= 1046, then alpha_D(x - s) fitted to alph
   1. the level of the tail cut: ALPHA_FIT = 0.355 (adopted), 0.30, 0.25, 0.20, 0.15;
   2. leave-one-out: each run of the adopted set left out in turn;
   3. bootstrap over the runs (resampled with replacement, 2000 samples): the spread of s.
-Input: cache/mpi_extrapolate_Re_full.json (extrapolate_Re.py; it holds per-run data and is not distributed).
+Input: cache/oscill.npy (oscill.py), cache/mpi_extrapolate_Re_full.json (extrapolate_Re.py; it holds per-run data and is not distributed).
 Writes ../results/mpi_fit_robustness.json."""
 import numpy as np
 from scipy.optimize import minimize_scalar
-from finite_box import alphaL
+from scipy.interpolate import CubicSpline
 from common import cache, res, load_json, save_json, ALPHA_FIT
+
+_o = np.load(cache('oscill.npy')); aD = CubicSpline(_o[0], _o[2])   # exact alpha_D(log rho) = finite_box.alphaL(., 0) to 2e-11
 
 J = load_json(cache('mpi_extrapolate_Re_full.json')); runs = J['runs']
 xg = np.arange(-4.0, 2.61, 0.1)
@@ -40,7 +42,7 @@ def extrap(idx, minruns=4):
 def fit(ai, ae, cut=ALPHA_FIT):
     m = np.isfinite(ai) & np.isfinite(ae) & (ae > 0) & (ai < cut) & (xg > -3.0)
     if m.sum() < 3: return np.nan, np.nan, np.nan, int(m.sum())
-    w = 1/ae[m]**2; chi = lambda s: np.sum(w*(ai[m]-alphaL(xg[m]-s, 0.0)[0])**2)
+    w = 1/ae[m]**2; chi = lambda s: np.sum(w*(ai[m]-aD(xg[m]-s))**2)
     r = minimize_scalar(chi, bounds=(0, 4), method='bounded', options={'xatol': 1e-6})
     red = r.fun/(m.sum()-1); h = 1e-3; curv = (chi(r.x+h)-2*r.fun+chi(r.x-h))/h**2
     return r.x, np.sqrt(2/curv*max(red, 1.0)), red, int(m.sum())

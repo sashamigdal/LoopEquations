@@ -85,68 +85,67 @@ fig.savefig(f'{OUT}/fig4_thimbles.png'); plt.close(fig)
 B = np.load(cache('stokes_berry.npz')); dist = B['dist']; evs = B['events']
 EV = load_json(res('stokes_events.json'))
 uc = {k: min(e['u'] for e in EV['events'] if e['kind'] == k) for k in 'HD'}
-fig, axs = plt.subplots(2, 1, figsize=(7.8, 7.4), sharex=True, gridspec_kw={'hspace': 0.07})
-for ax, kind, name in ((axs[0], 'H', 'energy spectrum:  δn,  n = d log H/d log κ'), (axs[1], 'D', 'structure function:  δα,  α = d log D/d log ρ')):
-    ax.semilogy(dist, np.abs(B[kind+'_berry_dT']), color=INK, lw=1.8, label='trapped poles, Berry-smoothed')
-    ax.semilogy(dist, np.abs(B[kind+'_berry_dD']), color=C2, lw=1.1, label='   dyadic poles')
-    ax.semilogy(dist, np.abs(B[kind+'_berry_dR']), color=C7, lw=1.1, label='   Riemann poles')
+fig, axs = plt.subplots(2, 1, figsize=(7.8, 7.6), sharex=True, gridspec_kw={'hspace': 0.07})
+for ax, kind, name in ((axs[0], 'H', '(a) energy spectrum:  δn,  n = d log H/d log κ'), (axs[1], 'D', '(b) structure function:  δα,  α = d log D/d log ρ')):
+    ax.semilogy(dist, np.abs(B[kind+'_berry_dT']), color=INK, lw=2.4, label='trapped poles, Berry-smoothed')
+    ax.semilogy(dist, np.abs(B[kind+'_berry_dD']), color=C2, lw=0.9, label='   dyadic poles')
+    ax.semilogy(dist, np.abs(B[kind+'_berry_dR']), color=C7, lw=0.9, label='   Riemann poles')
     ax.semilogy(dist, np.abs(B[kind+'_step_dT']), color=INK2, lw=0.9, ls='--', label='unsmoothed Stokes jumps')
-    ax.semilogy(dist, 0.01*np.abs(B[kind+'_n']), color=C1, lw=1.2, ls=':', label='1 % of the index')
+    ax.semilogy(dist, 0.01*np.abs(B[kind+'_n']), color=C1, lw=1.3, ls=':', label='1 % of the index')
     ev = evs[evs[:, 0] == (0 if kind == 'H' else 1)]
-    top = ax.get_ylim()[1]
-    ax.set_ylim(1e-16 if kind == 'H' else 1e-22, 1.0)
-    ax.plot(ev[:, 1], np.full(len(ev), 0.3), 'v', color=INK, ms=4.5, mew=0, label='Stokes events (bisection)')
+    ax.set_ylim(1e-16 if kind == 'H' else 1e-21, 3.0)
+    ax.plot(ev[:, 1], np.full(len(ev), 1.2), 'v', color=INK, ms=4.5, mew=0, label='Stokes events (bisection)')
+    ax.axvline(0, color=INK2, lw=0.6, ls=':')
     ax.text(0.015, 0.04, name, transform=ax.transAxes, fontsize=9.5, color=INK)
     ax.set_ylabel('|trapped-pole part of the index|')
-axs[0].legend(fontsize=8.2, loc='upper right', ncol=2)
+axs[1].legend(fontsize=8.0, loc='upper right', bbox_to_anchor=(1.0, 0.86), ncol=2, framealpha=0.95)
 axs[1].set_xlim(dist[0], dist[-1])
 axs[1].set_xlabel('distance from the first trapping:  log κ − %.5f  (spectrum),   %.5f − log ρ  (structure function)' % (uc['H'], -uc['D']), fontsize=9)
 fig.savefig(f'{OUT}/osc_compare.png', dpi=220); plt.close(fig)
 
 # ---------- Fig. 6: Stokes staircase of the spectrum on a fine grid; thimbles at the first events ----------
 st = EV['spectrum_staircase']; ug = np.array(st['u']); hev = [e for e in EV['events'] if e['kind'] == 'H']
+dev = [e for e in EV['events'] if e['kind'] == 'D']
 ue = [ug[0]] + [e['u'] for e in hev]; nRe = [0] + [len(e['B_R']) for e in hev]; nDe = [0] + [len(e['B_D']) for e in hev]
 g = ug > hev[-1]['bracket'][1]
 ue = np.r_[ue, ug[g]]; nRe = np.r_[nRe, np.array(st['nR'])[g]]; nDe = np.r_[nDe, np.array(st['nD'])[g]]
-fig = plt.figure(figsize=(10.0, 9.4)); gs = fig.add_gridspec(2, 2, height_ratios=[1, 1.35], hspace=0.25, wspace=0.2)
+fig = plt.figure(figsize=(10.0, 9.6)); gs = fig.add_gridspec(2, 2, height_ratios=[1, 1.35], hspace=0.25, wspace=0.2)
 a = fig.add_subplot(gs[0, :])
 a.step(ue, nRe+nDe, where='post', color=INK, lw=1.8, label='all trapped poles')
 a.step(ue, nRe, where='post', color=C7, lw=1.4, label='Riemann wall  −8 + iγₙ')
 a.step(ue, nDe, where='post', color=C2, lw=1.4, ls='--', label='dyadic wall  −17/2 + 2πim/log 2')
 a.plot(ug, np.array(st['nR'])+np.array(st['nD']), 'o', ms=2.2, color=C3, mew=0, label='thimbles on the grid Δlog κ = 0.01')
 a.axvline(hev[-1]['u'], color=INK2, lw=0.7, ls=':')
+a.text(hev[-1]['u']+0.01, 2, 'events located by bisection to the left', fontsize=8, color=INK2)
 a.set_xlim(ug[0], ug[-1]); a.set_xlabel('log κ'); a.set_ylabel('number of trapped poles'); a.legend(loc='upper left', fontsize=8.5)
-a.text(0.5, 0.92, '(a)', transform=a.transAxes, fontsize=10)
+a.text(0.015, 0.55, '(a)', transform=a.transAxes, fontsize=10)
 gam = np.load(cache('zetazeros_120.npy')); dy = 2*np.pi*np.arange(1, 31)/np.log(2)
-def plane(ax, kind):
-    e0 = hev[0] if kind == 'H' else None
-    if kind == 'H':
-        P = EV['paths']['H']; labs = ['log κ = %.9f' % hev[0]['bracket'][0], 'log κ = %.9f' % hev[0]['bracket'][1]]
-        cols = [C1, C3]; sad = [hev[0]['saddle']]
-        ax.plot(np.full(len(gam), -8.0), gam, 'x', color=INK, ms=4, mew=1, label='poles −8+iγₙ, −17/2+2πim/log 2')
-        ax.plot(np.full(len(dy), -8.5), dy, 'x', color=INK, ms=4, mew=1)
-        ax.plot(np.full(len(gam), -7.0), gam, 'o', mfc='none', mec=INK2, ms=4, mew=0.9, label='zeros −7+iγₙ')
-        ax.plot(*hev[0]['end_B'], 'D', mfc='none', mec=C3, ms=6, mew=1.2, label='zero of f(p) where the thimble ends')
-        for x0 in (-8, -8.5, -7): ax.axvline(x0, color=INK2, lw=0.6, ls=':')
-        ax.set_xlim(-16, 0); ax.set_ylim(0, 48); ax.set_xlabel('Re p'); ax.set_ylabel('Im p')
-    else:
-        dev = [e for e in EV['events'] if e['kind'] == 'D']; P = EV['paths']['D']
-        labs = ['log ρ = %.8f' % -dev[0]['bracket'][0], 'log ρ = %.8f' % -dev[0]['bracket'][1],
-                'log ρ = %.8f' % -dev[1]['bracket'][0], 'log ρ = %.8f' % -dev[1]['bracket'][1]]
-        cols = [C1, C3, C5, C7]; sad = [e['saddle'] for e in dev]
-        ax.plot(np.full(len(GAMMA), 7.0), GAMMA, 'x', color=INK, ms=4, mew=1, label='poles 7+iγₙ, 15/2+2πim/log 2')
-        ax.plot(np.full(len(DYAD), 7.5), DYAD, 'x', color=INK, ms=4, mew=1)
-        ax.plot(np.full(len(GAMMA), 6.0), GAMMA, 'o', mfc='none', mec=INK2, ms=4, mew=0.9, label='zeros 6+iγₙ')
-        for x0 in (6, 7, 7.5): ax.axvline(x0, color=INK2, lw=0.6, ls=':')
-        ax.set_xlim(0, 16); ax.set_ylim(0, 48); ax.set_xlabel('Re q'); ax.set_ylabel('Im q')
-    for (x, y), c, l in zip(P, cols, labs):
-        ax.plot(x, y, color=c, lw=1.5, label=l)
-    for s in sad:
-        ax.plot(*s, '*', color=INK, ms=10, mec=SURF, mew=0.6)
-    ax.plot([], [], '*', color=INK, ms=9, label='secondary saddle (Stokes event)')
-    ax.legend(loc='upper left' if kind == 'D' else 'upper right', fontsize=7.4, framealpha=0.92)
-b1 = fig.add_subplot(gs[1, 0]); plane(b1, 'H'); b1.text(0.03, 0.03, '(b) spectrum, first event', transform=b1.transAxes, fontsize=9.5)
-b2 = fig.add_subplot(gs[1, 1]); plane(b2, 'D'); b2.text(0.4, 0.03, '(c) structure function, both events', transform=b2.transAxes, fontsize=9.5)
+b1 = fig.add_subplot(gs[1, 0])
+for (x, y), c, l in zip(EV['paths']['H'], [C1, C3], ['before: ends on −7+iγ₁', 'after: traps R1–R7, D1–D4']):
+    b1.plot(x, y, color=c, lw=1.5, label=l)
+b1.plot(np.full(len(gam), -8.0), gam, 'x', color=INK, ms=4, mew=1, label='poles')
+b1.plot(np.full(len(dy), -8.5), dy, 'x', color=INK, ms=4, mew=1)
+b1.plot(np.full(len(gam), -7.0), gam, 'o', mfc='none', mec=INK2, ms=4, mew=0.9, label='zeros −7+iγₙ')
+b1.plot(*hev[0]['end_B'], 'D', mfc='none', mec=C3, ms=6, mew=1.2, label='f(p) = 0: end')
+b1.plot(*hev[0]['saddle'], '*', color=INK, ms=11, mec=SURF, mew=0.6, label='secondary saddle')
+for x0 in (-8, -8.5, -7): b1.axvline(x0, color=INK2, lw=0.6, ls=':')
+b1.set_xlim(-16, 8); b1.set_ylim(0, 48); b1.set_xlabel('Re p'); b1.set_ylabel('Im p')
+b1.legend(loc='center right', bbox_to_anchor=(1.0, 0.55), fontsize=7.0, framealpha=0.95)
+b1.text(0.03, 0.03, '(b) spectrum, log κ₁ = %.7f' % hev[0]['u'], transform=b1.transAxes, fontsize=9)
+b2 = fig.add_subplot(gs[1, 1])
+labs = ['ρ₁ before: ends on 6+iγ₁', 'ρ₁ after: traps R, D m≥2', 'ρ₂ before: D1 free', 'ρ₂ after: D1 trapped']
+for (x, y), c, l in zip(EV['paths']['D'], [C1, C3, C5, C7], labs):
+    b2.plot(x, y, color=c, lw=1.5, label=l)
+b2.plot(np.full(len(GAMMA), 7.0), GAMMA, 'x', color=INK, ms=4, mew=1, label='poles')
+b2.plot(np.full(len(DYAD), 7.5), DYAD, 'x', color=INK, ms=4, mew=1)
+b2.plot(np.full(len(GAMMA), 6.0), GAMMA, 'o', mfc='none', mec=INK2, ms=4, mew=0.9, label='zeros 6+iγₙ')
+for e in dev: b2.plot(*e['saddle'], '*', color=INK, ms=11, mec=SURF, mew=0.6)
+b2.plot([], [], '*', color=INK, ms=9, label='secondary saddles')
+for x0 in (6, 7, 7.5): b2.axvline(x0, color=INK2, lw=0.6, ls=':')
+b2.set_xlim(0, 16); b2.set_ylim(0, 30); b2.set_xlabel('Re q'); b2.set_ylabel('Im q')
+b2.legend(loc='upper left', fontsize=6.8, framealpha=0.95)
+b2.text(0.97, 0.97, '(c) structure function\nlog ρ₁ = %.7f\nlog ρ₂ = %.7f' % (dev[0]['xi'], dev[1]['xi']), transform=b2.transAxes,
+        fontsize=8.5, ha='right', va='top')
 fig.savefig(f'{OUT}/fig6_spectrum_staircase.png', dpi=200); plt.close(fig)
 
 # ---------- Fig. 10: what the finite width does to alpha ----------

@@ -62,8 +62,9 @@ def singulant_track(e, u, h=0.01):
     else:
         Wp, W2, sad = (lambda q, xi: TD.S1(q)+xi), TD.S2, (lambda xi: TD.saddle(xi, 'D'))
     ue, se = e['u'], complex(*e['saddle'])
+    span = 12*e['width']                       # beyond 12 widths S_e is 0 or 1 to double precision: not tracked
     out = {}
-    for direction, stop in ((+1, u.max()+h), (-1, u.min()-h)):
+    for direction, stop in ((+1, min(u.max(), ue+span)+2*h), (-1, max(u.min(), ue-span)-2*h)):
         uu = np.arange(ue, stop if direction > 0 else stop, direction*h)
         s = se; S = [se]; jumps = 0.0
         for x in uu[1:]:
@@ -88,10 +89,11 @@ def multiplier(e, u, mode):
         return (u > e['u']).astype(float)
     if mode == 'fixed':
         return 0.5*erfc(-(u-e['u'])/e['width'])
-    F = e['_F']
-    sgn = np.sign(-(F.imag[np.searchsorted(e['_U'], e['u'])+5]-F.imag[np.searchsorted(e['_U'], e['u'])-5]))
+    F, U = e['_F'], e['_U']; i = np.searchsorted(U, e['u'])
+    sgn = np.sign(-(F.imag[min(i+3, len(U)-1)]-F.imag[max(i-3, 0)]))
     sig = -sgn*e['_Fu'].imag/np.sqrt(2*np.maximum(e['_Fu'].real, 1e-6))
-    sig = np.where((e['_Fu'].real <= 1e-6) & (u < e['u']), np.inf, sig)  # untrapped side beyond Re F = 0
+    sig = np.where((e['_Fu'].real <= 1e-6) & (u < e['u']), -np.inf, sig)  # untrapped side beyond Re F = 0: switched off
+    sig = np.where(u < U.min(), -np.inf, np.where(u > U.max(), np.inf, sig))
     return 0.5*erfc(-sig)
 
 

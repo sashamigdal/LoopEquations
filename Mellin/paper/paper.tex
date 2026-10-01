@@ -29,9 +29,9 @@ integral for the odd Euler ensemble, the only marginally stable turbulent attrac
 thimbles with Gauss--Hermite quadrature, including the Stokes phenomenon: the residues of the Riemann-wall and dyadic-wall
 poles trapped by the thimble, and the thimbles that terminate on the paired zeros. The computation agrees with a direct
 contour integration to $5\times10^{-10}$. The same Riemann-wall and dyadic-wall poles that produce the log-periodic
-oscillations of the energy spectrum also produce log-periodic oscillations of the effective index $\alpha(\rho)$. They
-appear only at small separations, $\rho<C_{\min}$, with an amplitude below $1.5\times10^{-6}$, eight to nine orders of
-magnitude smaller than in the spectrum. For $\rho>C_{\max}$ there are no oscillations at all. Finite-size effects are included exactly by subtracting the
+oscillations of the energy spectrum also produce log-periodic oscillations of the effective index $\alpha(\rho)$. The
+thimble traps them only for $\log\rho<-3.804$, at two Stokes events; their Berry-smoothed contribution to $\alpha$ is below
+$10^{-8}$, against $5\times10^{-4}$ in the spectral index. For $\rho>C_{\max}$ there are no oscillations at all. Finite-size effects are included exactly by subtracting the
 infrared part $k<\pi/W$. We compare the theory with the Max Planck wind-tunnel measurements of Küchler,
 Bewley and Bodenschatz at $Re_\lambda=413$--$5779$. The small oscillations of the measured index beyond the
 tunnel width, $r>W$, are reproduced by the finite-width correction; this boundary region is excluded. Comparing the runs
@@ -138,7 +138,8 @@ poles, $M_\eta$ has the Riemann wall $P_n=-8\pm\I\gamma_n$, $\zeta(\tfrac12+\I\g
 $Z_n=-7\pm\I\gamma_n$. In the odd ensemble it also has the dyadic wall
 $D_m=-\tfrac{17}{2}+2\pi\I m/\log 2$, $m\neq0$. When the Mellin integral~\eqref{eq:Hkappa} is evaluated by Lefschetz
 thimbles, these walls generate the Stokes staircase of the energy spectrum: as $\log\kappa$ grows, the thimble traps the wall
-poles one by one, each adding an exponentially small log-periodic correction $\kappa^{-8}\cos(\gamma_n\log\kappa+\phi_n)$ or
+poles, the first eleven at once and the following ones one to three at a time (Sec.~\ref{sec:method}), each adding an
+exponentially small log-periodic correction $\kappa^{-8}\cos(\gamma_n\log\kappa+\phi_n)$ or
 $\kappa^{-17/2}\cos(2\pi m\log\kappa/\log 2+\phi_m)$~\cite{migdal2026Riemann}.
 
 \paragraph*{This paper.}
@@ -240,12 +241,13 @@ checked against contour integrals around the poles to $10^{-12}$. The thimbles f
 \item For $\log\rho>-2.8$ the thimble bends to the left, where only real poles exist, and nothing is trapped. Near
 $\log\rho\approx-2.87$ it rises almost vertically and reaches the walls only at heights $\mathrm{Im}\,q>80$, where the
 residues are negligible.
-\item For $-3.8\le\log\rho\le-2.95$ the thimble \emph{parks} on a zero $6+\I\gamma_n$ of $Z_\eta$, before reaching the Riemann
+\item For $-3.8037<\log\rho\le-2.95$ the thimble \emph{parks} on a zero $6+\I\gamma_n$ of $Z_\eta$, before reaching the Riemann
 wall. The contour then continues up $\mathrm{Re}\,q=6$, contributing a tail smaller than $3\times10^{-14}$ in relative terms. The
 index $n$ of the parking zero jumps $1,2,3,5,6,7,8,14,\ldots$ as $\log\rho\to-2.87$: this is the zero-parking staircase of the
 structure function (Fig.~\ref{fig:staircase}).
-\item For $\log\rho<-3.85$ the thimble escapes to the right below the first zero and traps the whole Riemann and dyadic walls
-above its crossing height. The first dyadic pole, at height $2\pi/\log2=9.06$, is trapped for $\log\rho<-4.2$.
+\item For $\log\rho<\log\rho_1=-3.8037133$ the thimble escapes to the right below the first zero and traps, at once, all
+Riemann poles and the dyadic poles $m\ge2$. The first dyadic pole, at height $2\pi/\log2=9.06$, is trapped for
+$\log\rho<\log\rho_2=-4.2023635$. Both transitions are Stokes events (Sec.~\ref{sec:stokesEvents}).
 \end{enumerate}
 
 \begin{figure}[tbp]
@@ -284,40 +286,83 @@ $-5\lesssim\log\rho\lesssim0$.
     \label{fig:Dalpha}
 \end{figure}
 
-\paragraph*{Oscillations of the structure function and of the spectrum.}
-The log-periodic part of $\alpha$ is the sum of all wall residues. It is shown in Fig.~\ref{fig:osc}, together with the
-log-periodic part of the spectral index $d\log H/d\log\kappa$ computed from the same walls of~\eqref{eq:Mtheor}. The
-dyadic wall dominates both, with period $\log2$. Where every wall pole is trapped, the thimble's Stokes terms reproduce the
-full wall sum to $10^{-12}$. The oscillations of $\alpha$ are at most $1.4\times10^{-6}$ (at $\log\rho=-3$, next to the edge of convergence) and fall as
-$\rho^{5.5}$: they reach $2\times10^{-9}$ at $\log\rho=-4$ and $8\times10^{-11}$ at $\log\rho=-4.5$. At the same distance from
-the convergence edge, the oscillations of the spectral index are eight to nine orders of magnitude larger (Fig.~\ref{fig:osc}).
-The reason is the factor $\Gamma(-p)$ in $M_\eta(p)$. At the walls its power growth $|p|^{-\mathrm{Re}\,p-1/2}$ compensates
-the exponential decay $e^{-\pi|\mathrm{Im}\,p|/2}$, for example $|\Gamma(\tfrac{17}{2}-2\pi\I/\log2)|=1.8\times10^{2}$. In
-coordinate space this Gamma function is cancelled by the Fourier kernel, and only
-$|\csc(\pi q/2)|=1.3\times10^{-6}$ remains at the first dyadic pole ($|\Gamma(8-\I\gamma_1)|=0.33$ against
-$|\csc|=4.6\times10^{-10}$ at the first Riemann pole). The number theory of the Euler ensemble is thus clearly visible in the spectrum~\cite{migdal2026Riemann}
-(Fig.~\ref{fig:spectrumStaircase}). The structure function has the same log-periodic oscillations, with the same periods:
-$\log2$ in $\log\rho$ for the dyadic wall and $2\pi/\gamma_n$ for the Riemann wall. They appear only at small separations,
-$\rho<C_{\min}$, the Fourier image of the large-$\kappa$ tail of the spectrum, and with amplitude at most $1.4\times10^{-6}$. At
-large separations, $\rho>C_{\max}$, they are absent.
+\paragraph*{Stokes events.}\label{sec:stokesEvents}
+The set of trapped poles changes only at Stokes events. A thimble changes its topology only by passing through another
+critical point: at an event $\xi_e$ the thimble from the real saddle runs into a secondary saddle $s_e$, $W'(s_e)=0$, and the
+singulant $F_e=W(q_0)-W(s_e)$ has $\mathrm{Im}\,F_e=0\pmod{2\pi}$. We located every event by bisection to $10^{-8}$,
+starting from grids with steps $0.01$ in $\log\kappa$ and $0.05$ in $\log\rho$, and found $s_e$ by Newton's method from the
+path; at every event $|\mathrm{Im}\,F_e|<2\times10^{-6}$ modulo $2\pi$. The structure function has two events
+(Fig.~\ref{fig:spectrumStaircase}c). At $\log\rho_1=-3.8037133$ the thimble meets the saddle $6.928+13.682\I$,
+$F=30.74+16\pi\I$: above it the thimble ends on the zero $6+\I\gamma_1$, below it the thimble escapes to the right and traps
+all Riemann poles and the dyadic poles $m\ge2$ at once. At $\log\rho_2=-4.2023635$, through the saddle $7.220+8.773\I$,
+$F=23.69+12\pi\I$, it traps the first dyadic pole. The spectrum has a similar onset (Fig.~\ref{fig:spectrumStaircase}b). At
+$\log\kappa_1=5.3613093$, through the saddle $-8.154+8.207\I$, $F=11.11-8\pi\I$, the thimble leaves the zero $-7+\I\gamma_1$
+and traps eleven poles at once, $P_1$--$P_7$ and $D_1$--$D_4$, ending on a zero of $f(p)$ at $-9.672+42.708\I$. The next
+$48$ events, up to $\log\kappa=6.3$, trap one to three poles each, and twice poles are released and recaptured. The Stokes
+staircase of the spectrum thus starts with a collective jump and then proceeds pole by pole
+(Fig.~\ref{fig:spectrumStaircase}a). On both sides of every event the thimble plus the residues agree with the direct
+integral to $1.1\times10^{-10}$. The thimble integral therefore jumps by exactly minus the residues of the newly trapped
+poles: by $1.3\times10^{-5}$ of $H$ at the first event of the spectrum, and by $9\times10^{-15}$ and $5\times10^{-11}$ of $D$
+at the two events of the structure function.
+
+\paragraph*{Trapped-pole oscillations of the structure function and of the spectrum.}
+Berry's smoothing~\cite{Berry1988} replaces these jumps by an analytic switching-on of the trapped residues. With
+$u=\log\kappa$ for the spectrum and $u=-\log\rho$ for the structure function, the trapped-pole part is
+\begin{equation}
+    O(u)=\sum_e S_e(u)\,J_e(u),\qquad S_e=\tfrac12\,\mathrm{erfc}(-\sigma_e),\qquad
+    \sigma_e=\pm\frac{\mathrm{Im}\,F_e}{\sqrt{2\,\mathrm{Re}\,F_e}},
+    \label{eq:Berry}
+\end{equation}
+where $J_e$ is the residue sum of the poles trapped at the event, and the sign makes $S_e$ grow from $0$ to $1$ with $u$.
+This is the multiplier of Ref.~\cite{migdal2026Riemann}, with the pole singulant replaced by that of the saddle
+connection. $F_e$ is followed exactly in $u$, with $dF_e/d\xi=q_0-s_e$. Near the event
+$\mathrm{Im}\,F_e\approx-\mathrm{Im}\,s_e\,(\xi-\xi_e)$, so that the width of the switching is
+$\sqrt{2\,\mathrm{Re}\,F_e}/\mathrm{Im}\,s_e=0.57$ for the first event of the spectrum, and $0.57$ and $0.78$ for the two
+events of the structure function. The trapped-pole part of the index is $\delta\alpha=(O'-\alpha O)/(D-O)$, and the same
+for the spectral index $n=d\log H/d\log\kappa$. Both are shown in Fig.~\ref{fig:osc}, from the first trapping on. In the
+spectrum $|\delta n|$ reaches $4.5\times10^{-4}$, $1.5\times10^{-4}$ of the index. Since the residues grow fast toward
+smaller $\kappa$, the smoothed part peaks at $\log\kappa-\log\kappa_1\approx-0.45$, slightly before the event; the
+unsmoothed jumps give $2.5\times10^{-4}$. Beyond the event it decays as $\kappa^{-5}$. In the structure function
+$|\delta\alpha|\le7\times10^{-9}$, and $2.8\times10^{-10}$ without the smoothing. The dyadic poles dominate both: the
+Riemann parts are at most $7\times10^{-7}$ and $2\times10^{-12}$. Near the crossover, where the first poles are trapped, the
+effect is five to six orders of magnitude smaller in the structure function than in the spectrum, and in both it is far
+below a percent of the index.
+
+The reason for the difference is the factor $\Gamma(-p)$ in $M_\eta(p)$. At the walls its power growth
+$|p|^{-\mathrm{Re}\,p-1/2}$ compensates the exponential decay $e^{-\pi|\mathrm{Im}\,p|/2}$, for example
+$|\Gamma(\tfrac{17}{2}-2\pi\I/\log2)|=1.8\times10^{2}$. In coordinate space this Gamma function is cancelled by the Fourier
+kernel, and only $|\csc(\pi q/2)|=1.3\times10^{-6}$ remains at the first dyadic pole ($|\Gamma(8-\I\gamma_1)|=0.33$ against
+$|\csc|=4.6\times10^{-10}$ at the first Riemann pole). The number theory of the Euler ensemble is thus much more visible in
+the spectrum~\cite{migdal2026Riemann} than in the structure function, but even there it is a small effect. The structure
+function has the same log-periodic oscillations, with the same periods: $\log2$ in $\log\rho$ for the dyadic wall and
+$2\pi/\gamma_n$ for the Riemann wall. They appear only at small separations, $\rho<C_{\min}$, the Fourier image of the
+large-$\kappa$ tail of the spectrum. In the convergent residue representation that holds there, Eq.~\eqref{eq:smallrho},
+all wall poles enter at once, and their sum is at most $1.4\times10^{-6}$ of $\alpha$, at $\log\rho=-3$, next to the edge of
+convergence. In the thimble representation these terms are part of the thimble integral until the poles are trapped;
+where every wall pole is trapped, $\log\rho<\log\rho_2$, the Stokes terms reproduce the full wall sum to $10^{-12}$. At large
+separations, $\rho>C_{\max}$, the oscillations are absent.
 
 \begin{figure}[tbp]
     \centering
     \includegraphics[width=0.8\columnwidth]{osc_compare.png}
-    \caption{Log-periodic (wall-pole) part of the local index: energy spectrum, $\delta\left(d\log H/d\log\kappa\right)$ (solid),
-    against structure function, $\delta\alpha$ (dashed), for the dyadic and Riemann walls of the odd ensemble. The horizontal
-    axis is the distance from the edge of convergence of the corresponding residue series, $\log\kappa>-\log C_{\min}$ for the
-    spectrum and $\log\rho<\log C_{\min}$ for the structure function.}
+    \caption{Trapped-pole (log-periodic) part of the local index, Eq.~\eqref{eq:Berry}: Berry-smoothed (thick black), its
+    dyadic (orange) and Riemann (violet) parts, and the unsmoothed Stokes jumps (dashed), against the distance from the first
+    trapping. (a) The energy spectrum, $\delta n$, $n=d\log H/d\log\kappa$, from $\log\kappa_1=5.36131$. (b) The structure
+    function, $\delta\alpha$, from $\log\rho_1=-3.80371$. Triangles mark the Stokes events, the dotted line $1\%$ of the
+    index.}
     \label{fig:osc}
 \end{figure}
 
 \begin{figure}[tbp]
     \centering
-    \includegraphics[width=0.66\columnwidth]{StokesOddStaircase.png}
-    \caption{Stokes staircase of the energy spectrum in the odd Euler ensemble, from Ref.~\cite{migdal2026Riemann}: the
-    total number of trapped poles (black, dots), Riemann-wall poles (blue) and dyadic-wall poles (dashed) as functions of
-$\xi=\log\kappa$. Each trapped
-    pole adds a log-periodic correction to $H(\kappa)$.}
+    \includegraphics[width=0.9\columnwidth]{fig6_spectrum_staircase.png}
+    \caption{(a) Stokes staircase of the energy spectrum in the odd Euler ensemble: the numbers of trapped Riemann-wall and
+    dyadic-wall poles and their total, from the $49$ Stokes events located by bisection for $\log\kappa\le6.3$ (dotted line)
+    and from the thimbles on a grid of step $0.01$ (dots; they are followed to $t=20$, where the integrand has fallen by
+    $e^{-400}$). Each trapped pole adds a log-periodic correction to $H(\kappa)$. (b) The thimbles at the two ends of the
+    bisection bracket of the first event, $10^{-8}$ apart. Before it the thimble ends on the zero $-7+\I\gamma_1$; after it,
+    past the secondary saddle (star), it traps $P_1$--$P_7$ and $D_1$--$D_4$ and ends on a zero of $f(p)$ (diamond). (c) The
+    same for the two events of the structure function.}
     \label{fig:spectrumStaircase}
 \end{figure}
 
@@ -420,6 +465,12 @@ $\ell_D/L$ drifts from $7.9$ to $6.1$ as the lower-Reynolds runs are dropped, mo
 Reynolds dependence of the integral scale is not captured by the $1/Re_\lambda$ term. The even ensemble gives an index within
 $0.0035$ of the odd one on this range and the same $\chi^2$ ($1.575$ against $1.577$), so the tail does not resolve the parity.
 It is fully consistent with the odd ensemble, the only stable one.
+
+The error $\pm0.017$ of $s$ is statistical, from the curvature of $\chi^2$. The spread over the runs is larger. Leaving
+out one run at a time gives $s=1.924$--$1.981$ (jackknife error $0.042$), and a bootstrap over the eight runs gives
+$s=1.91\pm0.09$. Lowering the tail cut from $\alpha_\infty<0.355$ to $0.30$, $0.25$, $0.20$ and $0.15$ moves $s$ to $1.949$,
+$1.910$, $1.887$ and $1.860$, with $\chi^2/\mathrm{dof}=1.4$--$1.8$ throughout. A realistic uncertainty of the one scale
+parameter is therefore $\pm0.09$, $\ell_D/L=7.0\pm0.6$, while the quality of the fit does not depend on the cut.
 
 \begin{table}[tbp]
     \centering
@@ -545,8 +596,10 @@ $10^{-9}$. The same
 Riemann and dyadic walls that produce the Stokes staircase and the log-periodic oscillations of the energy
 spectrum~\cite{migdal2026Riemann} are present in the structure function. There the Fourier kernel cancels the Gamma function
 that makes them visible in the spectrum. The index therefore has log-periodic oscillations with the same periods, but only at
-small separations, $\rho<C_{\min}$, and with amplitude below $1.5\times10^{-6}$. At large separations, where the structure
-function is a convergent series in real inverse powers of $\rho$, they vanish identically.
+small separations, where the thimble traps the wall poles, $\log\rho<-3.804$. Their Berry-smoothed contribution to the index
+is below $10^{-8}$, against $5\times10^{-4}$ in the spectral index near its first trapping; neither is observable at the
+percent level. At large separations, where the structure function is a convergent series in real inverse powers of $\rho$,
+they vanish identically.
 
 The small-$\rho$ structure has a direct meaning in time. Since $\rho=r/\sqrt{\tilde\nu(t+t_0)}$, the limit $\rho\to0$ is
 reached at small separations for fixed $t$ or, within the validity of the Navier--Stokes description, at fixed $r$ for
@@ -564,9 +617,10 @@ function, exactly as $\kappa=\infty$ is for the energy spectrum~\cite{migdal2026
 $-8\pm\I\gamma_n$ and $-\tfrac{17}{2}\pm2\pi\I m/\log2$ of the spectrum map one to one onto $7\mp\I\gamma_n$ and
 $\tfrac{15}{2}\mp2\pi\I m/\log2$. The infinite-time singularity of the velocity structure function is therefore dictated by the
 same number theory as the spectral singularity. Only the order of the Stokes activations differs. In the spectrum the thimble
-captures the Riemann-wall poles one by one, at times $t_n\propto\gamma_n^3/(\tilde\nu k^2)$ at fixed
-$k$~\cite{migdal2026Riemann}. In the structure function, where the Fourier kernel cancels $\Gamma(-p)$, the thimble captures
-the whole walls at once, for $\log\rho\lesssim-3.85$. In both representations the singular structure of decaying turbulence at
+captures eleven poles at once, at $\log\kappa=5.3613$, through a saddle connection, and the following ones one to three at a
+time, asymptotically at times $t_n\propto\gamma_n^3/(\tilde\nu k^2)$ at fixed $k$~\cite{migdal2026Riemann}. In the
+structure function, where the Fourier kernel cancels $\Gamma(-p)$, the thimble captures the whole walls at two Stokes events,
+at $\log\rho=-3.8037$ and $-4.2024$. In both representations the singular structure of decaying turbulence at
 infinite time is encoded by the zeros of the Riemann zeta function: number theory decodes turbulent intermittency.
 
 The small oscillations of the index observed at the largest separations in the Max Planck wind tunnel are reproduced by the
@@ -596,6 +650,18 @@ tail $\alpha\simeq a_1/(G(0)\rho)$ over a longer range. A longer tunnel or a slo
 $t=z/\bar v_z$ at the measuring station and, since small $\rho$ at fixed $r$ means large $t$, should extend the agreement
 toward the small-$\rho$ part of the index, where the present data depart from the theory. Measurements at several distances
 from the grid would follow this approach to the asymptotic state.
+
+Taken together, the comparisons give one picture. The turbulent attractor is a property of the infinite system at infinite
+Reynolds number, and a flow approaches it only where its boundaries, its discretization and its finite Reynolds number cease
+to matter. The $4096^3$ DNS at $Re_\lambda=145$ match the theory once the effects of the periodic box and of the lattice are
+eliminated~\cite{ReviewPaperAM,SreeniAkash2025}. The Max Planck wind tunnel, at $Re_\lambda$ up to $5779$, displays a
+turbulent-attractor region in which the index matches the theory closely. The freely decaying turbulent blob of Matsuzawa
+\emph{et al.}~\cite{Matsuzawa2026}, with smaller Reynolds numbers and a smaller spatial extent, does not display the
+attractor in its structure function, but the decay of its enstrophy already follows the Euler-ensemble law
+$\nu\VEV{\omega^2}\propto t^{-9/4}$ rather than Saffman's $t^{-11/5}$: on the widest straight piece of their published
+data~\cite{MatsuzawaData2026}, $t-t_0=1.5$--$15$~s, the likelihood ratio of Saffman's law to the Euler-ensemble law is
+$3\times10^{-6}$. The subtle log-periodic oscillations generated by the Riemann zeros remain a theoretical prediction,
+numerically far too small to be resolved by present experiments.
 
 \clearpage
 \begin{acknowledgments}
