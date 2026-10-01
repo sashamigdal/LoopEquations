@@ -1,4 +1,4 @@
-"""First comparison (README figures 6, 7): each Max Planck run's tail alpha_exp < 0.355 fitted by the infinite-system alpha_D(log(r/eta) - s)."""
+"""First comparison (README figures 6, 7): each Max Planck run's tail alpha_exp < ALPHA_FIT fitted by the infinite-system alpha_D(log(r/eta) - s)."""
 import numpy as np
 from scipy.optimize import minimize_scalar
 from common import cache, res, save_json, strip, mpi_files, mpi_index, num

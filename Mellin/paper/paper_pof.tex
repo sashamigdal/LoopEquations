@@ -1,4 +1,4 @@
-\documentclass[floatfix,aps,pre,preprint,superscriptaddress,nofootinbib,amsmath,amssymb]{revtex4-2}
+\documentclass[aip,pof,preprint,floatfix,nofootinbib,amsmath,amssymb]{revtex4-2}
 
 \usepackage{graphicx}
 \graphicspath{{figs/}{./}}   % figures may sit in figs/ or next to paper.tex
@@ -107,7 +107,7 @@ cancels identically on the compact spherical target~\cite{migdal2026Riemann}.
     \includegraphics[width=0.62\columnwidth]{RegularPolygons.png}
     \caption{Examples of the regular star polygons $\{q/p\}$ that form the discrete target space of the momentum loop. The
     turbulent state, the Euler ensemble, is a statistical average over random walks on all such polygons (from
-    Ref.~\cite{ReviewPaperAM}).}
+    Ref.~\onlinecite{ReviewPaperAM}).}
     \label{fig:polygons}
 \end{figure}
 
@@ -172,7 +172,7 @@ integral with the contour shifted across the pole at $q=0$:
     \label{eq:Drho}
 \end{equation}
 The Gamma function $\Gamma(-p)$ of the spectrum is cancelled by the Fourier kernel $\Gamma(p)\sin(\pi p/2)$, leaving
-$\csc(\pi q/2)$. Up to normalization, \eqref{eq:Zq} is the kernel $V(p)$ of Refs.~\cite{migdal2024quantum,ReviewPaperAM} for
+$\csc(\pi q/2)$. Up to normalization, \eqref{eq:Zq} is the kernel $V(p)$ of Refs.~\onlinecite{migdal2024quantum,ReviewPaperAM} for
 $d=3$, with the odd-ensemble factor. Its poles in $q$ are:
 \begin{itemize}
 \item the real poles $q=-1$, $q=2n$ ($n\in\mathbb Z$), $5/2$, $11/2$, $15/2$ (a double pole in the odd ensemble) and $15/2+2n$
@@ -187,7 +187,7 @@ The entire function $f(p)$ is an integral over the polygon parameter $\Delta$,
     f(p)=20\int_{\Delta_1}^{\Delta_2}d\Delta\,(1-\Delta)\,C^{p-1}\left(AC-Bp\right),
     \label{eq:fp}
 \end{equation}
-with $A(\Delta),B(\Delta),C(\Delta)$ given in Ref.~\cite{migdal2024quantum}. We evaluate it on a fixed Gauss--Legendre grid in $\Delta$, which makes $f(p)$, $f'(p)$ and
+with $A(\Delta),B(\Delta),C(\Delta)$ given in Ref.~\onlinecite{migdal2024quantum}. We evaluate it on a fixed Gauss--Legendre grid in $\Delta$, which makes $f(p)$, $f'(p)$ and
 $f''(p)$ exact and cheap for every complex $p$. Since $C(\Delta)\in[C_{\min},C_{\max}]=[e^{-2.915},e^{-2.763}]$, the factor
 $f(-1-q)\sim C^{-2-q}$ fixes the convergence of the residue expansions:
 \begin{itemize}
@@ -201,7 +201,7 @@ In the crossover $C_{\min}\lesssim\rho\lesssim C_{\max}$ neither series converge
 \subsection{Lefschetz thimbles and Gauss--Hermite quadrature}
 
 Write $-2Z_\eta(q)\rho^q=e^{W(q)}$, $W(q)=S(q)+q\log\rho$. For every $\rho$ there is one real saddle $q_0\in(0,2)$,
-$W'(q_0)=0$, since $S''>0$ on the strip. As in Ref.~\cite{migdal2026Riemann}, the thimble through $q_0$ is parametrized so
+$W'(q_0)=0$, since $S''>0$ on the strip. As in Ref.~\onlinecite{migdal2026Riemann}, the thimble through $q_0$ is parametrized so
 that the weight decays as $e^{-t^2}$:
 \begin{equation}
     W\left(q(t)\right)=W(q_0)-t^2,\qquad \frac{dq}{dt}=-\frac{2t}{W'(q)},\qquad
@@ -314,7 +314,7 @@ $u=\log\kappa$ for the spectrum and $u=-\log\rho$ for the structure function, th
     \label{eq:Berry}
 \end{equation}
 where $J_e$ is the residue sum of the poles trapped at the event, and the sign makes $S_e$ grow from $0$ to $1$ with $u$.
-This is the multiplier of Ref.~\cite{migdal2026Riemann}, with the pole singulant replaced by that of the saddle
+This is the multiplier of Ref.~\onlinecite{migdal2026Riemann}, with the pole singulant replaced by that of the saddle
 connection. $F_e$ is followed exactly in $u$, with $dF_e/d\xi=q_0-s_e$. Near the event
 $\mathrm{Im}\,F_e\approx-\mathrm{Im}\,s_e\,(\xi-\xi_e)$, so that the width of the switching is
 $\sqrt{2\,\mathrm{Re}\,F_e}/\mathrm{Im}\,s_e=0.57$ for the first event of the spectrum, and $0.57$ and $0.78$ for the two
@@ -407,7 +407,7 @@ finite-size oscillations of~\eqref{eq:DW} with $\kappa_{\min}=0.1$.
 
 We use the second-order structure functions $S_2(r)$ measured in decaying turbulence in the Max Planck Variable Density
 Turbulence Tunnel by Küchler, Bewley and Bodenschatz~\cite{GregXi2}, for $11$ runs with $Re_\lambda=413$--$5779$. These are the
-full data sets behind Ref.~\cite{GregXi2}, provided by the authors. The measured index is
+full data sets behind Ref.~\onlinecite{GregXi2}, provided by the authors. The measured index is
 $\alpha_{\exp}=d\log S_2/d\log r$, computed by centered differences. The unknown normalization of $S_2$ drops out of $\alpha$.
 
 In grid turbulence the decay time is the distance from the grid, $t=z/\bar v_z$. The theory's variable is
@@ -515,7 +515,7 @@ small~\cite{ReviewPaperAM}. They are the numerical counterpart of the finite-wid
     \includegraphics[width=0.72\columnwidth]{BSSpectra_clean.png}
     \caption{Effective index $\VEV{r\,\partial_r\log(\Delta v^2)}$ of the $4096^3$ DNS of decaying turbulence by Rodhiya and
     Sreenivasan~\cite{SreeniAkash2025} (Birkhoff--Saffman initial spectrum) against the Euler-ensemble prediction (from
-    Ref.~\cite{ReviewPaperAM}).}
+    Ref.~\onlinecite{ReviewPaperAM}).}
     \label{fig:dns}
 \end{figure}
 
@@ -669,15 +669,20 @@ I am grateful to Christian Küchler, Gregory Bewley and Eberhard Bodenschatz for
 measurements~\cite{GregXi2}, and to Katepalli Sreenivasan and Akash Rodhiya for the $4096^3$ DNS data~\cite{SreeniAkash2025}.
 \end{acknowledgments}
 
-\section*{Declaration of generative AI in the writing process}
+\section*{Author Declarations}
+\subsection*{Conflict of Interest}
+The author has no conflicts to disclose.
+
+\subsection*{Use of generative AI}
 The Python implementation of the computations, the analysis of the wind-tunnel data and the first draft of this manuscript were
 prepared with the assistance of generative AI (Claude, Anthropic), following the author's instructions and his \Mathematica{}
 notebooks. The author verified the scientific content and takes full responsibility for the manuscript.
 
-\section*{Code and data availability}
-The code that produced every number and every computed figure of this paper is provided as ancillary files with the arXiv
-version of the paper (directory \texttt{anc}) and is maintained in the folder \texttt{Mellin} of the GitHub
-repository~\cite{LoopEquationsRepo}; version v2.0 is archived on Zenodo~\cite{ZenodoMellin}. It contains
+\section*{Data Availability}
+The code and data tables that support the findings of this study are openly available in Zenodo at
+\url{https://doi.org/10.5281/zenodo.23068087}, Ref.~\onlinecite{ZenodoMellin}. The same files are provided as ancillary files
+with the arXiv version of the paper (directory \texttt{anc}) and are maintained in the folder \texttt{Mellin} of the GitHub
+repository~\cite{LoopEquationsRepo}. They contain
 (i) the Python implementation used for all results: the table of $A,B,C(\Delta)$ and the function $f(p)$, the saddles,
 thimbles, Gauss--Hermite sums and Stokes terms of Sec.~\ref{sec:method}, the direct contour integrals used as checks, the
 finite-width correction~\eqref{eq:DW}, the analysis of the wind-tunnel data of Sec.~\ref{sec:data}, and the script
@@ -686,11 +691,11 @@ Max Planck data, Figs.~\ref{fig:runs}, \ref{fig:extrap}, \ref{fig:attractor} and
 (ii) a \Mathematica{} package and driver notebook implementing the same algorithm;
 (iii) the scan tables and fitted parameters.
 The file \texttt{README.md} there lists the script behind each figure, table and quoted number. Earlier notebooks are
-in Refs.~\cite{MBMellinDT, MB46, DecayTurb23}. The Max Planck data of Ref.~\cite{GregXi2} were provided by the authors on
+in Refs.~\onlinecite{MBMellinDT, MB46, DecayTurb23}. The Max Planck data of Ref.~\onlinecite{GregXi2} were provided by the authors on
 request and are quoted with their permission; they are not redistributed and are available from the authors. The DNS data
-of Ref.~\cite{SreeniAkash2025} are available on request from their authors.
+of Ref.~\onlinecite{SreeniAkash2025} are available on request from their authors.
 
-\bibliographystyle{apsrev4-2}
+\bibliographystyle{aipnum4-2}
 \bibliography{paper}
 
 \end{document}

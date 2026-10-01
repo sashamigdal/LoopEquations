@@ -1,13 +1,15 @@
 """Data-driven Re -> infinity extrapolation of the measured index, then theory fit.
 Each run: u'^2 = S2(inf)/2, R(r) = 1 - S2/(2u'^2), integral scale L = Int_0^{r0} R dr (r0 = first zero of R).
-alpha_exp(x), x = log(r/L), binned on a common grid; at each x fit alpha = alpha_inf(x) + c(x) Re^-beta over mid+high Re runs.
+alpha_exp(x), x = log(r/L), binned on a common grid, without the boundary-effects region r > W (W = common width of
+finite_box_W2.py: a separation longer than the width of the flow cannot probe isotropic turbulence); at each x fit alpha = alpha_inf(x) + c(x) Re^-beta over mid+high Re runs.
 Theory: alpha_inf(x) ~ alpha_D(x - s_inf)  (one parameter; optionally with a box k_min)."""
 import json, numpy as np
 from scipy.optimize import minimize_scalar, minimize
 from finite_box import alphaL, load
-from common import cache, res, load_json, save_json, strip, mpi_files, num
+from common import cache, res, load_json, save_json, strip, mpi_files, num, ALPHA_FIT
 files = mpi_files()
 P = load_json(res('mpi_physical_units.json')); Fb = load_json(cache('mpi_fit_box_full.json'))
+W = load_json(res('mpi_fit_width_sub.json'))['W_sub']      # m
 runs = []
 for f, p, fb in zip(files, P, Fb):
     d = np.genfromtxt(f, delimiter=',', skip_header=1); rn, S2 = d[:, 1], d[:, 2]
@@ -18,13 +20,15 @@ for f, p, fb in zip(files, P, Fb):
         t = Rr[-2]/(Rr[-2]-Rr[-1]); r[-1] = r[-2]+t*(r[-1]-r[-2]); Rr[-1] = 0.0
     L = np.trapezoid(Rr, r)               # in eta units
     lr, a, _ = load(f)
-    runs.append(dict(Re=num(r'Re_([0-9.]+)_', f), L_eta=L, lr=lr, a=a, s=fb['s_inf'], lD_over_L=np.exp(fb['s_inf'])/L))
-    print('Re=%5.0f  L/eta=%.3g  (L=%.3f m)   l_D/L from the tail fit = %.2f' % (runs[-1]['Re'], L, L*p['eta'], runs[-1]['lD_over_L']))
+    runs.append(dict(Re=num(r'Re_([0-9.]+)_', f), L_eta=L, lr=lr, a=a, s=fb['s_inf'], lD_over_L=np.exp(fb['s_inf'])/L,
+                     lr_W=float(np.log(W/p['eta'])), L_over_W=float(L*p['eta']/W)))
+    print('Re=%5.0f  L/eta=%.3g  (L=%.3f m = %.2f W)   l_D/L from the tail fit = %.2f   points with r > W = %.2f m: %d' % (
+        runs[-1]['Re'], L, L*p['eta'], L*p['eta']/W, runs[-1]['lD_over_L'], W, (lr > runs[-1]['lr_W']).sum()))
 xg = np.arange(-4.0, 2.61, 0.1)
 def binned(run):
     x = run['lr']-np.log(run['L_eta']); out = np.full(len(xg), np.nan)
     for j, x0 in enumerate(xg):
-        m = np.abs(x-x0) <= 0.05
+        m = (np.abs(x-x0) <= 0.05) & (run['lr'] <= run['lr_W'])      # boundary-effects region r > W excluded
         if m.sum() >= 1: out[j] = run['a'][m].mean()
     return out
 Ab = np.array([binned(r) for r in runs]); Re = np.array([r['Re'] for r in runs])
@@ -39,8 +43,8 @@ for name, sel in [('mid+high (Re>=1046)', Re >= 1000), ('high (Re>=3070)', Re >=
                 ainf[j] = c[0]
                 dof = ok.sum()-2; s2 = (rs[0]/dof) if (len(rs) and dof > 0) else np.nan
                 cov = s2*np.linalg.inv(A.T@A) if np.isfinite(s2) else np.full((2, 2), np.nan); aerr[j] = np.sqrt(cov[0, 0])
-        # theory fit to the extrapolated tail (alpha_inf < 0.355, beyond the plateau)
-        m = np.isfinite(ainf) & np.isfinite(aerr) & (aerr > 0) & (ainf < 0.355) & (xg > -3.0)
+        # theory fit to the extrapolated tail (alpha_inf < ALPHA_FIT, beyond the plateau)
+        m = np.isfinite(ainf) & np.isfinite(aerr) & (aerr > 0) & (ainf < ALPHA_FIT) & (xg > -3.0)
         wt = 1/aerr[m]**2; nfit = int(m.sum())
         e1 = lambda s: np.sum(wt*(ainf[m]-alphaL(xg[m]-s, 0.0)[0])**2)
         r1 = minimize_scalar(e1, bounds=(-4, 4), method='bounded')
